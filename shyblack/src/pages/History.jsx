@@ -1,204 +1,139 @@
-import { useState, useMemo } from 'react'
-import { Search, Filter, X, ArrowUpDown, Calendar } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { Search, ArrowUpDown, X } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
-import { TRANSACTION_TYPES, ALL_CATEGORIES, INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../utils/constants'
+import { formatCurrency, formatDate, groupBy } from '../utils/helpers'
 import TransactionItem from '../components/TransactionItem'
-import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
+import GlassCard from '../components/GlassCard'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants'
 
 export default function History() {
   const { transactions, deleteTransaction } = useFinance()
   const [search, setSearch] = useState('')
+  const [filterCategory, setFilterCategory] = useState('')
   const [filterType, setFilterType] = useState('all')
-  const [filterCategory, setFilterCategory] = useState('all')
-  const [sortOrder, setSortOrder] = useState('newest')
-  const [showFilters, setShowFilters] = useState(false)
+  const [sortOrder, setSortOrder] = useState('desc')
+
+  const allCategories = useMemo(() => [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], [])
+
+  const toggleSort = useCallback(() => setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'), [])
 
   const filtered = useMemo(() => {
     let result = [...transactions]
-
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter((t) => {
-        const cat = ALL_CATEGORIES.find((c) => c.id === t.category)
-        return (
-          cat?.label.toLowerCase().includes(q) ||
-          (t.note && t.note.toLowerCase().includes(q))
-        )
-      })
-    }
 
     if (filterType !== 'all') {
       result = result.filter((t) => t.type === filterType)
     }
 
-    if (filterCategory !== 'all') {
+    if (filterCategory) {
       result = result.filter((t) => t.category === filterCategory)
     }
 
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter((t) => {
+        const numMatch = !isNaN(Number(q)) && t.amount === Number(q)
+        return numMatch || t.category?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q) || t.tags?.some((tag) => tag.toLowerCase().includes(q))
+      })
+    }
+
     result.sort((a, b) => {
-      const da = new Date(a.date).getTime()
-      const db = new Date(b.date).getTime()
-      return sortOrder === 'newest' ? db - da : da - db
+      const diff = new Date(b.date) - new Date(a.date)
+      return sortOrder === 'desc' ? diff : -diff
     })
 
     return result
-  }, [transactions, search, filterType, filterCategory, sortOrder])
+  }, [transactions, filterType, filterCategory, search, sortOrder])
 
-  const activeFilterCount = [filterType !== 'all', filterCategory !== 'all'].filter(Boolean).length
+  const grouped = useMemo(() => groupBy(filtered, 'date'), [filtered])
 
-  const clearFilters = () => {
+  const clearFilters = useCallback(() => {
     setSearch('')
+    setFilterCategory('')
     setFilterType('all')
-    setFilterCategory('all')
-    setSortOrder('newest')
-  }
+    setSortOrder('desc')
+  }, [])
 
-  const hasFilters = search || filterType !== 'all' || filterCategory !== 'all'
-
-  const filterCategories = filterType === 'all'
-    ? ALL_CATEGORIES
-    : filterType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const hasFilters = search || filterCategory || filterType !== 'all'
 
   return (
-    <div className="p-4 max-w-lg mx-auto animate-fade-in">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">History</h1>
-        {activeFilterCount > 0 && (
-          <button onClick={clearFilters} className="text-xs text-neon/70 hover:text-neon transition-colors">
-            Clear ({activeFilterCount})
-          </button>
-        )}
+    <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
+      <h1 className="text-xl font-bold mb-5">Transaction History</h1>
+
+      <div className="relative mb-4">
+        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search by amount, category, or note..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="input-field pl-10 text-sm"
+        />
       </div>
 
-      {/* Search & Filter Bar */}
-      <div className="flex gap-2 mb-4">
-        <div className="relative flex-1">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search transactions..."
-            className="input-field pl-9 text-sm"
-          />
-          {search && (
+      <GlassCard className="mb-5 px-3 py-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {['all', 'income', 'expense'].map((type) => (
             <button
-              onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
+              key={type}
+              onClick={() => setFilterType(type)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all min-h-[32px] ${
+                filterType === type ? 'bg-neon text-black' : 'text-gray-500 hover:text-white hover:bg-white/5'
+              }`}
             >
-              <X size={14} />
+              {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
             </button>
-          )}
-        </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`btn-secondary px-3 !py-2.5 transition-all duration-200 ${
-            showFilters || activeFilterCount > 0 ? 'border-neon/30 text-neon' : ''
-          }`}
-        >
-          <Filter size={18} />
-        </button>
-      </div>
-
-      {/* Filter Panel */}
-      {showFilters && (
-        <GlassCard className="mb-4 space-y-3.5 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-gray-400">Filters</span>
-            <button
-              onClick={clearFilters}
-              className="text-xs text-neon/70 hover:text-neon transition-colors"
-            >
-              Reset all
-            </button>
-          </div>
-
-          <div>
-            <p className="text-[11px] text-gray-500 mb-2 font-medium">Type</p>
-            <div className="flex gap-2">
-              {['all', 'income', 'expense'].map((t) => (
-                <button
-                  key={t}
-                  onClick={() => { setFilterType(t); setFilterCategory('all') }}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                    filterType === t
-                      ? t === 'income'
-                        ? 'bg-neon/10 text-neon border border-neon/30'
-                        : t === 'expense'
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/30'
-                        : 'bg-white/10 text-white border border-white/20'
-                      : 'bg-matte-100 text-gray-500 border border-transparent hover:text-gray-300'
-                  }`}
-                >
-                  {t === 'all' ? 'All' : t.charAt(0).toUpperCase() + t.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {filterType !== 'all' && (
-            <div>
-              <p className="text-[11px] text-gray-500 mb-2 font-medium">Category</p>
-              <div className="flex flex-wrap gap-1.5">
-                <button
-                  onClick={() => setFilterCategory('all')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                    filterCategory === 'all'
-                      ? 'bg-white/10 text-white border border-white/20'
-                      : 'bg-matte-100 text-gray-500 border border-transparent hover:text-gray-300'
-                  }`}
-                >
-                  All
-                </button>
-                {filterCategories.map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => setFilterCategory(c.id)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-150 ${
-                      filterCategory === c.id
-                        ? 'border-neon/30 text-neon bg-neon/10'
-                        : 'bg-matte-100 text-gray-500 border border-transparent hover:text-gray-300'
-                    }`}
-                  >
-                    {c.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-
+          ))}
+          <span className="w-px h-5 bg-glass-border" />
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="bg-transparent text-xs text-gray-400 border border-glass-border rounded-lg px-2 py-1.5 focus:outline-none focus:border-neon/30 min-h-[32px]"
+          >
+            <option value="">All Categories</option>
+            {allCategories.map((cat) => (
+              <option key={cat.id} value={cat.id}>{cat.label}</option>
+            ))}
+          </select>
           <button
-            onClick={() => setSortOrder(sortOrder === 'newest' ? 'oldest' : 'newest')}
-            className="flex items-center gap-2 text-xs text-gray-400 hover:text-white transition-colors"
+            onClick={toggleSort}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-white/5 transition-all min-h-[32px]"
           >
             <ArrowUpDown size={12} />
-            {sortOrder === 'newest' ? 'Newest first' : 'Oldest first'}
+            {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
           </button>
-        </GlassCard>
-      )}
-
-      {/* Transaction List */}
-      <GlassCard>
-        {filtered.length === 0 ? (
-          <EmptyState
-            icon={Calendar}
-            title={hasFilters ? 'No matching transactions' : 'No transactions yet'}
-            description={hasFilters ? 'Try adjusting your search or filters' : 'Your transactions will appear here'}
-          />
-        ) : (
-          <div className="divide-y divide-glass-border">
-            {filtered.map((tx) => (
-              <TransactionItem key={tx.id} transaction={tx} onDelete={deleteTransaction} />
-            ))}
-          </div>
-        )}
+        </div>
       </GlassCard>
 
-      {filtered.length > 0 && (
-        <p className="text-xs text-gray-600 mt-3 text-center tabular-nums">
-          Showing {filtered.length} of {transactions.length} transaction{transactions.length !== 1 ? 's' : ''}
-        </p>
+      {hasFilters && (
+        <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-gray-500 hover:text-neon transition-colors mb-4 pl-1 min-h-[28px]">
+          <X size={12} /> Clear filters
+        </button>
+      )}
+
+      {filtered.length === 0 ? (
+        <GlassCard>
+          <EmptyState
+            title={hasFilters ? 'No matches found' : 'No transactions'}
+            description={hasFilters ? 'Try adjusting your search or filters' : 'Add your first transaction to see it here'}
+          />
+        </GlassCard>
+      ) : (
+        <div className="space-y-4">
+          {Object.entries(grouped).map(([date, txs]) => (
+            <div key={date}>
+              <div className="flex items-center justify-between mb-2 px-1">
+                <p className="text-xs font-semibold text-gray-500">{formatDate(date)}</p>
+                <p className="text-[10px] text-gray-600">{txs.length} {txs.length === 1 ? 'transaction' : 'transactions'}</p>
+              </div>
+              <GlassCard>
+                {txs.map((tx) => (
+                  <TransactionItem key={tx.id} transaction={tx} onDelete={deleteTransaction} />
+                ))}
+              </GlassCard>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   )

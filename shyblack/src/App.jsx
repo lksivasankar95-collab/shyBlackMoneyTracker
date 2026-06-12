@@ -1,4 +1,4 @@
-import { useState, useRef, lazy, Suspense } from 'react'
+import { useState, useRef, useCallback, lazy, Suspense } from 'react'
 import { FinanceProvider } from './context/FinanceContext'
 import { ToastProvider } from './components/Toast'
 import BrandHeader from './components/BrandHeader'
@@ -9,6 +9,9 @@ const AddTransaction = lazy(() => import('./pages/AddTransaction'))
 const History = lazy(() => import('./pages/History'))
 const Analytics = lazy(() => import('./pages/Analytics'))
 const Settings = lazy(() => import('./pages/Settings'))
+const InsightsPage = lazy(() => import('./pages/InsightsPage'))
+const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -16,7 +19,12 @@ const pages = {
   history: History,
   analytics: Analytics,
   settings: Settings,
+  insights: InsightsPage,
+  budgets: BudgetsPage,
+  reports: ReportsPage,
 }
+
+const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
 
 function PageLoader() {
   return (
@@ -39,31 +47,35 @@ function AppContent() {
   const [animDir, setAnimDir] = useState('forward')
   const prevPage = useRef(currentPage)
 
-  const navOrder = ['dashboard', 'add', 'history', 'analytics', 'settings']
-
-  const handleNavigate = (page) => {
-    const prevIdx = navOrder.indexOf(prevPage.current)
-    const nextIdx = navOrder.indexOf(page)
-    setAnimDir(nextIdx >= prevIdx ? 'forward' : 'backward')
+  const handleNavigate = useCallback((page) => {
+    const prevIdx = navPages.indexOf(prevPage.current)
+    const nextIdx = navPages.indexOf(page)
+    const isNavChange = prevIdx >= 0 && nextIdx >= 0
+    setAnimDir(isNavChange && nextIdx >= prevIdx ? 'forward' : 'backward')
     prevPage.current = page
     setCurrentPage(page)
-  }
+  }, [])
 
   const Page = pages[currentPage]
+  const showHeader = currentPage === 'dashboard' || navPages.includes(currentPage)
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="sticky top-0 z-40 bg-matte/80 backdrop-blur-xl border-b border-glass-border">
-        <div className="max-w-lg mx-auto px-4">
-          <BrandHeader compact />
+      {showHeader && (
+        <div className="sticky top-0 z-40 bg-matte/80 backdrop-blur-xl border-b border-glass-border">
+          <div className="max-w-lg mx-auto px-4">
+            <BrandHeader compact />
+          </div>
         </div>
-      </div>
+      )}
       <Suspense fallback={<PageLoader />}>
         <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={currentPage}>
           <Page onNavigate={handleNavigate} currentPage={currentPage} />
         </div>
       </Suspense>
-      <BottomNav active={currentPage} onNavigate={handleNavigate} />
+      {navPages.includes(currentPage) && (
+        <BottomNav active={currentPage} onNavigate={handleNavigate} />
+      )}
     </div>
   )
 }

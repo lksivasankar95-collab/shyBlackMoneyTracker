@@ -1,23 +1,30 @@
 import { useState } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
+import { getSmartCategoryPrediction } from '../utils/insights'
+import { getSuggestedTags } from '../utils/tags'
 import CategoryIcon from '../components/CategoryIcon'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
 const MAX_AMOUNT = 99999999
 
 export default function AddTransaction({ onNavigate }) {
-  const { addTransaction } = useFinance()
+  const { addTransaction, addRecurring, tags, addTag } = useFinance()
   const [type, setType] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [selectedTags, setSelectedTags] = useState([])
+  const [isRecurring, setIsRecurring] = useState(false)
+  const [frequency, setFrequency] = useState('monthly')
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [showTagPicker, setShowTagPicker] = useState(false)
 
   const categories = type === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const suggestedTags = getSuggestedTags()
 
   const handleAmountChange = (e) => {
     const val = e.target.value
@@ -26,6 +33,12 @@ export default function AddTransaction({ onNavigate }) {
       if (val === '' || num <= MAX_AMOUNT) {
         setAmount(val)
         setError('')
+        if (note && !category) {
+          const predicted = getSmartCategoryPrediction(null, note)
+          if (predicted && categories.find((c) => c.id === predicted)) {
+            setCategory(predicted)
+          }
+        }
       } else {
         setError('Amount too large')
       }
@@ -35,6 +48,24 @@ export default function AddTransaction({ onNavigate }) {
   const handleQuickAmount = (val) => {
     setAmount(String(val))
     setError('')
+  }
+
+  const handleNoteChange = (e) => {
+    const val = e.target.value
+    setNote(val)
+    if (val && !category) {
+      const predicted = getSmartCategoryPrediction(null, val)
+      if (predicted && categories.find((c) => c.id === predicted)) {
+        setCategory(predicted)
+      }
+    }
+  }
+
+  const toggleTag = (tagName) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagName) ? prev.filter((t) => t !== tagName) : [...prev, tagName]
+    )
+    addTag(tagName)
   }
 
   const handleSubmit = (e) => {
@@ -55,19 +86,44 @@ export default function AddTransaction({ onNavigate }) {
       return
     }
 
-    addTransaction({ type, amount: numAmount, category, note: note.trim(), date })
+    const transactionData = {
+      type,
+      amount: numAmount,
+      category,
+      note: note.trim(),
+      date,
+      tags: selectedTags,
+    }
+
+    addTransaction(transactionData)
+
+    if (isRecurring) {
+      const nextDate = new Date(date)
+      if (frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
+      else if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
+      else if (frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1)
+
+      addRecurring({
+        ...transactionData,
+        frequency,
+        nextDate: nextDate.toISOString().split('T')[0],
+        active: true,
+      })
+    }
 
     setAmount('')
     setCategory('')
     setNote('')
     setDate(new Date().toISOString().split('T')[0])
+    setSelectedTags([])
+    setIsRecurring(false)
     setSuccess(true)
     setError('')
     setTimeout(() => setSuccess(false), 2000)
   }
 
   return (
-    <div className="p-4 max-w-lg mx-auto animate-fade-in">
+    <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <h1 className="text-xl font-bold mb-6">Add Transaction</h1>
 
       {/* Type Toggle */}
@@ -161,11 +217,56 @@ export default function AddTransaction({ onNavigate }) {
           <input
             type="text"
             value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Add a note..."
+            onChange={handleNoteChange}
+            placeholder="e.g. Swiggy order, Salary, Amazon..."
             className="input-field"
             maxLength={100}
           />
+        </div>
+
+        {/* Tags */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-gray-500 font-medium">Tags <span className="text-gray-600 font-normal">(optional)</span></label>
+            <button
+              type="button"
+              onClick={() => setShowTagPicker(!showTagPicker)}
+              className="flex items-center gap-1 text-xs text-neon/70 hover:text-neon transition-colors"
+            >
+              <Tag size={12} />
+              {showTagPicker ? 'Done' : 'Add tags'}
+            </button>
+          </div>
+          {selectedTags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedTags.map((t) => (
+                <span key={t} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 text-[10px] font-medium border border-purple-500/20">
+                  #{t}
+                  <button type="button" onClick={() => toggleTag(t)} className="hover:text-white">
+                    <X size={10} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          {showTagPicker && (
+            <div className="flex flex-wrap gap-1.5">
+              {(tags.length > 0 ? tags.map((t) => t.name) : suggestedTags).map((t) => (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleTag(t)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all duration-150 ${
+                    selectedTags.includes(t)
+                      ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
+                      : 'border-glass-border text-gray-500 hover:border-gray-400'
+                  }`}
+                >
+                  #{t}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Date */}
@@ -177,6 +278,34 @@ export default function AddTransaction({ onNavigate }) {
             onChange={(e) => setDate(e.target.value)}
             className="input-field"
           />
+        </div>
+
+        {/* Recurring */}
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03]">
+          <button
+            type="button"
+            onClick={() => setIsRecurring(!isRecurring)}
+            className={`p-2 rounded-lg transition-all duration-150 ${
+              isRecurring ? 'bg-neon/10 text-neon' : 'bg-matte-100 text-gray-500'
+            }`}
+          >
+            <Repeat2 size={16} />
+          </button>
+          <div className="flex-1">
+            <p className="text-xs font-medium">Recurring Transaction</p>
+            <p className="text-[11px] text-gray-500">Set up automatic recurring entries</p>
+          </div>
+          {isRecurring && (
+            <select
+              value={frequency}
+              onChange={(e) => setFrequency(e.target.value)}
+              className="input-field text-xs !py-1.5 w-24"
+            >
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          )}
         </div>
 
         {/* Error */}

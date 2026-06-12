@@ -9,8 +9,8 @@ export default function TransactionItem({ transaction, onDelete, compact }) {
 
   return (
     <div className="flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2">
-      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-          isIncome ? 'bg-neon/10 text-neon' : 'bg-red-500/10 text-red-400'
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-inset ${
+          isIncome ? 'bg-neon/10 text-neon ring-neon/20' : 'bg-red-500/10 text-red-400 ring-red-500/20'
         }`}
       >
         <CategoryIcon icon={cat?.icon} size={18} />
@@ -20,7 +20,7 @@ export default function TransactionItem({ transaction, onDelete, compact }) {
           {cat?.label || 'Unknown'}
         </p>
         {!compact && (
-          <p className="text-xs text-gray-500 mt-0.5 truncate">
+          <p className="text-xs text-gray-600 mt-0.5 truncate">
             {transaction.note && `${transaction.note} · `}
             {formatDate(transaction.date)}
           </p>
@@ -29,7 +29,7 @@ export default function TransactionItem({ transaction, onDelete, compact }) {
       <div className="flex items-center gap-2 shrink-0">
         <div className="text-right">
           <p className={`text-sm font-bold tabular-nums leading-tight ${
-              isIncome ? 'text-neon' : 'text-red-400'
+              isIncome ? 'text-neon glow-neon-sm' : 'text-red-400'
             }`}
           >
             {isIncome ? '+' : '-'}{formatCurrency(transaction.amount)}

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/colorPrimary"/>
+    <item
+        android:width="120dp"
+        android:height="120dp"
+        android:gravity="center">
+        <vector
+            android:width="120dp"
+            android:height="120dp"
+            android:viewportHeight="120"
+            android:viewportWidth="120">
+            <!-- Outer ring -->
+            <path
+                android:fillColor="#39FF14"
+                android:pathData="M60,8C31.28,8 8,31.28 8,60s23.28,52 52,52 52,-23.28 52,-52S88.72,8 60,8zM60,102.72C36.4,102.72 17.28,83.6 17.28,60S36.4,17.28 60,17.28 102.72,36.4 102.72,60 83.6,102.72 60,102.72z"
+                android:strokeWidth="0"/>
+            <!-- Inner ring glow -->
+            <path
+                android:fillColor="#39FF14"
+                android:fillAlpha="0.3"
+                android:pathData="M60,16C35.7,16 16,35.7 16,60s19.7,44 44,44 44,-19.7 44,-44S84.3,16 60,16zM60,98.7C38.6,98.7 21.3,81.4 21.3,60S38.6,21.3 60,21.3 98.7,38.6 98.7,60 81.4,98.7 60,98.7z"
+                android:strokeWidth="0"/>
+            <!-- 'S' letterform -->
+            <path
+                android:fillColor="#0A0A0F"
+                android:pathData="M54,34L66,34L66,46L54,46L54,50L66,50L66,54L54,54L54,58L66,58L66,70L54,70L54,66L42,66L42,54L54,54L54,50L42,50L42,38L54,38Z"/>
+            <!-- 'S' accent highlight -->
+            <path
+                android:fillColor="#39FF14"
+                android:fillAlpha="0.15"
+                android:pathData="M54,34L66,34L66,46L54,46Z"/>
+        </vector>
+    </item>
+</layer-list>

@@ -41,6 +41,15 @@ export const generateId = () => {
   return Date.now().toString(36) + Math.random().toString(36).substring(2)
 }
 
+export const groupBy = (items, key) => {
+  return items.reduce((acc, item) => {
+    const k = item[key]
+    if (!acc[k]) acc[k] = []
+    acc[k].push(item)
+    return acc
+  }, {})
+}
+
 export const groupByCategory = (transactions, type) => {
   const filtered = transactions.filter((t) => t.type === type)
   const grouped = {}
