@@ -1,4 +1,4 @@
-import { createContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { generateId } from '../utils/helpers'
 
 export const FinanceContext = createContext()
@@ -110,7 +110,7 @@ export function FinanceProvider({ children }) {
     if (data.savings) setSavingsGoal(data.savings)
   }, [])
 
-  const value = {
+  const value = useMemo(() => ({
     transactions,
     savingsGoal,
     addTransaction,
@@ -122,7 +122,19 @@ export function FinanceProvider({ children }) {
     updateSavings,
     clearAllData,
     importData,
-  }
+  }), [
+    transactions,
+    savingsGoal,
+    addTransaction,
+    deleteTransaction,
+    updateTransaction,
+    getBalance,
+    getMonthlySummary,
+    getMonthlyData,
+    updateSavings,
+    clearAllData,
+    importData,
+  ])
 
   return (
     <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

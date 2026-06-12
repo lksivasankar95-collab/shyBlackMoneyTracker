@@ -1,14 +1,17 @@
+import { memo } from 'react'
 import GlassCard from './GlassCard'
 
-export default function StatCard({ icon: Icon, label, value, color = 'text-white', subtext }) {
+const StatCard = memo(function StatCard({ icon: Icon, label, value, color = 'text-white', subtext }) {
   return (
-    <GlassCard className="flex flex-col gap-1 flex-1 min-w-[120px]">
-      <div className="flex items-center gap-2 text-gray-400 text-xs font-medium uppercase tracking-wider">
-        {Icon && <Icon size={14} />}
-        <span>{label}</span>
+    <GlassCard className="flex flex-col gap-1.5 flex-1 min-w-0">
+      <div className="flex items-center gap-1.5 text-gray-400 text-[11px] font-semibold uppercase tracking-wider">
+        {Icon && <Icon size={13} />}
+        <span className="truncate">{label}</span>
       </div>
-      <span className={`text-lg font-bold ${color}`}>{value}</span>
-      {subtext && <span className="text-xs text-gray-500">{subtext}</span>}
+      <span className={`text-xl font-extrabold tracking-tight ${color}`}>{value}</span>
+      {subtext && <span className="text-[11px] text-gray-500">{subtext}</span>}
     </GlassCard>
   )
-}
+})
+
+export default StatCard

@@ -1,16 +1,20 @@
+import { memo } from 'react'
 import { Inbox } from 'lucide-react'
 
-export default function EmptyState({ icon: Icon, title, description }) {
+const EmptyState = memo(function EmptyState({ icon: Icon, title, description, action }) {
   const IconComponent = Icon || Inbox
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
-      <div className="w-16 h-16 rounded-2xl bg-matte-200 flex items-center justify-center mb-4">
-        <IconComponent size={28} className="text-gray-500" />
+    <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in">
+      <div className="w-14 h-14 rounded-2xl bg-matte-200 flex items-center justify-center mb-4 ring-1 ring-white/5">
+        <IconComponent size={26} className="text-gray-500" />
       </div>
       <p className="text-sm font-medium text-gray-400">{title}</p>
       {description && (
-        <p className="text-xs text-gray-600 mt-1 max-w-[200px]">{description}</p>
+        <p className="text-xs text-gray-600 mt-1.5 max-w-[220px] leading-relaxed">{description}</p>
       )}
+      {action && <div className="mt-4">{action}</div>}
     </div>
   )
-}
+})
+
+export default EmptyState
