@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronRight, Eye, EyeOff, Send, BarChart3 } from 'lucide-react'
+import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, ChevronRight, Eye, EyeOff } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, getMonthName } from '../utils/helpers'
 import GlassCard from '../components/GlassCard'
@@ -34,19 +34,6 @@ export default function Dashboard({ onNavigate }) {
       return entries.length > 0 ? { category: entries[0][0], amount: entries[0][1] } : null
     }
     return { income: getTop('income'), expense: getTop('expense') }
-  }, [transactions])
-
-  const tradingMetrics = useMemo(() => {
-    const capitalInvested = transactions
-      .filter((t) => t.transactionPurpose === 'investment_transfer')
-      .reduce((sum, t) => sum + t.amount, 0)
-    const tradingProfit = transactions
-      .filter((t) => t.transactionPurpose === 'trading_profit')
-      .reduce((sum, t) => sum + t.amount, 0)
-    const tradingLoss = transactions
-      .filter((t) => t.transactionPurpose === 'trading_loss')
-      .reduce((sum, t) => sum + t.amount, 0)
-    return { capitalInvested, tradingProfit, tradingLoss, netResult: tradingProfit - tradingLoss }
   }, [transactions])
 
   const toggleHide = useCallback(() => {
@@ -102,56 +89,6 @@ export default function Dashboard({ onNavigate }) {
         <div className="mb-4">
           <GlassCard brand>
             <SavingsProgress savingsGoal={savingsGoal} />
-          </GlassCard>
-        </div>
-      )}
-
-      {(tradingMetrics.capitalInvested > 0 || tradingMetrics.tradingProfit > 0 || tradingMetrics.tradingLoss > 0) && (
-        <div className="mb-4">
-          <GlassCard brand className="border-neon/10">
-            <div className="flex items-center gap-2 mb-3">
-              <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                <BarChart3 size={14} className="text-purple-400" />
-              </div>
-              <h2 className="text-xs font-semibold text-gray-300">Trading Summary</h2>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {tradingMetrics.capitalInvested > 0 && (
-                <div className="p-2.5 rounded-lg bg-white/[0.03]">
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1">
-                    <Send size={10} className="text-blue-400" />
-                    Invested
-                  </div>
-                  <p className="text-xs font-bold text-blue-400 tabular-nums">{formatCurrency(tradingMetrics.capitalInvested)}</p>
-                </div>
-              )}
-              {tradingMetrics.tradingProfit > 0 && (
-                <div className="p-2.5 rounded-lg bg-white/[0.03]">
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1">
-                    <TrendingUp size={10} className="text-purple-400" />
-                    Profit
-                  </div>
-                  <p className="text-xs font-bold text-purple-400 tabular-nums">{formatCurrency(tradingMetrics.tradingProfit)}</p>
-                </div>
-              )}
-              {tradingMetrics.tradingLoss > 0 && (
-                <div className="p-2.5 rounded-lg bg-white/[0.03]">
-                  <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1">
-                    <TrendingDown size={10} className="text-orange-400" />
-                    Loss
-                  </div>
-                  <p className="text-xs font-bold text-orange-400 tabular-nums">{formatCurrency(tradingMetrics.tradingLoss)}</p>
-                </div>
-              )}
-            </div>
-            {(tradingMetrics.tradingProfit > 0 || tradingMetrics.tradingLoss > 0) && (
-              <div className="mt-2 pt-2 border-t border-glass-border flex items-center justify-between">
-                <span className="text-[10px] text-gray-500">Net Trading Result</span>
-                <span className={`text-xs font-bold tabular-nums ${tradingMetrics.netResult >= 0 ? 'text-neon' : 'text-red-400'}`}>
-                  {tradingMetrics.netResult >= 0 ? '+' : ''}{formatCurrency(tradingMetrics.netResult)}
-                </span>
-              </div>
-            )}
           </GlassCard>
         </div>
       )}

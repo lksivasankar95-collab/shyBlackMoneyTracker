@@ -9,6 +9,7 @@ import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
 import { calculateFinancialScore, detectOverspending, getSavingsRecommendations, getHabitInsights, getFinancialHealth } from '../utils/insights'
 import { runMigrations } from '../utils/schema'
+import * as privacy from '../utils/privacy'
 
 export const FinanceContext = createContext()
 
@@ -121,7 +122,7 @@ export function FinanceProvider({ children }) {
   const getBalance = useCallback(() => {
     const income = transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
     const expenses = transactions
-      .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+      .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0)
     return income - expenses
   }, [transactions])
@@ -133,7 +134,7 @@ export function FinanceProvider({ children }) {
     })
     const income = filtered.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
     const expense = filtered
-      .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+      .filter((t) => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0)
     return { income, expense, balance: income - expense }
   }, [transactions])
@@ -247,6 +248,7 @@ export function FinanceProvider({ children }) {
   const clearAllData = useCallback(() => {
     safeStorage.clear()
     safeStorage.remove(STORAGE_KEYS.SCHEMA)
+    privacy.clearPin()
     setState({
       transactions: [],
       savingsGoal: { target: 0, saved: 0 },

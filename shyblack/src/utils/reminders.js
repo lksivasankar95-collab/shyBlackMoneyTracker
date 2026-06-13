@@ -6,7 +6,6 @@ const REMINDER_MINUTE = 0
 
 const MESSAGES = [
   "You haven't updated today's expenses yet. Tap to log them now.",
-  'Did you track today\'s trading activity? Quick update takes seconds.',
   'Pending debt repayments need your attention. Check your borrow & lend list.',
   'Your daily financial snapshot is waiting. Open ShyBlack to review today.',
 ]
@@ -48,12 +47,7 @@ function getContextualMessage(transactions, debts) {
   const hasPendingDebts = debts.some((d) => d.status === 'pending' && d.remainingAmount > 0)
   if (hasPendingDebts) return MESSAGES[2]
 
-  const hasTradingToday = transactions.some(
-    (t) => t.transactionPurpose === 'trading_profit' || t.transactionPurpose === 'trading_loss'
-  )
-  if (hasTradingToday) return MESSAGES[1]
-
-  return MESSAGES[Math.floor(Math.random() * (MESSAGES.length - 1))]
+  return MESSAGES[Math.floor(Math.random() * MESSAGES.length)]
 }
 
 function getTomorrowAt(hour, minute) {

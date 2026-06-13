@@ -272,7 +272,7 @@ export default function AddTransaction({ onNavigate }) {
             type="text"
             value={source}
             onChange={(e) => setSource(e.target.value)}
-            placeholder="e.g. Trading, Investment, Loan Given, Salary..."
+            placeholder="e.g. Investment, Loan Given, Salary..."
             className="input-field"
             maxLength={50}
           />

@@ -351,7 +351,7 @@ export default function Settings({ onNavigate }) {
             </div>
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">Smart Money Timeline</p>
-              <p className="text-xs text-gray-500">All transactions, debts & trades in one view</p>
+              <p className="text-xs text-gray-500">All transactions and debts in one view</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>

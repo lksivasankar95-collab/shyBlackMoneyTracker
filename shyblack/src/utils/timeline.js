@@ -12,9 +12,6 @@ const GROUP_LABELS = {
 const ENTRY_STYLES = {
   income: { icon: 'ArrowUpCircle', bg: 'bg-neon/10', text: 'text-neon', ring: 'ring-neon/20' },
   expense: { icon: 'ArrowDownCircle', bg: 'bg-red-500/10', text: 'text-red-400', ring: 'ring-red-500/20' },
-  trading_profit: { icon: 'TrendingUp', bg: 'bg-purple-500/10', text: 'text-purple-400', ring: 'ring-purple-500/20' },
-  trading_loss: { icon: 'TrendingDown', bg: 'bg-orange-500/10', text: 'text-orange-400', ring: 'ring-orange-500/20' },
-  investment_transfer: { icon: 'Send', bg: 'bg-blue-500/10', text: 'text-blue-400', ring: 'ring-blue-500/20' },
   lent: { icon: 'ArrowUpRight', bg: 'bg-green-500/10', text: 'text-green-400', ring: 'ring-green-500/20' },
   borrowed: { icon: 'ArrowDownLeft', bg: 'bg-orange-500/10', text: 'text-orange-400', ring: 'ring-orange-500/20' },
   debt_paid: { icon: 'CheckCircle2', bg: 'bg-neon/10', text: 'text-neon', ring: 'ring-neon/20' },
@@ -130,14 +127,12 @@ export function filterTimeline(entries, filter) {
   if (filter === 'all') return entries
   return entries.filter((e) => {
     switch (filter) {
-      case 'trading':
-        return e.sourceType === 'trading_profit' || e.sourceType === 'trading_loss' || e.sourceType === 'investment_transfer'
       case 'debts':
         return e.type === 'debt'
       case 'expenses':
-        return e.sourceType === 'expense' || e.sourceType === 'trading_loss'
+        return e.sourceType === 'expense'
       case 'income':
-        return e.sourceType === 'income' || e.sourceType === 'trading_profit'
+        return e.sourceType === 'income'
       default:
         return true
     }
@@ -165,10 +160,10 @@ export function generateMonthlyInsights(transactions) {
   const curIncome = current.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const prevIncome = previous.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const curExpense = current
-    .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+    .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0)
   const prevExpense = previous
-    .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+    .filter((t) => t.type === 'expense')
     .reduce((s, t) => s + t.amount, 0)
 
   const curSavings = curIncome - curExpense
@@ -213,21 +208,6 @@ export function generateMonthlyInsights(transactions) {
       type: 'warning',
       text: `Spending increased ${Math.round((curExpense / prevExpense - 1) * 100)}% this month`,
     })
-  }
-
-  const curTradingCount = current.filter(
-    (t) => t.transactionPurpose === 'trading_profit' || t.transactionPurpose === 'trading_loss'
-  ).length
-  const prevTradingCount = previous.filter(
-    (t) => t.transactionPurpose === 'trading_profit' || t.transactionPurpose === 'trading_loss'
-  ).length
-
-  if (curTradingCount > 0 && curTradingCount > prevTradingCount) {
-    insights.push({ type: 'info', text: `Trading activity increased (${curTradingCount} trades)` })
-  } else if (curTradingCount > 0 && curTradingCount < prevTradingCount) {
-    insights.push({ type: 'info', text: `Trading activity decreased (${curTradingCount} trades)` })
-  } else if (curTradingCount > 0 && curTradingCount === prevTradingCount) {
-    insights.push({ type: 'info', text: `${curTradingCount} trades this month, consistent activity` })
   }
 
   return insights

@@ -19,7 +19,7 @@ const STEPS = ['Welcome', 'Your Profile', 'Privacy & Terms']
 
 const FEATURES = [
   { icon: Database, title: 'Offline-First', desc: 'All data stored locally on your device. Works without internet.' },
-  { icon: TrendingUp, title: 'Trading Tracker', desc: 'Track profits, losses, and investments across platforms.' },
+  { icon: TrendingUp, title: 'Income Tracking', desc: 'Track all income, expenses, and investments in one place.' },
   { icon: Handshake, title: 'Borrow & Lend', desc: 'Keep tabs on money lent or borrowed from friends.' },
   { icon: Shield, title: 'Privacy First', desc: 'No account required. No cloud sync. Your data stays yours.' },
 ]
@@ -57,7 +57,7 @@ function TermsConditions() {
       <div className="text-[11px] text-gray-400 leading-relaxed space-y-2 bg-white/[0.02] rounded-xl p-3">
         <p>By using ShyBlack Finance, you agree to the following terms:</p>
         <ul className="space-y-1.5 list-disc pl-4">
-          <li className="text-gray-500">This app is a financial tracking tool only and does not provide financial, investment, or trading advice.</li>
+          <li className="text-gray-500">This app is a financial tracking tool only and does not provide financial or investment advice.</li>
           <li className="text-gray-500">You are solely responsible for maintaining backups of your data. The app is not liable for data loss.</li>
           <li className="text-gray-500">The app is provided "as is" without warranty of any kind, express or implied.</li>
           <li className="text-gray-500">You acknowledge that past performance tracked in this app does not guarantee future results.</li>
@@ -67,7 +67,7 @@ function TermsConditions() {
         </ul>
       </div>
       <div className="text-[10px] text-yellow-500/70 bg-yellow-500/5 rounded-xl p-3 border border-yellow-500/10 leading-relaxed">
-        <strong>Disclaimer:</strong> ShyBlack Finance is a personal finance tracking tool. It does not provide investment advice, financial planning, or trading recommendations. Always consult a qualified financial advisor before making investment decisions.
+        <strong>Disclaimer:</strong> ShyBlack Finance is a personal finance tracking tool. It does not provide investment advice or financial planning recommendations. Always consult a qualified financial advisor before making investment decisions.
       </div>
     </div>
   )

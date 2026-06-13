@@ -18,10 +18,11 @@ const VALIDATORS = {
 
 export function collectBackupData() {
   const data = {}
-  STORAGE_KEYS.SCHEMA = undefined
 
   const schema = safeStorage.get(STORAGE_KEYS.SCHEMA, { version: 0 })
-  if (schema) data.schemaVersion = schema.version
+  if (schema && typeof schema === 'object' && typeof schema.version === 'number') {
+    data.schemaVersion = schema.version
+  }
 
   data.transactions = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, [])
   data.debts = safeStorage.get(STORAGE_KEYS.DEBTS, [])

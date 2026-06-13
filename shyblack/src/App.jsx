@@ -12,8 +12,14 @@ import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
 
+const DEBUG = true
+const debug = (msg, data) => {
+  if (DEBUG) console.log(`[App] ${msg}`, data !== undefined ? data : '')
+}
+
 const onboardingDone = () => {
   const data = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
+  debug('onboardingDone', { hasCompletedOnboarding: data && data.hasCompletedOnboarding === true })
   return data && data.hasCompletedOnboarding === true
 }
 
@@ -78,10 +84,13 @@ function LockGate({ isLocked, onUnlock }) {
 
   if (!isLocked) return null
 
+  debug('LockGate: showing PinLockScreen')
+
   return (
     <PinLockScreen
       onUnlock={onUnlock}
       onResetData={() => {
+        debug('LockGate: reset all data requested')
         clearAllData()
         privacy.clearPin()
         onUnlock()
@@ -146,34 +155,54 @@ function AppContent() {
 }
 
 export default function App() {
-  const [isOnboarded, setIsOnboarded] = useState(onboardingDone)
+  const [isOnboarded, setIsOnboarded] = useState(() => {
+    const done = onboardingDone()
+    debug('isOnboarded initial', done)
+    return done
+  })
   const [isLocked, setIsLocked] = useState(() => {
+    debug('initializing privacy state')
     privacy.initLockState()
-    return privacy.isLocked()
+    const locked = privacy.isLocked()
+    debug('isLocked initial', locked)
+    return locked
   })
 
   const handleOnboardingComplete = useCallback(() => {
+    debug('onboarding complete')
     setIsOnboarded(true)
   }, [])
 
   const handleUnlock = useCallback(() => {
+    debug('handleUnlock called')
     privacy.unlockSession()
     setIsLocked(false)
+    debug('session unlocked')
   }, [])
 
   useEffect(() => {
+    debug('visibility effect mounted, isLocked=', isLocked)
     const handleVisibility = () => {
       if (document.hidden) {
+        debug('app backgrounded')
         privacy.onAppBackground()
       } else {
+        debug('app resumed, checking lock state')
         const shouldLock = privacy.shouldLockOnResume()
+        debug('shouldLockOnResume result', shouldLock)
         if (shouldLock !== isLocked) {
+          debug('updating isLocked from', isLocked, 'to', shouldLock)
           setIsLocked(shouldLock)
+        } else {
+          debug('isLocked unchanged', isLocked)
         }
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
-    return () => document.removeEventListener('visibilitychange', handleVisibility)
+    return () => {
+      debug('visibility effect cleanup')
+      document.removeEventListener('visibilitychange', handleVisibility)
+    }
   }, [isLocked])
 
   if (!isOnboarded) {

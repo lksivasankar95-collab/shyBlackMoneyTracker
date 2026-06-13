@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Lock, AlertTriangle } from 'lucide-react'
-import { formatCurrency } from '../utils/helpers'
+import * as privacy from '../utils/privacy'
 
 export default function PinLockScreen({ onUnlock, onResetData }) {
   const [pin, setPin] = useState('')
@@ -24,17 +24,25 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     setError('')
   }, [])
 
-  const handleUnlock = useCallback(async () => {
+  const handleUnlock = useCallback(() => {
     if (pin.length < 4) {
       setError('Enter 4-digit PIN')
       return
     }
-    const { default: privacy } = await import('../utils/privacy')
-    const ok = await privacy.verifyPin(pin)
-    if (ok) {
-      onUnlock()
-    } else {
-      setError('Incorrect PIN')
+    try {
+      privacy.verifyPin(pin).then((ok) => {
+        if (ok) {
+          onUnlock()
+        } else {
+          setError('Incorrect PIN')
+          setPin('')
+        }
+      }).catch(() => {
+        setError('Unlock failed. Try again.')
+        setPin('')
+      })
+    } catch {
+      setError('Unlock failed. Try again.')
       setPin('')
     }
   }, [pin, onUnlock])

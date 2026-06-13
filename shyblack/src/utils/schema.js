@@ -1,9 +1,23 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
-export const APP_SCHEMA_VERSION = 1
+export const APP_SCHEMA_VERSION = 2
 export const SCHEMA_VERSION_KEY = STORAGE_KEYS.SCHEMA
 
 const SCHEMA_MIGRATIONS = {
+  2: () => {
+    const raw = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, [])
+    if (!Array.isArray(raw)) return
+    const cleaned = raw.map((tx) => {
+      if (!tx || typeof tx !== 'object') return tx
+      const purpose = tx.transactionPurpose
+      if (purpose === 'trading_profit' || purpose === 'trading_loss' || purpose === 'investment_transfer') {
+        const { transactionPurpose, ...rest } = tx
+        return rest
+      }
+      return tx
+    })
+    safeStorage.set(STORAGE_KEYS.TRANSACTIONS, cleaned)
+  },
 }
 
 export function getSchemaVersion() {

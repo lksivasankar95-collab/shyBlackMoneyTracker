@@ -17,7 +17,6 @@ const ICON_MAP = {
 
 const FILTERS = [
   { id: 'all', label: 'All' },
-  { id: 'trading', label: 'Trading' },
   { id: 'debts', label: 'Debts' },
   { id: 'expenses', label: 'Expenses' },
   { id: 'income', label: 'Income' },
@@ -110,7 +109,7 @@ export default function TimelinePage() {
           <EmptyState
             icon={History}
             title="No activity yet"
-            description="Your financial timeline will appear here as you add transactions, track debts, and trade"
+            description="Your financial timeline will appear here as you add transactions and track debts"
           />
         </GlassCard>
       ) : !hasFilteredData ? (
@@ -135,7 +134,7 @@ export default function TimelinePage() {
                 <GlassCard className="!p-0 divide-y divide-glass-border overflow-hidden">
                   {entries.map((entry) => {
                     const Icon = ICON_MAP[entry.style.icon] || Clock
-                    const isPositive = entry.amount > 0 || entry.sourceType === 'income' || entry.sourceType === 'trading_profit' || entry.sourceType === 'borrowed'
+                    const isPositive = entry.amount > 0 || entry.sourceType === 'income' || entry.sourceType === 'borrowed'
                     const prefix = entry.amount > 0 ? '+' : ''
                     const showAmount = entry.type !== 'debt' || entry.sourceType !== 'debt_paid'
 
