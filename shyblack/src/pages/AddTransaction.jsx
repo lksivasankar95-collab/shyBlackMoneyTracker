@@ -1,8 +1,8 @@
 import { useState, useCallback } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Send, TrendingUp, TrendingDown, Check, Repeat2, Tag, X } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, TRANSACTION_PURPOSE, PURPOSE_LABELS, TRADING_PLATFORMS } from '../utils/constants'
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import CategoryIcon from '../components/CategoryIcon'
@@ -12,38 +12,14 @@ const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
 const MAX_AMOUNT = 99999999
 const LARGE_AMOUNT_THRESHOLD = 50000
 
-const PURPOSE_ICONS = {
-  [TRANSACTION_PURPOSE.INCOME]: ArrowUpCircle,
-  [TRANSACTION_PURPOSE.EXPENSE]: ArrowDownCircle,
-  [TRANSACTION_PURPOSE.INVESTMENT_TRANSFER]: Send,
-  [TRANSACTION_PURPOSE.TRADING_PROFIT]: TrendingUp,
-  [TRANSACTION_PURPOSE.TRADING_LOSS]: TrendingDown,
+const TYPE_ICONS = {
+  [TRANSACTION_TYPES.INCOME]: ArrowUpCircle,
+  [TRANSACTION_TYPES.EXPENSE]: ArrowDownCircle,
 }
-
-const PURPOSE_COLORS = {
-  [TRANSACTION_PURPOSE.INCOME]: 'bg-green-500/15 text-green-400 border-green-500/30',
-  [TRANSACTION_PURPOSE.EXPENSE]: 'bg-red-500/15 text-red-400 border-red-500/30',
-  [TRANSACTION_PURPOSE.INVESTMENT_TRANSFER]: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  [TRANSACTION_PURPOSE.TRADING_PROFIT]: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
-  [TRANSACTION_PURPOSE.TRADING_LOSS]: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
-}
-
-function getTypeFromPurpose(purpose) {
-  if (purpose === TRANSACTION_PURPOSE.INCOME || purpose === TRANSACTION_PURPOSE.TRADING_PROFIT) return TRANSACTION_TYPES.INCOME
-  return TRANSACTION_TYPES.EXPENSE
-}
-
-const PURPOSE_ORDER = [
-  TRANSACTION_PURPOSE.INCOME,
-  TRANSACTION_PURPOSE.EXPENSE,
-  TRANSACTION_PURPOSE.INVESTMENT_TRANSFER,
-  TRANSACTION_PURPOSE.TRADING_PROFIT,
-  TRANSACTION_PURPOSE.TRADING_LOSS,
-]
 
 export default function AddTransaction({ onNavigate }) {
   const { addTransaction, addRecurring, tags, addTag } = useFinance()
-  const [purpose, setPurpose] = useState(TRANSACTION_PURPOSE.EXPENSE)
+  const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
@@ -51,16 +27,16 @@ export default function AddTransaction({ onNavigate }) {
   const [selectedTags, setSelectedTags] = useState([])
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
-  const [tradingPlatform, setTradingPlatform] = useState('')
+  const [source, setSource] = useState('')
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showLargeConfirm, setShowLargeConfirm] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(null)
 
-  const transactionType = getTypeFromPurpose(purpose)
+  const transactionType = purpose
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-  const isTradingPurpose = purpose === TRANSACTION_PURPOSE.TRADING_PROFIT || purpose === TRANSACTION_PURPOSE.TRADING_LOSS
+
   const suggestedTags = getSuggestedTags()
 
   const handleAmountChange = (e) => {
@@ -128,7 +104,7 @@ export default function AddTransaction({ onNavigate }) {
     setDate(new Date().toISOString().split('T')[0])
     setSelectedTags([])
     setIsRecurring(false)
-    setTradingPlatform('')
+    setSource('')
     setSuccess(true)
     setError('')
     setPendingSubmit(null)
@@ -166,13 +142,12 @@ export default function AddTransaction({ onNavigate }) {
 
     const transactionData = {
       type: transactionType,
-      transactionPurpose: purpose,
-      tradingPlatform: isTradingPurpose ? tradingPlatform || 'manual' : undefined,
       amount: numAmount,
       category,
       note: note.trim(),
       date,
       tags: selectedTags,
+      source: source.trim() || undefined,
     }
 
     if (numAmount >= LARGE_AMOUNT_THRESHOLD) {
@@ -194,21 +169,25 @@ export default function AddTransaction({ onNavigate }) {
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <h1 className="text-xl font-bold mb-6">Add Transaction</h1>
 
-      {/* Purpose Selector */}
-      <div className="grid grid-cols-3 gap-2 mb-6">
-        {PURPOSE_ORDER.map((p) => {
-          const Icon = PURPOSE_ICONS[p]
-          const isActive = purpose === p
+      {/* Type Selector */}
+      <div className="flex gap-3 mb-6">
+        {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((t) => {
+          const Icon = TYPE_ICONS[t]
+          const isActive = purpose === t
           return (
             <button
-              key={p}
-              onClick={() => { setPurpose(p); setCategory(''); setError(''); if (!isTradingPurpose) setTradingPlatform('') }}
-              className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-200 ${
-                isActive ? PURPOSE_COLORS[p] : 'bg-matte-100 text-gray-500 border-transparent hover:text-white'
-              } ${p === TRANSACTION_PURPOSE.INCOME || p === TRANSACTION_PURPOSE.EXPENSE ? 'col-span-1' : ''}`}
+              key={t}
+              onClick={() => { setPurpose(t); setCategory(''); setError('') }}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all duration-200 ${
+                isActive
+                  ? t === TRANSACTION_TYPES.INCOME
+                    ? 'bg-green-500/15 text-green-400 border-green-500/30'
+                    : 'bg-red-500/15 text-red-400 border-red-500/30'
+                  : 'bg-matte-100 text-gray-500 border-transparent hover:text-white'
+              }`}
             >
-              <Icon size={18} />
-              <span className="text-[10px] leading-tight text-center">{PURPOSE_LABELS[p]}</span>
+              <Icon size={20} />
+              {t === TRANSACTION_TYPES.INCOME ? 'Income' : 'Expense'}
             </button>
           )
         })}
@@ -286,28 +265,18 @@ export default function AddTransaction({ onNavigate }) {
           />
         </div>
 
-        {/* Trading Platform */}
-        {isTradingPurpose && (
-          <div>
-            <label className="text-xs text-gray-500 font-medium mb-2 block">Trading Platform</label>
-            <div className="flex flex-wrap gap-2">
-              {TRADING_PLATFORMS.map((p) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => setTradingPlatform(p.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
-                    tradingPlatform === p.id
-                      ? 'border-purple-500/50 bg-purple-500/10 text-purple-400'
-                      : 'border-glass-border text-gray-500 hover:border-gray-400'
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* Source / Tag */}
+        <div>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">Source / Tag <span className="text-gray-600 font-normal">(optional)</span></label>
+          <input
+            type="text"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+            placeholder="e.g. Trading, Investment, Loan Given, Salary..."
+            className="input-field"
+            maxLength={50}
+          />
+        </div>
 
         {/* Tags */}
         <div>
@@ -415,7 +384,7 @@ export default function AddTransaction({ onNavigate }) {
               Added!
             </>
           ) : (
-            `Add ${PURPOSE_LABELS[purpose] || 'Transaction'}`
+            purpose === TRANSACTION_TYPES.INCOME ? 'Add Income' : 'Add Expense'
           )}
         </button>
       </form>

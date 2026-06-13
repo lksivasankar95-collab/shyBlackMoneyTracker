@@ -9,6 +9,8 @@ import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
 import Onboarding from './pages/Onboarding'
 import { refreshReminderSchedule, getReminderPreference } from './utils/reminders'
 import { useFinance } from './hooks/useFinance'
+import * as privacy from './utils/privacy'
+import PinLockScreen from './components/PinLockScreen'
 
 const onboardingDone = () => {
   const data = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
@@ -71,6 +73,23 @@ function ReminderInit() {
   return null
 }
 
+function LockGate({ isLocked, onUnlock }) {
+  const { clearAllData } = useFinance()
+
+  if (!isLocked) return null
+
+  return (
+    <PinLockScreen
+      onUnlock={onUnlock}
+      onResetData={() => {
+        clearAllData()
+        privacy.clearPin()
+        onUnlock()
+      }}
+    />
+  )
+}
+
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [animDir, setAnimDir] = useState('forward')
@@ -128,10 +147,34 @@ function AppContent() {
 
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(onboardingDone)
+  const [isLocked, setIsLocked] = useState(() => {
+    privacy.initLockState()
+    return privacy.isLocked()
+  })
 
   const handleOnboardingComplete = useCallback(() => {
     setIsOnboarded(true)
   }, [])
+
+  const handleUnlock = useCallback(() => {
+    privacy.unlockSession()
+    setIsLocked(false)
+  }, [])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        privacy.onAppBackground()
+      } else {
+        const shouldLock = privacy.shouldLockOnResume()
+        if (shouldLock !== isLocked) {
+          setIsLocked(shouldLock)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
+  }, [isLocked])
 
   if (!isOnboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} />
@@ -141,8 +184,13 @@ export default function App() {
     <ErrorBoundary>
       <FinanceProvider>
         <ToastProvider>
-          <ReminderInit />
-          <AppContent />
+          <LockGate isLocked={isLocked} onUnlock={handleUnlock} />
+          {!isLocked && (
+            <>
+              <ReminderInit />
+              <AppContent />
+            </>
+          )}
         </ToastProvider>
       </FinanceProvider>
     </ErrorBoundary>

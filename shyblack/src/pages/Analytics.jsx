@@ -40,16 +40,16 @@ export default function Analytics() {
   const year = now.getFullYear()
   const month = now.getMonth()
 
+  const normalTx = useMemo(() =>
+    transactions.filter((t) => t.transactionPurpose !== 'investment_transfer'),
+  [transactions])
+
   const monthlyData = useMemo(() => getMonthlyData(normalTx, 6), [normalTx])
   const growthData = useMemo(() => getMonthlyGrowth(normalTx), [normalTx])
   const forecast = useMemo(() => getIncomeForecast(normalTx), [normalTx])
   const comparison = useMemo(() => compareSpending(normalTx), [normalTx])
   const heatmap = useMemo(() => getDailyExpenseHeatmap(normalTx, year, month), [normalTx, year, month])
   const trends = useMemo(() => getCategoryTrends(normalTx, 3), [normalTx])
-
-  const normalTx = useMemo(() =>
-    transactions.filter((t) => t.transactionPurpose !== 'investment_transfer'),
-  [transactions])
 
   const currentMonth = useMemo(() => {
     const monthTxs = normalTx.filter((t) => {

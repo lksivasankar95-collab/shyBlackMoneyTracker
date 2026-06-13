@@ -19,6 +19,7 @@ import {
   requestNotificationPermission, checkNotificationPermission,
   refreshReminderSchedule, cancelAllReminders,
 } from '../utils/reminders'
+import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } from '../utils/privacy'
 
 export default function Settings({ onNavigate }) {
   const {
@@ -28,9 +29,12 @@ export default function Settings({ onNavigate }) {
   const { addToast } = useToast()
   const [target, setTarget] = useState(String(savingsGoal.target || ''))
   const [saved, setSaved] = useState(String(savingsGoal.saved || ''))
-  const [pin, setPin] = useState('')
-  const [confirmPin, setConfirmPin] = useState('')
-  const [showPinSetup, setShowPinSetup] = useState(false)
+  const [privacyEnabled, setPrivacyEnabled] = useState(isPinSet())
+  const [lockTimeout, setLockTimeout] = useState(getTimeout())
+  const [pinModal, setPinModal] = useState(null)
+  const [modalPin, setModalPin] = useState('')
+  const [modalPin2, setModalPin2] = useState('')
+  const [modalPin3, setModalPin3] = useState('')
   const [pinError, setPinError] = useState('')
   const fileInputRef = useRef()
   const [showResetConfirm, setShowResetConfirm] = useState(false)
@@ -112,41 +116,6 @@ export default function Settings({ onNavigate }) {
     setSaved('')
     addToast('All local data has been reset', 'info')
   }, [clearAllData, addToast])
-
-  const hashPin = (s) => {
-    let h = 0
-    for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0
-    return Math.abs(h).toString(36)
-  }
-
-  const constantTimeEq = (a, b) => {
-    if (a.length !== b.length) return false
-    let result = 0
-    for (let i = 0; i < a.length; i++) result |= a.charCodeAt(i) ^ b.charCodeAt(i)
-    return result === 0
-  }
-
-  const handleSetupPin = () => {
-    if (pin.length < 4 || pin.length > 6) {
-      setPinError('PIN must be 4-6 digits')
-      return
-    }
-    if (!constantTimeEq(pin, confirmPin)) {
-      setPinError('PINs do not match')
-      return
-    }
-    updateSecurity({ pinEnabled: true, pinHash: hashPin(pin), pinCode: '' })
-    setShowPinSetup(false)
-    setPin('')
-    setConfirmPin('')
-    setPinError('')
-    addToast('PIN lock enabled!', 'success')
-  }
-
-  const handleDisablePin = () => {
-    updateSecurity({ pinEnabled: false, pinHash: '', pinCode: '' })
-    addToast('PIN lock disabled', 'info')
-  }
 
   const toggleHideBalance = () => {
     updateSecurity({ hideBalance: !security.hideBalance })
@@ -242,27 +211,82 @@ export default function Settings({ onNavigate }) {
             </button>
           </div>
 
-          {security.pinEnabled ? (
-            <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
-              <div className="flex items-center gap-3">
-                <Lock size={16} className="text-neon" />
-                <div>
-                  <p className="text-xs font-medium text-neon">PIN Lock Active</p>
-                  <p className="text-[10px] text-gray-500">Tap to disable</p>
+          {/* Privacy Lock */}
+          <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
+            <div className="flex items-center gap-3">
+              <Lock size={16} className={privacyEnabled ? 'text-neon' : 'text-gray-400'} />
+              <div>
+                <p className="text-xs font-medium">Privacy Lock</p>
+                <p className="text-[10px] text-gray-500">{privacyEnabled ? 'Lock app on resume' : 'Protect your data'}</p>
+              </div>
+            </div>
+            <button
+              onClick={async () => {
+                if (privacyEnabled) {
+                  setModalPin('')
+                  setModalPin2('')
+                  setPinError('')
+                  setPinModal('disable')
+                } else if (isPinSet()) {
+                  setPrivacyEnabled(true)
+                } else {
+                  setModalPin('')
+                  setModalPin2('')
+                  setPinError('')
+                  setPinModal('setup')
+                }
+              }}
+              className={`relative w-10 h-6 rounded-full transition-all duration-200 ${
+                privacyEnabled ? 'bg-neon/30' : 'bg-matte-200'
+              }`}
+            >
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${
+                privacyEnabled ? 'bg-neon left-[18px]' : 'bg-gray-500 left-0.5'
+              }`} />
+            </button>
+          </div>
+
+          {privacyEnabled && (
+            <>
+              {/* Timeout Selector */}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
+                <div className="flex items-center gap-3">
+                  <Lock size={16} className="text-gray-400" />
+                  <div>
+                    <p className="text-xs font-medium">Auto-Lock</p>
+                    <p className="text-[10px] text-gray-500">Lock after being away</p>
+                  </div>
+                </div>
+                <div className="flex gap-1">
+                  {[
+                    { label: 'Now', value: 0 },
+                    { label: '30s', value: 30 },
+                    { label: '1m', value: 60 },
+                  ].map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setLockTimeout(opt.value); setTimeoutPref(opt.value) }}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all ${
+                        lockTimeout === opt.value
+                          ? 'border-neon/50 text-neon bg-neon/10'
+                          : 'border-glass-border text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-              <button onClick={handleDisablePin} className="text-xs text-red-400 hover:text-red-300 transition-colors">
-                Disable
+
+              {/* Change PIN */}
+              <button
+                onClick={() => { setModalPin(''); setModalPin2(''); setModalPin3(''); setPinError(''); setPinModal('change') }}
+                className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
+              >
+                <Lock size={16} />
+                Change PIN
               </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowPinSetup(true)}
-              className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
-            >
-              <Lock size={16} />
-              Set PIN Lock
-            </button>
+            </>
           )}
         </div>
       </GlassCard>
@@ -464,19 +488,23 @@ export default function Settings({ onNavigate }) {
         </button>
       </GlassCard>
 
-      {/* PIN Setup Modal */}
-      <Modal open={showPinSetup} onClose={() => { setShowPinSetup(false); setPin(''); setConfirmPin(''); setPinError('') }} title="Set PIN Lock">
+      {/* Privacy PIN Modals */}
+      <Modal
+        open={pinModal === 'setup'}
+        onClose={() => { setPinModal(null); setModalPin(''); setModalPin2(''); setPinError('') }}
+        title="Set Privacy PIN"
+      >
         <div className="space-y-3.5">
-          <p className="text-xs text-gray-400">Enter a secure PIN to lock the app.</p>
+          <p className="text-xs text-gray-400">Set a 4-digit PIN to lock the app.</p>
           <div>
             <label className="text-xs text-gray-500 mb-1.5 block font-medium">Enter PIN</label>
             <input
               type="password"
-              value={pin}
-              onChange={(e) => { setPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError('') }}
+              value={modalPin}
+              onChange={(e) => { setModalPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
               className="input-field text-center text-lg tracking-[0.5em]"
               placeholder="••••"
-              maxLength={6}
+              maxLength={4}
               autoFocus
             />
           </div>
@@ -484,16 +512,129 @@ export default function Settings({ onNavigate }) {
             <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm PIN</label>
             <input
               type="password"
-              value={confirmPin}
-              onChange={(e) => { setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6)); setPinError('') }}
+              value={modalPin2}
+              onChange={(e) => { setModalPin2(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
               className="input-field text-center text-lg tracking-[0.5em]"
               placeholder="••••"
-              maxLength={6}
+              maxLength={4}
             />
           </div>
           {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
-          <button onClick={handleSetupPin} disabled={!pin || !confirmPin} className="btn-primary w-full text-sm">
-            Enable PIN Lock
+          <button
+            onClick={async () => {
+              if (modalPin.length < 4) { setPinError('PIN must be 4 digits'); return }
+              if (modalPin !== modalPin2) { setPinError('PINs do not match'); return }
+              await setPin(modalPin)
+              setPrivacyEnabled(true)
+              setPinModal(null)
+              setModalPin('')
+              setModalPin2('')
+              addToast('Privacy PIN set', 'success')
+            }}
+            disabled={!modalPin || !modalPin2}
+            className="btn-primary w-full text-sm"
+          >
+            Enable Privacy Lock
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={pinModal === 'change'}
+        onClose={() => { setPinModal(null); setModalPin(''); setModalPin2(''); setModalPin3(''); setPinError('') }}
+        title="Change PIN"
+      >
+        <div className="space-y-3.5">
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Current PIN</label>
+            <input
+              type="password"
+              value={modalPin}
+              onChange={(e) => { setModalPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+              className="input-field text-center text-lg tracking-[0.5em]"
+              placeholder="••••"
+              maxLength={4}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">New PIN</label>
+            <input
+              type="password"
+              value={modalPin2}
+              onChange={(e) => { setModalPin2(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+              className="input-field text-center text-lg tracking-[0.5em]"
+              placeholder="••••"
+              maxLength={4}
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm New PIN</label>
+            <input
+              type="password"
+              value={modalPin3}
+              onChange={(e) => { setModalPin3(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+              className="input-field text-center text-lg tracking-[0.5em]"
+              placeholder="••••"
+              maxLength={4}
+            />
+          </div>
+          {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
+          <button
+            onClick={async () => {
+              if (modalPin.length < 4) { setPinError('Enter current PIN'); return }
+              if (!(await verifyPin(modalPin))) { setPinError('Current PIN is incorrect'); return }
+              if (modalPin2.length < 4) { setPinError('New PIN must be 4 digits'); return }
+              if (modalPin2 !== modalPin3) { setPinError('New PINs do not match'); return }
+              await setPin(modalPin2)
+              setPinModal(null)
+              setModalPin('')
+              setModalPin2('')
+              setModalPin3('')
+              addToast('PIN changed', 'success')
+            }}
+            disabled={!modalPin || !modalPin2 || !modalPin3}
+            className="btn-primary w-full text-sm"
+          >
+            Change PIN
+          </button>
+        </div>
+      </Modal>
+
+      <Modal
+        open={pinModal === 'disable'}
+        onClose={() => { setPinModal(null); setModalPin(''); setPinError('') }}
+        title="Disable Privacy Lock"
+      >
+        <div className="space-y-3.5">
+          <p className="text-xs text-gray-400">Enter your current PIN to disable privacy lock.</p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Current PIN</label>
+            <input
+              type="password"
+              value={modalPin}
+              onChange={(e) => { setModalPin(e.target.value.replace(/\D/g, '').slice(0, 4)); setPinError('') }}
+              className="input-field text-center text-lg tracking-[0.5em]"
+              placeholder="••••"
+              maxLength={4}
+              autoFocus
+            />
+          </div>
+          {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
+          <button
+            onClick={async () => {
+              if (modalPin.length < 4) { setPinError('Enter your PIN'); return }
+              if (!(await verifyPin(modalPin))) { setPinError('PIN is incorrect'); return }
+              clearPin()
+              setPrivacyEnabled(false)
+              setPinModal(null)
+              setModalPin('')
+              addToast('Privacy lock disabled', 'info')
+            }}
+            disabled={!modalPin}
+            className="btn-primary w-full text-sm"
+          >
+            Disable Privacy Lock
           </button>
         </div>
       </Modal>
