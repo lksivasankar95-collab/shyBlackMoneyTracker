@@ -1,48 +1,31 @@
-const STORAGE_PREFIX = 'shyblack_'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 const keys = {
-  TRANSACTIONS: `${STORAGE_PREFIX}transactions`,
-  SAVINGS: `${STORAGE_PREFIX}savings`,
-  BUDGETS: `${STORAGE_PREFIX}budgets`,
-  RECURRING: `${STORAGE_PREFIX}recurring`,
-  TAGS: `${STORAGE_PREFIX}tags`,
-  SETTINGS: `${STORAGE_PREFIX}settings`,
-  DEBTS: `${STORAGE_PREFIX}debts`,
+  TRANSACTIONS: STORAGE_KEYS.TRANSACTIONS,
+  SAVINGS: STORAGE_KEYS.SAVINGS,
+  BUDGETS: STORAGE_KEYS.BUDGETS,
+  RECURRING: STORAGE_KEYS.RECURRING,
+  TAGS: STORAGE_KEYS.TAGS,
+  SETTINGS: STORAGE_KEYS.SETTINGS,
+  DEBTS: STORAGE_KEYS.DEBTS,
+  SCHEMA: STORAGE_KEYS.SCHEMA,
+  ONBOARDING: STORAGE_KEYS.ONBOARDING,
+  REMINDER: STORAGE_KEYS.REMINDER,
 }
 
 export { keys }
 
 export const storage = {
   get(key, fallback = null) {
-    try {
-      const data = localStorage.getItem(key)
-      return data ? JSON.parse(data) : fallback
-    } catch {
-      return fallback
-    }
+    return safeStorage.get(key, fallback)
   },
   set(key, value) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value))
-      return true
-    } catch {
-      return false
-    }
+    return safeStorage.set(key, value)
   },
   remove(key) {
-    try {
-      localStorage.removeItem(key)
-      return true
-    } catch {
-      return false
-    }
+    return safeStorage.remove(key)
   },
   clear() {
-    try {
-      Object.values(keys).forEach((k) => localStorage.removeItem(k))
-      return true
-    } catch {
-      return false
-    }
+    return safeStorage.clear()
   },
 }

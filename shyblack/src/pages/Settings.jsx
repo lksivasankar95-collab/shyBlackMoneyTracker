@@ -1,30 +1,46 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
-  Fingerprint, Handshake,
+  Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import GlassCard from '../components/GlassCard'
 import Modal from '../components/Modal'
+import ConfirmationModal from '../components/ConfirmationModal'
 import SavingsProgress from '../components/SavingsProgress'
 import { formatCurrency } from '../utils/helpers'
+import { exportBackup, parseAndValidateBackup, restoreFromBackup } from '../utils/backup'
+import { safeStorage } from '../utils/safeStorage'
+import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
+import {
+  getReminderPreference, setReminderPreference,
+  requestNotificationPermission, checkNotificationPermission,
+  refreshReminderSchedule, cancelAllReminders,
+} from '../utils/reminders'
 
 export default function Settings({ onNavigate }) {
   const {
     savingsGoal, updateSavings, clearAllData, transactions, importData,
-    security, updateSecurity, recurring,
+    security, updateSecurity, recurring, debts,
   } = useFinance()
   const { addToast } = useToast()
   const [target, setTarget] = useState(String(savingsGoal.target || ''))
   const [saved, setSaved] = useState(String(savingsGoal.saved || ''))
-  const [showConfirm, setShowConfirm] = useState(false)
   const [pin, setPin] = useState('')
   const [confirmPin, setConfirmPin] = useState('')
   const [showPinSetup, setShowPinSetup] = useState(false)
   const [pinError, setPinError] = useState('')
   const fileInputRef = useRef()
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
+  const [pendingRestore, setPendingRestore] = useState(null)
+  const [backupSchemaWarning, setBackupSchemaWarning] = useState(null)
+  const [restoreSummary, setRestoreSummary] = useState(null)
+  const [isRestoring, setIsRestoring] = useState(false)
+  const schemaVersion = getSchemaVersion()
+  const [reminderEnabled, setReminderEnabled] = useState(getReminderPreference())
 
   useEffect(() => {
     setTarget(String(savingsGoal.target || ''))
@@ -39,15 +55,12 @@ export default function Settings({ onNavigate }) {
   }
 
   const handleExport = () => {
-    const data = { transactions, savings: savingsGoal }
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `shyblack_backup_${new Date().toISOString().split('T')[0]}.json`
-    a.click()
-    URL.revokeObjectURL(url)
-    addToast('Data exported successfully!', 'success')
+    try {
+      exportBackup()
+      addToast('Backup exported successfully!', 'success')
+    } catch {
+      addToast('Failed to export backup. Please try again.', 'error')
+    }
   }
 
   const handleImport = (e) => {
@@ -55,25 +68,50 @@ export default function Settings({ onNavigate }) {
     if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
-      try {
-        const data = JSON.parse(ev.target.result)
-        importData(data)
-        addToast('Data imported successfully!', 'success')
-      } catch {
-        addToast('Invalid file format. Please check the file.', 'error')
+      const result = parseAndValidateBackup(ev.target.result)
+      if (!result.success) {
+        addToast(result.error, 'error')
+        return
       }
+      const backupVersion = result.data.schemaVersion
+      if (backupVersion !== undefined && backupVersion !== schemaVersion) {
+        setBackupSchemaWarning(
+          `Backup schema v${backupVersion} differs from current v${schemaVersion}. Data will be imported as-is.`
+        )
+      } else {
+        setBackupSchemaWarning(null)
+      }
+      setPendingRestore(result.data)
+      setShowRestoreConfirm(true)
     }
     reader.readAsText(file)
     e.target.value = ''
   }
 
-  const handleClear = () => {
+  const handleConfirmRestore = useCallback(() => {
+    if (!pendingRestore) return
+    setIsRestoring(true)
+    try {
+      const results = restoreFromBackup(pendingRestore)
+      setRestoreSummary(results)
+      setPendingRestore(null)
+      setShowRestoreConfirm(false)
+      addToast(
+        `Restored ${results.restored.length} sections${results.failed.length > 0 ? `, ${results.failed.length} failed` : ''}`,
+        results.failed.length > 0 ? 'warning' : 'success'
+      )
+    } catch {
+      addToast('Restore failed. Data may be corrupted.', 'error')
+    }
+    setIsRestoring(false)
+  }, [pendingRestore, addToast])
+
+  const handleResetData = useCallback(() => {
     clearAllData()
     setTarget('')
     setSaved('')
-    setShowConfirm(false)
-    addToast('All data cleared!', 'success')
-  }
+    addToast('All local data has been reset', 'info')
+  }, [clearAllData, addToast])
 
   const hashPin = (s) => {
     let h = 0
@@ -119,6 +157,35 @@ export default function Settings({ onNavigate }) {
     updateSecurity({ privacyMode: !security.privacyMode })
     addToast(security.privacyMode ? 'Privacy mode off' : 'Privacy mode on', 'info')
   }
+
+  const toggleReminder = useCallback(async () => {
+    const newState = !reminderEnabled
+    setReminderEnabled(newState)
+    setReminderPreference(newState)
+
+    if (newState) {
+      const perm = await requestNotificationPermission()
+      if (perm.granted) {
+        const result = await refreshReminderSchedule(transactions, debts)
+        if (result.active) {
+          addToast('Daily reminder enabled at 7:00 PM', 'success')
+        } else if (result.reason === 'activity-exists') {
+          addToast('Already tracked today — reminder will activate tomorrow', 'info')
+        } else {
+          addToast('Reminder enabled', 'success')
+        }
+      } else {
+        if (perm.reason === 'denied' || perm.reason === 'prompt-with-rationale') {
+          addToast('Notification permission denied. Enable in Settings.', 'error')
+        } else {
+          addToast('Reminder preference saved', 'info')
+        }
+      }
+    } else {
+      await cancelAllReminders()
+      addToast('Daily reminder disabled', 'info')
+    }
+  }, [reminderEnabled, transactions, debts, addToast])
 
   const subCount = recurring.filter((r) => r.active !== false).length
   const subMonthly = recurring
@@ -200,6 +267,35 @@ export default function Settings({ onNavigate }) {
         </div>
       </GlassCard>
 
+      {/* Notifications */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+            <Bell size={16} className="text-neon" />
+          </div>
+          <h2 className="text-sm font-semibold">Notifications</h2>
+        </div>
+        <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
+          <div className="flex items-center gap-3">
+            <Bell size={16} className={reminderEnabled ? 'text-neon' : 'text-gray-500'} />
+            <div>
+              <p className="text-xs font-medium">Daily Reminder</p>
+              <p className="text-[10px] text-gray-500">Get reminded at 7:00 PM if no activity logged</p>
+            </div>
+          </div>
+          <button
+            onClick={toggleReminder}
+            className={`relative w-10 h-6 rounded-full transition-all duration-200 ${
+              reminderEnabled ? 'bg-neon/30' : 'bg-matte-200'
+            }`}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${
+              reminderEnabled ? 'bg-neon left-[18px]' : 'bg-gray-500 left-0.5'
+            }`} />
+          </button>
+        </div>
+      </GlassCard>
+
       {/* Navigation Links */}
       <GlassCard brand className="mb-4">
         <div className="space-y-1">
@@ -221,6 +317,17 @@ export default function Settings({ onNavigate }) {
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">Borrow & Lend</p>
               <p className="text-xs text-gray-500">Track money lent or borrowed</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('timeline')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <History size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Smart Money Timeline</p>
+              <p className="text-xs text-gray-500">All transactions, debts & trades in one view</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -316,18 +423,25 @@ export default function Settings({ onNavigate }) {
       <GlassCard className="mb-4">
         <div className="flex items-center gap-2 mb-4">
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
-            <Shield size={16} className="text-neon" />
+            <Database size={16} className="text-neon" />
           </div>
           <h2 className="text-sm font-semibold">Data Management</h2>
+        </div>
+        <div className="flex items-center gap-2 mb-3 px-1">
+          <span className="text-[10px] text-gray-600 font-medium">Schema</span>
+          <span className="text-[10px] text-neon font-semibold">v{schemaVersion}</span>
+          <span className="text-[10px] text-gray-600 mx-1">·</span>
+          <span className="text-[10px] text-gray-600 font-medium">Target</span>
+          <span className="text-[10px] text-neon font-semibold">v{APP_SCHEMA_VERSION}</span>
         </div>
         <div className="space-y-2">
           <button onClick={handleExport} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
             <Download size={16} />
-            Export Data (JSON)
+            Export Backup
           </button>
           <button onClick={() => fileInputRef.current?.click()} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
             <Upload size={16} />
-            Import Data
+            Import Backup
           </button>
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
         </div>
@@ -342,11 +456,11 @@ export default function Settings({ onNavigate }) {
           <h2 className="text-sm font-semibold text-red-400">Danger Zone</h2>
         </div>
         <button
-          onClick={() => setShowConfirm(true)}
+          onClick={() => setShowResetConfirm(true)}
           className="btn-secondary w-full text-sm flex items-center justify-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10"
         >
           <Trash2 size={16} />
-          Clear All Data
+          Reset All Local Data
         </button>
       </GlassCard>
 
@@ -384,21 +498,64 @@ export default function Settings({ onNavigate }) {
         </div>
       </Modal>
 
-      {/* Confirm Modal */}
-      <Modal open={showConfirm} onClose={() => setShowConfirm(false)} title="Clear All Data?">
-        <p className="text-xs text-gray-400 flex items-start gap-2 mb-4 leading-relaxed">
-          <AlertTriangle size={14} className="text-red-400 shrink-0 mt-0.5" />
-          This will permanently delete all your transactions, budgets, and savings data. This action cannot be undone.
-        </p>
-        <div className="flex gap-2">
-          <button onClick={handleClear} className="flex-1 bg-red-500/10 text-red-400 border border-red-500/30 rounded-xl px-4 py-2.5 text-sm font-medium hover:bg-red-500/20 transition-all">
-            Yes, Delete All
-          </button>
-          <button onClick={() => setShowConfirm(false)} className="flex-1 btn-secondary text-sm">
-            Cancel
+      {/* Restore Confirmation Modal */}
+      <ConfirmationModal
+        open={showRestoreConfirm}
+        onClose={() => { setShowRestoreConfirm(false); setPendingRestore(null); setBackupSchemaWarning(null) }}
+        onConfirm={handleConfirmRestore}
+        title="Restore Backup?"
+        description={`${backupSchemaWarning ? backupSchemaWarning + ' ' : ''}This will replace your current data with the backup. Make sure you have exported your current data first.`}
+        confirmLabel={isRestoring ? 'Restoring...' : 'Restore'}
+        cancelLabel="Cancel"
+        loading={isRestoring}
+      />
+
+      {/* Restore Summary Modal */}
+      <Modal open={!!restoreSummary} onClose={() => setRestoreSummary(null)} title="Restore Complete">
+        <div className="space-y-3">
+          {restoreSummary?.restored?.length > 0 && (
+            <div>
+              <p className="text-xs text-neon font-medium mb-1.5 flex items-center gap-1.5">
+                <CheckCircle2 size={12} /> Restored
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {restoreSummary.restored.map((s) => (
+                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-neon/10 text-neon">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          {restoreSummary?.failed?.length > 0 && (
+            <div>
+              <p className="text-xs text-red-400 font-medium mb-1.5 flex items-center gap-1.5">
+                <XCircle size={12} /> Failed
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {restoreSummary.failed.map((s) => (
+                  <span key={s} className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/10 text-red-400">{s}</span>
+                ))}
+              </div>
+            </div>
+          )}
+          <button onClick={() => setRestoreSummary(null)} className="btn-primary w-full text-sm mt-1">
+            Reload App
           </button>
         </div>
       </Modal>
+
+      {/* Reset Confirmation Modal */}
+      <ConfirmationModal
+        open={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={handleResetData}
+        title="Reset All Data?"
+        description="This will permanently delete all your transactions, debts, budgets, savings, and settings. Export a backup first to avoid data loss."
+        confirmLabel="Reset Everything"
+        cancelLabel="Cancel"
+        danger
+        typedConfirm
+        typedConfirmWord="DELETE"
+      />
     </div>
   )
 }

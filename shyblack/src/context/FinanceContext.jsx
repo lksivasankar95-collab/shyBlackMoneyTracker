@@ -1,25 +1,57 @@
 import { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { generateId } from '../utils/helpers'
 import { storage, keys } from '../utils/storage'
+import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getBudgets, saveBudgets } from '../utils/budgets'
 import { getRecurringTransactions, saveRecurringTransactions } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
 import { calculateFinancialScore, detectOverspending, getSavingsRecommendations, getHabitInsights, getFinancialHealth } from '../utils/insights'
+import { runMigrations } from '../utils/schema'
 
 export const FinanceContext = createContext()
 
+function isValidTransaction(t) {
+  return t && typeof t === 'object' && typeof t.id === 'string' && typeof t.type === 'string' && typeof t.amount === 'number'
+}
+
+function isValidDebt(d) {
+  return d && typeof d === 'object' && typeof d.id === 'string' && typeof d.personName === 'string' && typeof d.amount === 'number'
+}
+
+function sanitizeTransactions(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw.filter(isValidTransaction)
+}
+
+function sanitizeDebts(raw) {
+  if (!Array.isArray(raw)) return []
+  return raw.filter(isValidDebt)
+}
+
+function sanitizeSavingsGoal(raw) {
+  if (!raw || typeof raw !== 'object') return { target: 0, saved: 0 }
+  return { target: typeof raw.target === 'number' ? raw.target : 0, saved: typeof raw.saved === 'number' ? raw.saved : 0 }
+}
+
 function loadInitialState() {
   try {
+    const migrationResult = runMigrations()
+
+    const rawTxs = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, [])
+    const rawDebts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
+    const rawSavings = safeStorage.get(STORAGE_KEYS.SAVINGS, { target: 0, saved: 0 })
+
     return {
-      transactions: storage.get(keys.TRANSACTIONS, []),
-      savingsGoal: storage.get(keys.SAVINGS, { target: 0, saved: 0 }),
+      transactions: sanitizeTransactions(rawTxs),
+      savingsGoal: sanitizeSavingsGoal(rawSavings),
       budgets: getBudgets(),
       recurring: getRecurringTransactions(),
       tags: getTags(),
       security: getSecuritySettings(),
-      debts: getDebts(),
+      debts: sanitizeDebts(rawDebts),
+      _migrationResult: migrationResult,
     }
   } catch {
     return {
@@ -213,7 +245,8 @@ export function FinanceProvider({ children }) {
   }, [debts])
 
   const clearAllData = useCallback(() => {
-    try { storage.clear() } catch {}
+    safeStorage.clear()
+    safeStorage.remove(STORAGE_KEYS.SCHEMA)
     setState({
       transactions: [],
       savingsGoal: { target: 0, saved: 0 },
@@ -226,13 +259,17 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const importData = useCallback((data) => {
+    const txs = data.transactions ? sanitizeTransactions(data.transactions) : undefined
+    const dts = data.debts ? sanitizeDebts(data.debts) : undefined
+    const svg = data.savings || data.savingsGoal ? sanitizeSavingsGoal(data.savings || data.savingsGoal) : undefined
+
     setState((prev) => ({
       ...prev,
-      ...(data.transactions ? { transactions: data.transactions } : {}),
-      ...(data.savings ? { savingsGoal: data.savings } : {}),
+      ...(txs ? { transactions: txs } : {}),
+      ...(svg ? { savingsGoal: svg } : {}),
       ...(data.budgets ? { budgets: data.budgets } : {}),
       ...(data.recurring ? { recurring: data.recurring } : {}),
-      ...(data.debts ? { debts: data.debts } : {}),
+      ...(dts ? { debts: dts } : {}),
     }))
   }, [])
 

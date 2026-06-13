@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, groupBy } from '../utils/helpers'
 import TransactionItem from '../components/TransactionItem'
 import EmptyState from '../components/EmptyState'
 import GlassCard from '../components/GlassCard'
+import ConfirmationModal from '../components/ConfirmationModal'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES } from '../utils/constants'
 
 export default function History() {
@@ -13,10 +14,21 @@ export default function History() {
   const [filterCategory, setFilterCategory] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [sortOrder, setSortOrder] = useState('desc')
+  const [pendingDelete, setPendingDelete] = useState(null)
 
   const allCategories = useMemo(() => [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], [])
 
   const toggleSort = useCallback(() => setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'), [])
+
+  const handleDeleteRequest = useCallback((id) => {
+    setPendingDelete(id)
+  }, [])
+
+  const confirmDelete = useCallback(() => {
+    if (!pendingDelete) return
+    deleteTransaction(pendingDelete)
+    setPendingDelete(null)
+  }, [pendingDelete, deleteTransaction])
 
   const filtered = useMemo(() => {
     let result = [...transactions]
@@ -111,6 +123,17 @@ export default function History() {
         </button>
       )}
 
+      <ConfirmationModal
+        open={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmDelete}
+        title="Delete Transaction?"
+        description="This will permanently remove this transaction from your records."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
+      />
+
       {filtered.length === 0 ? (
         <GlassCard>
           <EmptyState
@@ -128,7 +151,7 @@ export default function History() {
               </div>
               <GlassCard>
                 {txs.map((tx) => (
-                  <TransactionItem key={tx.id} transaction={tx} onDelete={deleteTransaction} />
+                  <TransactionItem key={tx.id} transaction={tx} onDelete={handleDeleteRequest} />
                 ))}
               </GlassCard>
             </div>

@@ -1,9 +1,19 @@
-import { useState, useRef, useCallback, lazy, Suspense } from 'react'
+import { useState, useRef, useCallback, lazy, Suspense, useEffect } from 'react'
 import { FinanceProvider } from './context/FinanceContext'
 import { ToastProvider } from './components/Toast'
 import BrandHeader from './components/BrandHeader'
 import BottomNav from './components/BottomNav'
 import AndroidBackHandler from './components/AndroidBackHandler'
+import ErrorBoundary from './components/ErrorBoundary'
+import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
+import Onboarding from './pages/Onboarding'
+import { refreshReminderSchedule, getReminderPreference } from './utils/reminders'
+import { useFinance } from './hooks/useFinance'
+
+const onboardingDone = () => {
+  const data = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
+  return data && data.hasCompletedOnboarding === true
+}
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AddTransaction = lazy(() => import('./pages/AddTransaction'))
@@ -14,6 +24,7 @@ const InsightsPage = lazy(() => import('./pages/InsightsPage'))
 const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage'))
+const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -25,6 +36,7 @@ const pages = {
   budgets: BudgetsPage,
   reports: ReportsPage,
   debts: DebtsPage,
+  timeline: TimelinePage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -43,6 +55,20 @@ function PageLoader() {
       </div>
     </div>
   )
+}
+
+function ReminderInit() {
+  const { transactions, debts } = useFinance()
+
+  useEffect(() => {
+    if (!getReminderPreference()) return
+    const timer = setTimeout(() => {
+      refreshReminderSchedule(transactions, debts)
+    }, 2000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  return null
 }
 
 function AppContent() {
@@ -101,11 +127,24 @@ function AppContent() {
 }
 
 export default function App() {
+  const [isOnboarded, setIsOnboarded] = useState(onboardingDone)
+
+  const handleOnboardingComplete = useCallback(() => {
+    setIsOnboarded(true)
+  }, [])
+
+  if (!isOnboarded) {
+    return <Onboarding onComplete={handleOnboardingComplete} />
+  }
+
   return (
-    <FinanceProvider>
-      <ToastProvider>
-        <AppContent />
-      </ToastProvider>
-    </FinanceProvider>
+    <ErrorBoundary>
+      <FinanceProvider>
+        <ToastProvider>
+          <ReminderInit />
+          <AppContent />
+        </ToastProvider>
+      </FinanceProvider>
+    </ErrorBoundary>
   )
 }

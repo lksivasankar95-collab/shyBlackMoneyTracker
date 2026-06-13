@@ -1,13 +1,16 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { ArrowUpCircle, ArrowDownCircle, Send, TrendingUp, TrendingDown, Check, Repeat2, Tag, X } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { formatCurrency } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, TRANSACTION_PURPOSE, PURPOSE_LABELS, TRADING_PLATFORMS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import CategoryIcon from '../components/CategoryIcon'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
 const MAX_AMOUNT = 99999999
+const LARGE_AMOUNT_THRESHOLD = 50000
 
 const PURPOSE_ICONS = {
   [TRANSACTION_PURPOSE.INCOME]: ArrowUpCircle,
@@ -52,6 +55,8 @@ export default function AddTransaction({ onNavigate }) {
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [showTagPicker, setShowTagPicker] = useState(false)
+  const [showLargeConfirm, setShowLargeConfirm] = useState(false)
+  const [pendingSubmit, setPendingSubmit] = useState(null)
 
   const transactionType = getTypeFromPurpose(purpose)
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
@@ -100,35 +105,7 @@ export default function AddTransaction({ onNavigate }) {
     addTag(tagName)
   }
 
-  const handleSubmit = (e) => {
-    e.preventDefault()
-    setError('')
-
-    const numAmount = parseFloat(amount)
-    if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount')
-      return
-    }
-    if (numAmount > MAX_AMOUNT) {
-      setError('Amount exceeds maximum limit')
-      return
-    }
-    if (!category) {
-      setError('Please select a category')
-      return
-    }
-
-    const transactionData = {
-      type: transactionType,
-      transactionPurpose: purpose,
-      tradingPlatform: isTradingPurpose ? tradingPlatform || 'manual' : undefined,
-      amount: numAmount,
-      category,
-      note: note.trim(),
-      date,
-      tags: selectedTags,
-    }
-
+  const doSubmit = useCallback((transactionData) => {
     addTransaction(transactionData)
 
     if (isRecurring) {
@@ -154,8 +131,64 @@ export default function AddTransaction({ onNavigate }) {
     setTradingPlatform('')
     setSuccess(true)
     setError('')
+    setPendingSubmit(null)
     setTimeout(() => setSuccess(false), 2000)
+  }, [addTransaction, addRecurring, isRecurring, date, frequency])
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    setError('')
+
+    const numAmount = parseFloat(amount)
+
+    if (!amount || isNaN(numAmount) || numAmount <= 0) {
+      setError('Please enter a valid amount')
+      return
+    }
+    if (numAmount > MAX_AMOUNT) {
+      setError('Amount exceeds maximum limit')
+      return
+    }
+    if (!category) {
+      setError('Please select a category')
+      return
+    }
+
+    const selectedDate = new Date(date)
+    if (isNaN(selectedDate.getTime())) {
+      setError('Invalid date selected')
+      return
+    }
+    if (selectedDate > new Date()) {
+      setError('Future dates are not allowed')
+      return
+    }
+
+    const transactionData = {
+      type: transactionType,
+      transactionPurpose: purpose,
+      tradingPlatform: isTradingPurpose ? tradingPlatform || 'manual' : undefined,
+      amount: numAmount,
+      category,
+      note: note.trim(),
+      date,
+      tags: selectedTags,
+    }
+
+    if (numAmount >= LARGE_AMOUNT_THRESHOLD) {
+      setPendingSubmit(transactionData)
+      setShowLargeConfirm(true)
+      return
+    }
+
+    doSubmit(transactionData)
   }
+
+  const confirmLargeTransaction = useCallback(() => {
+    if (!pendingSubmit) return
+    setShowLargeConfirm(false)
+    doSubmit(pendingSubmit)
+  }, [pendingSubmit, doSubmit])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -386,6 +419,16 @@ export default function AddTransaction({ onNavigate }) {
           )}
         </button>
       </form>
+
+      <ConfirmationModal
+        open={showLargeConfirm}
+        onClose={() => { setShowLargeConfirm(false); setPendingSubmit(null) }}
+        onConfirm={confirmLargeTransaction}
+        title="Confirm Large Transaction"
+        description={`This transaction is for ${formatCurrency(pendingSubmit?.amount || 0)}. Are you sure you want to proceed?`}
+        confirmLabel="Confirm"
+        cancelLabel="Cancel"
+      />
     </div>
   )
 }

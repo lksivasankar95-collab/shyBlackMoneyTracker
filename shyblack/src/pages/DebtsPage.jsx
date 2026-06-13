@@ -10,6 +10,7 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import DebtCard from '../components/DebtCard'
 import AddDebtModal from '../components/AddDebtModal'
+import ConfirmationModal from '../components/ConfirmationModal'
 
 const FILTERS = [
   { id: 'all', label: 'All' },
@@ -26,6 +27,7 @@ export default function DebtsPage() {
   const [showAddModal, setShowAddModal] = useState(false)
   const [repayTarget, setRepayTarget] = useState(null)
   const [repayAmount, setRepayAmount] = useState('')
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const filtered = useMemo(() => {
     if (activeFilter === 'all') return debts
@@ -44,9 +46,15 @@ export default function DebtsPage() {
   }, [addDebt, addToast])
 
   const handleDelete = useCallback((id) => {
-    deleteDebt(id)
+    setDeleteTarget(id)
+  }, [])
+
+  const confirmDelete = useCallback(() => {
+    if (!deleteTarget) return
+    deleteDebt(deleteTarget)
     addToast('Record deleted', 'info')
-  }, [deleteDebt, addToast])
+    setDeleteTarget(null)
+  }, [deleteTarget, deleteDebt, addToast])
 
   const handleRepay = useCallback((debt) => {
     setRepayTarget(debt)
@@ -184,6 +192,17 @@ export default function DebtsPage() {
         open={showAddModal}
         onClose={() => setShowAddModal(false)}
         onSave={handleSave}
+      />
+
+      <ConfirmationModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Record?"
+        description="This will permanently remove this borrow/lend record and all associated data."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        danger
       />
 
       {repayTarget && (
