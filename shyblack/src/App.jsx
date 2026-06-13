@@ -3,6 +3,7 @@ import { FinanceProvider } from './context/FinanceContext'
 import { ToastProvider } from './components/Toast'
 import BrandHeader from './components/BrandHeader'
 import BottomNav from './components/BottomNav'
+import AndroidBackHandler from './components/AndroidBackHandler'
 
 const Dashboard = lazy(() => import('./pages/Dashboard'))
 const AddTransaction = lazy(() => import('./pages/AddTransaction'))
@@ -12,6 +13,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 const InsightsPage = lazy(() => import('./pages/InsightsPage'))
 const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const DebtsPage = lazy(() => import('./pages/DebtsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -22,6 +24,7 @@ const pages = {
   insights: InsightsPage,
   budgets: BudgetsPage,
   reports: ReportsPage,
+  debts: DebtsPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -45,6 +48,7 @@ function PageLoader() {
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
   const [animDir, setAnimDir] = useState('forward')
+  const [history, setHistory] = useState(['dashboard'])
   const prevPage = useRef(currentPage)
 
   const handleNavigate = useCallback((page) => {
@@ -53,9 +57,24 @@ function AppContent() {
     const isNavChange = prevIdx >= 0 && nextIdx >= 0
     setAnimDir(isNavChange && nextIdx >= prevIdx ? 'forward' : 'backward')
     prevPage.current = page
+    setHistory(prev => prev[prev.length - 1] !== page ? [...prev, page] : prev)
     setCurrentPage(page)
   }, [])
 
+  const handleGoBack = useCallback(() => {
+    const newHistory = history.slice(0, -1)
+    if (newHistory.length < 1) return
+
+    const targetPage = newHistory[newHistory.length - 1]
+    const pIdx = navPages.indexOf(prevPage.current)
+    const nIdx = navPages.indexOf(targetPage)
+    setAnimDir(pIdx >= 0 && nIdx >= 0 && nIdx <= pIdx ? 'backward' : 'forward')
+    prevPage.current = targetPage
+    setHistory(newHistory)
+    setCurrentPage(targetPage)
+  }, [history])
+
+  const canGoBack = history.length > 1
   const Page = pages[currentPage]
   const showHeader = currentPage === 'dashboard' || navPages.includes(currentPage)
 
@@ -68,6 +87,7 @@ function AppContent() {
           </div>
         </div>
       )}
+      <AndroidBackHandler canGoBack={canGoBack} onGoBack={handleGoBack} />
       <Suspense fallback={<PageLoader />}>
         <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={currentPage}>
           <Page onNavigate={handleNavigate} currentPage={currentPage} />

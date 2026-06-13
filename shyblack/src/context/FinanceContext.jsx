@@ -5,6 +5,7 @@ import { getBudgets, saveBudgets } from '../utils/budgets'
 import { getRecurringTransactions, saveRecurringTransactions } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
+import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
 import { calculateFinancialScore, detectOverspending, getSavingsRecommendations, getHabitInsights, getFinancialHealth } from '../utils/insights'
 
 export const FinanceContext = createContext()
@@ -18,6 +19,7 @@ function loadInitialState() {
       recurring: getRecurringTransactions(),
       tags: getTags(),
       security: getSecuritySettings(),
+      debts: getDebts(),
     }
   } catch {
     return {
@@ -27,13 +29,14 @@ function loadInitialState() {
       recurring: [],
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
+      debts: [],
     }
   }
 }
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, recurring, tags, security } = state
+  const { transactions, savingsGoal, budgets, recurring, tags, security, debts } = state
   const [notification, setNotification] = useState(null)
   const overspendTimer = useRef(null)
 
@@ -47,6 +50,7 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveRecurringTransactions(recurring) } catch {} }, [recurring])
   useEffect(() => { try { saveTags(tags) } catch {} }, [tags])
   useEffect(() => { try { saveSecuritySettings(security) } catch {} }, [security])
+  useEffect(() => { try { saveDebts(debts) } catch {} }, [debts])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -84,7 +88,9 @@ export function FinanceProvider({ children }) {
 
   const getBalance = useCallback(() => {
     const income = transactions.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-    const expenses = transactions.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+    const expenses = transactions
+      .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+      .reduce((sum, t) => sum + t.amount, 0)
     return income - expenses
   }, [transactions])
 
@@ -94,7 +100,9 @@ export function FinanceProvider({ children }) {
       return d.getFullYear() === year && d.getMonth() === month
     })
     const income = filtered.filter((t) => t.type === 'income').reduce((sum, t) => sum + t.amount, 0)
-    const expense = filtered.filter((t) => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0)
+    const expense = filtered
+      .filter((t) => t.type === 'expense' && t.transactionPurpose !== 'investment_transfer')
+      .reduce((sum, t) => sum + t.amount, 0)
     return { income, expense, balance: income - expense }
   }, [transactions])
 
@@ -158,6 +166,52 @@ export function FinanceProvider({ children }) {
     setState((prev) => ({ ...prev, security: { ...prev.security, ...updates } }))
   }, [])
 
+  const addDebt = useCallback((data) => {
+    const newDebt = createDebt(data)
+    setState((prev) => ({ ...prev, debts: [newDebt, ...prev.debts] }))
+    return newDebt
+  }, [])
+
+  const updateDebt = useCallback((id, updates) => {
+    setState((prev) => ({
+      ...prev,
+      debts: prev.debts.map((d) => (d.id === id ? { ...d, ...updates } : d)),
+    }))
+  }, [])
+
+  const deleteDebt = useCallback((id) => {
+    setState((prev) => ({ ...prev, debts: prev.debts.filter((d) => d.id !== id) }))
+  }, [])
+
+  const recordRepayment = useCallback((id, repaymentAmount) => {
+    setState((prev) => ({
+      ...prev,
+      debts: prev.debts.map((d) =>
+        d.id === id ? applyRepayment(d, repaymentAmount) : d
+      ),
+    }))
+  }, [])
+
+  const debtsSummary = useMemo(() => {
+    const totalLent = debts
+      .filter((d) => d.type === DEBT_TYPES.LENT)
+      .reduce((sum, d) => sum + d.amount, 0)
+    const totalBorrowed = debts
+      .filter((d) => d.type === DEBT_TYPES.BORROWED)
+      .reduce((sum, d) => sum + d.amount, 0)
+    const pendingReceivables = debts
+      .filter((d) => d.type === DEBT_TYPES.LENT && d.status === DEBT_STATUS.PENDING)
+      .reduce((sum, d) => sum + d.remainingAmount, 0)
+    const pendingPayables = debts
+      .filter((d) => d.type === DEBT_TYPES.BORROWED && d.status === DEBT_STATUS.PENDING)
+      .reduce((sum, d) => sum + d.remainingAmount, 0)
+    const now = new Date()
+    const overdueCount = debts.filter(
+      (d) => d.status === DEBT_STATUS.PENDING && d.dueDate && new Date(d.dueDate) < now
+    ).length
+    return { totalLent, totalBorrowed, pendingReceivables, pendingPayables, overdueCount }
+  }, [debts])
+
   const clearAllData = useCallback(() => {
     try { storage.clear() } catch {}
     setState({
@@ -167,6 +221,7 @@ export function FinanceProvider({ children }) {
       recurring: [],
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
+      debts: [],
     })
   }, [])
 
@@ -177,6 +232,7 @@ export function FinanceProvider({ children }) {
       ...(data.savings ? { savingsGoal: data.savings } : {}),
       ...(data.budgets ? { budgets: data.budgets } : {}),
       ...(data.recurring ? { recurring: data.recurring } : {}),
+      ...(data.debts ? { debts: data.debts } : {}),
     }))
   }, [])
 
@@ -202,12 +258,14 @@ export function FinanceProvider({ children }) {
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, addTag, removeTag, updateSecurity,
     clearAllData, importData, dismissNotification,
+    debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
   }), [
     transactions, savingsGoal, budgets, recurring, tags, security, notification, insights,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, addTag, removeTag, updateSecurity,
     clearAllData, importData, dismissNotification,
+    debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
   ])
 
   return (

@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Send, TrendingUp, TrendingDown, Check, Repeat2, Tag, X } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, TRANSACTION_PURPOSE, PURPOSE_LABELS, TRADING_PLATFORMS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import CategoryIcon from '../components/CategoryIcon'
@@ -9,9 +9,38 @@ import CategoryIcon from '../components/CategoryIcon'
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
 const MAX_AMOUNT = 99999999
 
+const PURPOSE_ICONS = {
+  [TRANSACTION_PURPOSE.INCOME]: ArrowUpCircle,
+  [TRANSACTION_PURPOSE.EXPENSE]: ArrowDownCircle,
+  [TRANSACTION_PURPOSE.INVESTMENT_TRANSFER]: Send,
+  [TRANSACTION_PURPOSE.TRADING_PROFIT]: TrendingUp,
+  [TRANSACTION_PURPOSE.TRADING_LOSS]: TrendingDown,
+}
+
+const PURPOSE_COLORS = {
+  [TRANSACTION_PURPOSE.INCOME]: 'bg-green-500/15 text-green-400 border-green-500/30',
+  [TRANSACTION_PURPOSE.EXPENSE]: 'bg-red-500/15 text-red-400 border-red-500/30',
+  [TRANSACTION_PURPOSE.INVESTMENT_TRANSFER]: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
+  [TRANSACTION_PURPOSE.TRADING_PROFIT]: 'bg-purple-500/15 text-purple-400 border-purple-500/30',
+  [TRANSACTION_PURPOSE.TRADING_LOSS]: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+}
+
+function getTypeFromPurpose(purpose) {
+  if (purpose === TRANSACTION_PURPOSE.INCOME || purpose === TRANSACTION_PURPOSE.TRADING_PROFIT) return TRANSACTION_TYPES.INCOME
+  return TRANSACTION_TYPES.EXPENSE
+}
+
+const PURPOSE_ORDER = [
+  TRANSACTION_PURPOSE.INCOME,
+  TRANSACTION_PURPOSE.EXPENSE,
+  TRANSACTION_PURPOSE.INVESTMENT_TRANSFER,
+  TRANSACTION_PURPOSE.TRADING_PROFIT,
+  TRANSACTION_PURPOSE.TRADING_LOSS,
+]
+
 export default function AddTransaction({ onNavigate }) {
   const { addTransaction, addRecurring, tags, addTag } = useFinance()
-  const [type, setType] = useState(TRANSACTION_TYPES.EXPENSE)
+  const [purpose, setPurpose] = useState(TRANSACTION_PURPOSE.EXPENSE)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState('')
   const [note, setNote] = useState('')
@@ -19,11 +48,14 @@ export default function AddTransaction({ onNavigate }) {
   const [selectedTags, setSelectedTags] = useState([])
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
+  const [tradingPlatform, setTradingPlatform] = useState('')
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [showTagPicker, setShowTagPicker] = useState(false)
 
-  const categories = type === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const transactionType = getTypeFromPurpose(purpose)
+  const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const isTradingPurpose = purpose === TRANSACTION_PURPOSE.TRADING_PROFIT || purpose === TRANSACTION_PURPOSE.TRADING_LOSS
   const suggestedTags = getSuggestedTags()
 
   const handleAmountChange = (e) => {
@@ -87,7 +119,9 @@ export default function AddTransaction({ onNavigate }) {
     }
 
     const transactionData = {
-      type,
+      type: transactionType,
+      transactionPurpose: purpose,
+      tradingPlatform: isTradingPurpose ? tradingPlatform || 'manual' : undefined,
       amount: numAmount,
       category,
       note: note.trim(),
@@ -117,6 +151,7 @@ export default function AddTransaction({ onNavigate }) {
     setDate(new Date().toISOString().split('T')[0])
     setSelectedTags([])
     setIsRecurring(false)
+    setTradingPlatform('')
     setSuccess(true)
     setError('')
     setTimeout(() => setSuccess(false), 2000)
@@ -126,30 +161,24 @@ export default function AddTransaction({ onNavigate }) {
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <h1 className="text-xl font-bold mb-6">Add Transaction</h1>
 
-      {/* Type Toggle */}
-      <div className="flex bg-matte-100 rounded-xl p-1 mb-6">
-        <button
-          onClick={() => { setType(TRANSACTION_TYPES.INCOME); setCategory(''); setError('') }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-            type === TRANSACTION_TYPES.INCOME
-              ? 'bg-neon text-black shadow-lg shadow-neon/20'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <ArrowUpCircle size={18} />
-          Income
-        </button>
-        <button
-          onClick={() => { setType(TRANSACTION_TYPES.EXPENSE); setCategory(''); setError('') }}
-          className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
-            type === TRANSACTION_TYPES.EXPENSE
-              ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-              : 'text-gray-400 hover:text-white'
-          }`}
-        >
-          <ArrowDownCircle size={18} />
-          Expense
-        </button>
+      {/* Purpose Selector */}
+      <div className="grid grid-cols-3 gap-2 mb-6">
+        {PURPOSE_ORDER.map((p) => {
+          const Icon = PURPOSE_ICONS[p]
+          const isActive = purpose === p
+          return (
+            <button
+              key={p}
+              onClick={() => { setPurpose(p); setCategory(''); setError(''); if (!isTradingPurpose) setTradingPlatform('') }}
+              className={`flex flex-col items-center gap-1.5 py-2.5 rounded-xl text-xs font-medium border transition-all duration-200 ${
+                isActive ? PURPOSE_COLORS[p] : 'bg-matte-100 text-gray-500 border-transparent hover:text-white'
+              } ${p === TRANSACTION_PURPOSE.INCOME || p === TRANSACTION_PURPOSE.EXPENSE ? 'col-span-1' : ''}`}
+            >
+              <Icon size={18} />
+              <span className="text-[10px] leading-tight text-center">{PURPOSE_LABELS[p]}</span>
+            </button>
+          )
+        })}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -196,7 +225,7 @@ export default function AddTransaction({ onNavigate }) {
                 onClick={() => { setCategory(cat.id); setError('') }}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-150 ${
                   category === cat.id
-                    ? type === TRANSACTION_TYPES.INCOME
+                    ? transactionType === TRANSACTION_TYPES.INCOME
                       ? 'border-neon/50 bg-neon/10 text-neon shadow-sm shadow-neon/10'
                       : 'border-red-500/50 bg-red-500/10 text-red-400 shadow-sm shadow-red-500/10'
                     : 'border-glass-border text-gray-400 hover:border-gray-500 hover:text-white'
@@ -223,6 +252,29 @@ export default function AddTransaction({ onNavigate }) {
             maxLength={100}
           />
         </div>
+
+        {/* Trading Platform */}
+        {isTradingPurpose && (
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-2 block">Trading Platform</label>
+            <div className="flex flex-wrap gap-2">
+              {TRADING_PLATFORMS.map((p) => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setTradingPlatform(p.id)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all duration-150 ${
+                    tradingPlatform === p.id
+                      ? 'border-purple-500/50 bg-purple-500/10 text-purple-400'
+                      : 'border-glass-border text-gray-500 hover:border-gray-400'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tags */}
         <div>
@@ -330,7 +382,7 @@ export default function AddTransaction({ onNavigate }) {
               Added!
             </>
           ) : (
-            `Add ${type === TRANSACTION_TYPES.INCOME ? 'Income' : 'Expense'}`
+            `Add ${PURPOSE_LABELS[purpose] || 'Transaction'}`
           )}
         </button>
       </form>

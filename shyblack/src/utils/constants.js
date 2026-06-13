@@ -22,6 +22,29 @@ export const TRANSACTION_TYPES = {
   EXPENSE: 'expense',
 }
 
+export const TRANSACTION_PURPOSE = {
+  INCOME: 'income',
+  EXPENSE: 'expense',
+  INVESTMENT_TRANSFER: 'investment_transfer',
+  TRADING_PROFIT: 'trading_profit',
+  TRADING_LOSS: 'trading_loss',
+}
+
+export const TRADING_PLATFORMS = [
+  { id: 'binance', label: 'Binance' },
+  { id: 'delta', label: 'Delta' },
+  { id: 'bybit', label: 'Bybit' },
+  { id: 'manual', label: 'Manual' },
+]
+
+export const PURPOSE_LABELS = {
+  income: 'Income',
+  expense: 'Expense',
+  investment_transfer: 'Investment Transfer',
+  trading_profit: 'Trading Profit',
+  trading_loss: 'Trading Loss',
+}
+
 export const MONTHS = [
   'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',

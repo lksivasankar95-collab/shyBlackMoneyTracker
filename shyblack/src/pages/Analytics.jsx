@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
 } from 'recharts'
-import { TrendingUp, TrendingDown, BarChart3, Calendar, Activity } from 'lucide-react'
+import { TrendingUp, TrendingDown, BarChart3, Calendar, Activity, Send, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
@@ -40,25 +40,29 @@ export default function Analytics() {
   const year = now.getFullYear()
   const month = now.getMonth()
 
-  const monthlyData = useMemo(() => getMonthlyData(transactions, 6), [transactions])
-  const growthData = useMemo(() => getMonthlyGrowth(transactions), [transactions])
-  const forecast = useMemo(() => getIncomeForecast(transactions), [transactions])
-  const comparison = useMemo(() => compareSpending(transactions), [transactions])
-  const heatmap = useMemo(() => getDailyExpenseHeatmap(transactions, year, month), [transactions, year, month])
-  const trends = useMemo(() => getCategoryTrends(transactions, 3), [transactions])
+  const monthlyData = useMemo(() => getMonthlyData(normalTx, 6), [normalTx])
+  const growthData = useMemo(() => getMonthlyGrowth(normalTx), [normalTx])
+  const forecast = useMemo(() => getIncomeForecast(normalTx), [normalTx])
+  const comparison = useMemo(() => compareSpending(normalTx), [normalTx])
+  const heatmap = useMemo(() => getDailyExpenseHeatmap(normalTx, year, month), [normalTx, year, month])
+  const trends = useMemo(() => getCategoryTrends(normalTx, 3), [normalTx])
+
+  const normalTx = useMemo(() =>
+    transactions.filter((t) => t.transactionPurpose !== 'investment_transfer'),
+  [transactions])
 
   const currentMonth = useMemo(() => {
-    const monthTxs = transactions.filter((t) => {
+    const monthTxs = normalTx.filter((t) => {
       const d = new Date(t.date)
       return d.getMonth() === month && d.getFullYear() === year
     })
     const income = monthTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
     const expense = monthTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
     return { income, expense, count: monthTxs.length }
-  }, [transactions, year, month])
+  }, [normalTx, year, month])
 
   const categoryData = useMemo(() => {
-    const monthTxs = transactions.filter((t) => {
+    const monthTxs = normalTx.filter((t) => {
       const d = new Date(t.date)
       return d.getMonth() === month && d.getFullYear() === year
     })
@@ -71,7 +75,20 @@ export default function Analytics() {
       const catInfo = EXPENSE_CATEGORIES.find((c) => c.id === cat)
       return { name: catInfo?.label || cat, value: amount }
     }).sort((a, b) => b.value - a.value)
-  }, [transactions, year, month])
+  }, [normalTx, year, month])
+
+  const tradingMetrics = useMemo(() => {
+    const capitalInvested = transactions
+      .filter((t) => t.transactionPurpose === 'investment_transfer')
+      .reduce((s, t) => s + t.amount, 0)
+    const tradingProfit = transactions
+      .filter((t) => t.transactionPurpose === 'trading_profit')
+      .reduce((s, t) => s + t.amount, 0)
+    const tradingLoss = transactions
+      .filter((t) => t.transactionPurpose === 'trading_loss')
+      .reduce((s, t) => s + t.amount, 0)
+    return { capitalInvested, tradingProfit, tradingLoss, netResult: tradingProfit - tradingLoss }
+  }, [transactions])
 
   const hasData = transactions.length > 0
   const firstDay = new Date(year, month, 1).getDay()
@@ -151,6 +168,48 @@ export default function Analytics() {
               <p className="text-[10px] text-gray-500 mb-0.5">This Month</p>
               <p className="text-sm font-bold tabular-nums">{formatCurrency(comparison.current)}</p>
             </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {(tradingMetrics.capitalInvested > 0 || tradingMetrics.tradingProfit > 0 || tradingMetrics.tradingLoss > 0) && (
+        <GlassCard brand className="mb-4 border-neon/10">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
+              <BarChart3 size={14} className="text-purple-400" />
+            </div>
+            <h2 className="text-sm font-semibold">Trading Summary</h2>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            {tradingMetrics.capitalInvested > 0 && (
+              <div className="p-3 rounded-xl bg-white/[0.03]">
+                <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1 font-medium">
+                  <Send size={11} className="text-blue-400" />
+                  Capital Invested
+                </div>
+                <p className="text-sm font-extrabold text-blue-400 tabular-nums">{formatCurrency(tradingMetrics.capitalInvested)}</p>
+              </div>
+            )}
+            <div className="p-3 rounded-xl bg-white/[0.03]">
+              <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1 font-medium">
+                <ArrowUpRight size={11} className="text-purple-400" />
+                Trading Profit
+              </div>
+              <p className="text-sm font-extrabold text-purple-400 tabular-nums">{formatCurrency(tradingMetrics.tradingProfit)}</p>
+            </div>
+            <div className="p-3 rounded-xl bg-white/[0.03]">
+              <div className="flex items-center gap-1 text-[10px] text-gray-500 mb-1 font-medium">
+                <ArrowDownLeft size={11} className="text-orange-400" />
+                Trading Loss
+              </div>
+              <p className="text-sm font-extrabold text-orange-400 tabular-nums">{formatCurrency(tradingMetrics.tradingLoss)}</p>
+            </div>
+          </div>
+          <div className="flex items-center justify-between pt-3 border-t border-glass-border">
+            <span className="text-xs text-gray-500 font-medium">Net Trading Result</span>
+            <span className={`text-sm font-extrabold tabular-nums ${tradingMetrics.netResult >= 0 ? 'text-neon' : 'text-red-400'}`}>
+              {tradingMetrics.netResult >= 0 ? '+' : ''}{formatCurrency(tradingMetrics.netResult)}
+            </span>
           </div>
         </GlassCard>
       )}

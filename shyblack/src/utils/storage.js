@@ -7,6 +7,7 @@ const keys = {
   RECURRING: `${STORAGE_PREFIX}recurring`,
   TAGS: `${STORAGE_PREFIX}tags`,
   SETTINGS: `${STORAGE_PREFIX}settings`,
+  DEBTS: `${STORAGE_PREFIX}debts`,
 }
 
 export { keys }
