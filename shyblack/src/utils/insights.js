@@ -1,4 +1,6 @@
 import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analytics'
+import { formatCurrency } from './currency'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 export function calculateFinancialScore(transactions) {
   if (transactions.length === 0) return { score: 0, level: 'N/A', factors: [] }
@@ -136,7 +138,7 @@ export function getSavingsRecommendations(transactions, savingsGoal) {
 
   if (savingsGoal.target > 0 && savingsGoal.target > savingsGoal.saved) {
     const remaining = savingsGoal.target - savingsGoal.saved
-    tips.push({ type: 'goal', text: `₹${remaining.toLocaleString('en-IN')} more to reach your savings goal`, impact: 'high' })
+    tips.push({ type: 'goal', text: `${formatCurrency(remaining)} more to reach your savings goal`, impact: 'high' })
   }
 
   return tips
@@ -237,4 +239,169 @@ export function getFinancialHealth(transactions) {
   else if (monthsCovered >= 1) rating = 'Fair'
 
   return { emergencyFund: totalSavings, monthsCovered: Math.round(monthsCovered * 10) / 10, rating }
+}
+
+export function getScoreVelocity(transactions) {
+  if (transactions.length < 5) return null
+
+  const now = new Date()
+  const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+  const lastYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+
+  const thisMonthTx = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+  const lastMonthTx = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === lastMonth && d.getFullYear() === lastYear
+  })
+
+  if (thisMonthTx.length < 3 || lastMonthTx.length < 3) return null
+
+  const thisScore = calculateFinancialScore(thisMonthTx).score
+  const prevScore = calculateFinancialScore(lastMonthTx).score
+  const delta = thisScore - prevScore
+
+  return { delta, direction: delta > 0 ? 'up' : delta < 0 ? 'down' : 'same' }
+}
+
+export function getLoggingStreak(transactions) {
+  if (transactions.length === 0) return 0
+
+  const dates = new Set(transactions.map((t) => t.date))
+  const today = new Date()
+  let streak = 0
+
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today)
+    d.setDate(d.getDate() - i)
+    const dateStr = d.toISOString().split('T')[0]
+    if (dates.has(dateStr)) {
+      streak++
+    } else if (i > 0) {
+      break
+    }
+  }
+
+  return streak
+}
+
+const STREAK_MILESTONES = [3, 7, 14, 30, 60, 90, 100, 365]
+
+export async function checkStreakMilestone(transactions) {
+  const streak = getLoggingStreak(transactions)
+  if (streak < 3) return
+
+  const reached = STREAK_MILESTONES.filter((m) => streak >= m)
+  if (reached.length === 0) return
+
+  const stored = safeStorage.get(STORAGE_KEYS.STREAK, { milestone: 0 })
+  const lastMilestone = stored.milestone || 0
+  const newMilestone = reached[reached.length - 1]
+
+  if (newMilestone <= lastMilestone) return
+
+  safeStorage.set(STORAGE_KEYS.STREAK, { milestone: newMilestone, date: new Date().toISOString().split('T')[0] })
+
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    await LocalNotifications.schedule({
+      notifications: [{
+        id: 9001,
+        title: `${newMilestone}-Day Streak!`,
+        body: `You've logged transactions ${newMilestone} days in a row. Keep the momentum going!`,
+        schedule: { at: new Date(Date.now() + 500) },
+        smallIcon: 'ic_stat_icon_config_sample',
+        iconColor: '#f97316',
+      }],
+    })
+  } catch {}
+}
+
+export function getMonthlyScoreHistory(transactions, months = 6) {
+  const now = new Date()
+  const result = []
+
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const year = d.getFullYear()
+    const month = d.getMonth()
+
+    const monthTx = transactions.filter((t) => {
+      const td = new Date(t.date)
+      return td.getFullYear() === year && td.getMonth() === month
+    })
+
+    const score = monthTx.length >= 3 ? calculateFinancialScore(monthTx).score : null
+    const label = d.toLocaleString('default', { month: 'short' })
+    result.push({ month: `${year}-${String(month + 1).padStart(2, '0')}`, label, score })
+  }
+
+  return result
+}
+
+export function getCashflowForecast(recurringList, months = 3) {
+  const now = new Date()
+  const result = []
+
+  for (let i = 1; i <= months; i++) {
+    const targetDate = new Date(now.getFullYear(), now.getMonth() + i, 1)
+    const year = targetDate.getFullYear()
+    const month = targetDate.getMonth()
+    let income = 0
+    let expense = 0
+
+    recurringList.filter((r) => r.active !== false).forEach((r) => {
+      let count = 0
+      if (r.frequency === 'monthly') count = 1
+      else if (r.frequency === 'weekly') count = 4
+      else if (r.frequency === 'yearly') {
+        const next = new Date(r.nextDate || r.startDate || r.createdAt)
+        if (next.getFullYear() === year && next.getMonth() === month) count = 1
+      }
+
+      if (count > 0) {
+        if (r.type === 'income') income += r.amount * count
+        else expense += r.amount * count
+      }
+    })
+
+    const label = targetDate.toLocaleString('default', { month: 'short', year: '2-digit' })
+    result.push({ label, income, expense, net: income - expense })
+  }
+
+  return result
+}
+
+export function predictMonthEndSpend(transactions) {
+  const now = new Date()
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+  const daysElapsed = now.getDate()
+  if (daysElapsed < 3) return null
+
+  const thisMonthExpenses = transactions.filter((t) => {
+    if (t.type !== 'expense') return false
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+
+  if (thisMonthExpenses.length === 0) return null
+
+  const spentSoFar = thisMonthExpenses.reduce((s, t) => s + t.amount, 0)
+  const dailyRate = spentSoFar / daysElapsed
+  const projected = Math.round(dailyRate * daysInMonth)
+
+  // Per-category projections
+  const byCategory = {}
+  thisMonthExpenses.forEach((t) => {
+    byCategory[t.category] = (byCategory[t.category] || 0) + t.amount
+  })
+  const categoryProjections = Object.entries(byCategory).map(([category, spent]) => ({
+    category,
+    projected: Math.round((spent / daysElapsed) * daysInMonth),
+    spentSoFar: spent,
+  })).sort((a, b) => b.projected - a.projected)
+
+  return { projected, spentSoFar, daysElapsed, daysInMonth, categoryProjections }
 }

@@ -1,7 +1,5 @@
 const STORAGE_PREFIX = 'shyblack_'
 
-const MAX_RETRIES = 2
-const RETRY_DELAY = 50
 
 const STORAGE_KEYS = {
   TRANSACTIONS: `${STORAGE_PREFIX}transactions`,
@@ -14,11 +12,18 @@ const STORAGE_KEYS = {
   SCHEMA: `${STORAGE_PREFIX}schema`,
   ONBOARDING: `${STORAGE_PREFIX}onboarding`,
   REMINDER: `${STORAGE_PREFIX}reminder`,
+  BUDGET_NOTIF: `${STORAGE_PREFIX}budget_notif`,
+  STREAK: `${STORAGE_PREFIX}streak`,
+  SNAPSHOT: `${STORAGE_PREFIX}snapshot`,
 }
 
-function delay(ms) {
-  return new Promise((r) => setTimeout(r, ms))
-}
+// Purge order on quota error: disposable logs first, never touch recovery-critical keys.
+// NEVER purge: SCHEMA, ONBOARDING, SETTINGS, STREAK, SNAPSHOT, TRANSACTIONS, SAVINGS, DEBTS, BUDGETS, RECURRING
+const QUOTA_PURGE_ORDER = [
+  `${STORAGE_PREFIX}budget_notif`,
+  `${STORAGE_PREFIX}reminder`,
+  `${STORAGE_PREFIX}tags`,
+]
 
 function isQuotaError(error) {
   return (
@@ -56,21 +61,23 @@ export const safeStorage = {
   },
 
   set(key, value) {
-    for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
-      try {
-        const serialized = JSON.stringify(value)
-        localStorage.setItem(key, serialized)
-        return true
-      } catch (error) {
-        if (isQuotaError(error) && attempt < MAX_RETRIES - 1) {
-          this.remove(STORAGE_KEYS.SCHEMA)
-          delay(RETRY_DELAY)
-          continue
-        }
-        return false
+    const serialized = JSON.stringify(value)
+    try {
+      localStorage.setItem(key, serialized)
+      return true
+    } catch (error) {
+      if (!isQuotaError(error)) return false
+      // Attempt recovery by purging lower-priority keys in order
+      for (const purgeKey of QUOTA_PURGE_ORDER) {
+        if (purgeKey === key) continue
+        try { localStorage.removeItem(purgeKey) } catch {}
+        try {
+          localStorage.setItem(key, serialized)
+          return true
+        } catch {}
       }
+      return false
     }
-    return false
   },
 
   remove(key) {

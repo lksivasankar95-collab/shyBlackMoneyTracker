@@ -1,4 +1,4 @@
-import { storage, keys } from './storage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 const DEFAULT_SETTINGS = {
   pinEnabled: false,
@@ -9,11 +9,11 @@ const DEFAULT_SETTINGS = {
 }
 
 export function getSecuritySettings() {
-  return { ...DEFAULT_SETTINGS, ...storage.get(keys.SETTINGS, {}) }
+  return { ...DEFAULT_SETTINGS, ...safeStorage.get(STORAGE_KEYS.SETTINGS, {}) }
 }
 
 export function saveSecuritySettings(settings) {
-  storage.set(keys.SETTINGS, settings)
+  safeStorage.set(STORAGE_KEYS.SETTINGS, settings)
 }
 
 export function setPin(pin) {

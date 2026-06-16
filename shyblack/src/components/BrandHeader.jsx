@@ -1,10 +1,28 @@
-import { memo } from 'react'
+import { memo, useCallback, useRef } from 'react'
 import logoSrc from '../assets/logo.png'
 
-const BrandHeader = memo(function BrandHeader({ compact }) {
+const SECRET_TAPS = 5
+const TAP_WINDOW_MS = 3000
+
+const BrandHeader = memo(function BrandHeader({ compact, onSecretTap }) {
+  const tapCount = useRef(0)
+  const tapTimer = useRef(null)
+
+  const handleLogoPress = useCallback(() => {
+    if (!onSecretTap) return
+    tapCount.current += 1
+    if (tapTimer.current) clearTimeout(tapTimer.current)
+    if (tapCount.current >= SECRET_TAPS) {
+      tapCount.current = 0
+      onSecretTap()
+      return
+    }
+    tapTimer.current = setTimeout(() => { tapCount.current = 0 }, TAP_WINDOW_MS)
+  }, [onSecretTap])
+
   return (
     <div className={`flex items-center gap-2.5 ${compact ? 'py-2' : 'py-3'}`}>
-      <div className="relative shrink-0">
+      <div className="relative shrink-0" onClick={handleLogoPress}>
         <div className="absolute inset-0 rounded-full bg-neon/10 blur-sm" />
         <img
           src={logoSrc}

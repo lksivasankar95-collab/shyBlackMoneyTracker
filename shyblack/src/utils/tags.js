@@ -1,11 +1,11 @@
-import { storage, keys } from './storage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 export function getTags() {
-  return storage.get(keys.TAGS, [])
+  return safeStorage.get(STORAGE_KEYS.TAGS, [])
 }
 
 export function saveTags(tags) {
-  storage.set(keys.TAGS, tags)
+  safeStorage.set(STORAGE_KEYS.TAGS, tags)
 }
 
 export function addTag(name) {

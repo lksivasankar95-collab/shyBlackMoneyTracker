@@ -1,8 +1,8 @@
-import { useState, useCallback } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X } from 'lucide-react'
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
-import { formatCurrency } from '../utils/helpers'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES } from '../utils/constants'
+import { formatCurrency, getTransactionDescription } from '../utils/helpers'
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import CategoryIcon from '../components/CategoryIcon'
@@ -17,11 +17,15 @@ const TYPE_ICONS = {
   [TRANSACTION_TYPES.EXPENSE]: ArrowDownCircle,
 }
 
+// Session memory: remember last category per type during this app session
+const lastCategoryByType = { income: '', expense: '' }
+
 export default function AddTransaction({ onNavigate }) {
-  const { addTransaction, addRecurring, tags, addTag } = useFinance()
+  const { addTransaction, addRecurring, tags, addTag, recentPeople } = useFinance()
+  const amountInputRef = useRef(null)
   const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState('')
+  const [category, setCategory] = useState(() => lastCategoryByType[TRANSACTION_TYPES.EXPENSE] || '')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedTags, setSelectedTags] = useState([])
@@ -33,11 +37,26 @@ export default function AddTransaction({ onNavigate }) {
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showLargeConfirm, setShowLargeConfirm] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(null)
+  const [personName, setPersonName] = useState('')
+  const [paymentMethod, setPaymentMethod] = useState('')
+  const [showPersonSuggestions, setShowPersonSuggestions] = useState(false)
+
+  const personSuggestions = useMemo(() => {
+    if (!personName.trim()) return []
+    const q = personName.toLowerCase()
+    return recentPeople.filter((name) => name.toLowerCase().includes(q) && name.toLowerCase() !== q)
+  }, [personName, recentPeople])
 
   const transactionType = purpose
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
   const suggestedTags = getSuggestedTags()
+
+  // Autofocus amount on mount for fast entry
+  useEffect(() => {
+    const timer = setTimeout(() => amountInputRef.current?.focus(), 150)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleAmountChange = (e) => {
     const val = e.target.value
@@ -105,6 +124,8 @@ export default function AddTransaction({ onNavigate }) {
     setSelectedTags([])
     setIsRecurring(false)
     setSource('')
+    setPersonName('')
+    setPaymentMethod('')
     setSuccess(true)
     setError('')
     setPendingSubmit(null)
@@ -148,6 +169,8 @@ export default function AddTransaction({ onNavigate }) {
       date,
       tags: selectedTags,
       source: source.trim() || undefined,
+      person: personName.trim() ? { name: personName.trim() } : undefined,
+      paymentMethod: paymentMethod || undefined,
     }
 
     if (numAmount >= LARGE_AMOUNT_THRESHOLD) {
@@ -177,7 +200,7 @@ export default function AddTransaction({ onNavigate }) {
           return (
             <button
               key={t}
-              onClick={() => { setPurpose(t); setCategory(''); setError('') }}
+              onClick={() => { setPurpose(t); setCategory(lastCategoryByType[t] || ''); setError('') }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all duration-200 ${
                 isActive
                   ? t === TRANSACTION_TYPES.INCOME
@@ -200,6 +223,7 @@ export default function AddTransaction({ onNavigate }) {
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">₹</span>
             <input
+              ref={amountInputRef}
               type="text"
               inputMode="numeric"
               value={amount}
@@ -234,7 +258,7 @@ export default function AddTransaction({ onNavigate }) {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => { setCategory(cat.id); setError('') }}
+                onClick={() => { setCategory(cat.id); lastCategoryByType[transactionType] = cat.id; setError('') }}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-150 ${
                   category === cat.id
                     ? transactionType === TRANSACTION_TYPES.INCOME
@@ -263,6 +287,78 @@ export default function AddTransaction({ onNavigate }) {
             className="input-field"
             maxLength={100}
           />
+        </div>
+
+        {/* Person */}
+        <div>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">
+            {purpose === TRANSACTION_TYPES.INCOME ? 'Received From' : 'Paid To'} <span className="text-gray-600 font-normal">(optional)</span>
+          </label>
+          <div className="relative">
+            <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+            <input
+              type="text"
+              value={personName}
+              onChange={(e) => { setPersonName(e.target.value); setShowPersonSuggestions(true) }}
+              onFocus={() => setShowPersonSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 200)}
+              placeholder={purpose === TRANSACTION_TYPES.INCOME ? 'e.g. Rahul, Priya...' : 'e.g. Rahul, Priya...'}
+              className="input-field pl-9"
+              maxLength={50}
+              autoComplete="off"
+            />
+            {showPersonSuggestions && personSuggestions.length > 0 && (
+              <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-matte-200 border border-glass-border rounded-xl overflow-hidden shadow-lg animate-fade-in">
+                {personSuggestions.map((name) => (
+                  <button
+                    key={name}
+                    type="button"
+                    onMouseDown={() => { setPersonName(name); setShowPersonSuggestions(false) }}
+                    className="w-full text-left px-3.5 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                  >
+                    <User size={12} className="text-gray-500 shrink-0" />
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          {recentPeople.length > 0 && !personName && (
+            <div className="flex gap-1.5 mt-2 flex-wrap">
+              {recentPeople.slice(0, 5).map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  onClick={() => setPersonName(name)}
+                  className="px-2.5 py-1 rounded-lg text-[10px] font-medium border border-glass-border text-gray-400 hover:text-white hover:border-gray-500 transition-all"
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Payment Method */}
+        <div>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">Payment Method <span className="text-gray-600 font-normal">(optional)</span></label>
+          <div className="grid grid-cols-4 gap-2">
+            {PAYMENT_METHODS.map((pm) => (
+              <button
+                key={pm.id}
+                type="button"
+                onClick={() => setPaymentMethod(paymentMethod === pm.id ? '' : pm.id)}
+                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all duration-150 ${
+                  paymentMethod === pm.id
+                    ? 'border-neon/50 bg-neon/10 text-neon'
+                    : 'border-glass-border text-gray-400 hover:border-gray-500 hover:text-white'
+                }`}
+              >
+                <Smartphone size={16} />
+                <span className="text-[9px] font-medium leading-tight text-center">{pm.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Source / Tag */}

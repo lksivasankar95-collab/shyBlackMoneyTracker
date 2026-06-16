@@ -1,11 +1,11 @@
-import { storage, keys } from './storage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 export function getRecurringTransactions() {
-  return storage.get(keys.RECURRING, [])
+  return safeStorage.get(STORAGE_KEYS.RECURRING, [])
 }
 
 export function saveRecurringTransactions(recurring) {
-  storage.set(keys.RECURRING, recurring)
+  safeStorage.set(STORAGE_KEYS.RECURRING, recurring)
 }
 
 export function addRecurringTransaction(item) {
@@ -25,13 +25,19 @@ export function getDueRecurringTransactions(recurring) {
   const now = new Date()
   const due = []
   recurring.forEach((r) => {
-    if (!r.nextDate) return
+    if (!r.nextDate || r.active === false) return
     const next = new Date(r.nextDate)
-    if (next <= now) {
-      due.push(r)
-    }
+    if (next <= now) due.push(r)
   })
   return due
+}
+
+export function advanceNextDate(dateStr, frequency) {
+  const d = new Date(dateStr)
+  if (frequency === 'weekly') d.setDate(d.getDate() + 7)
+  else if (frequency === 'yearly') d.setFullYear(d.getFullYear() + 1)
+  else d.setMonth(d.getMonth() + 1) // monthly is default
+  return d.toISOString().split('T')[0]
 }
 
 export function getSubscriptionSummary(recurring) {

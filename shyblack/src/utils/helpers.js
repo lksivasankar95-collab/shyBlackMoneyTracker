@@ -1,19 +1,41 @@
-export const formatCurrency = (amount) => {
-  return new Intl.NumberFormat('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
+export { formatCurrency } from './currency'
+export { PAYMENT_METHODS } from './constants'
 
 export const formatDate = (dateStr) => {
   const date = new Date(dateStr)
-  return date.toLocaleDateString('en-IN', {
+  return date.toLocaleDateString(undefined, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
   })
+}
+
+export function getTransactionDescription(tx) {
+  const isIncome = tx.type === 'income'
+  const parts = [isIncome ? 'Received' : 'Sent']
+  if (tx.person?.name) {
+    parts.push(isIncome ? 'from' : 'to')
+    parts.push(tx.person.name)
+  }
+  if (tx.paymentMethod) {
+    const method = PAYMENT_METHODS.find((m) => m.id === tx.paymentMethod)
+    parts.push('via')
+    parts.push(method?.label || tx.paymentMethod)
+  }
+  return parts.join(' ')
+}
+
+export function extractPeopleFromTransactions(transactions) {
+  const seen = new Set()
+  const people = []
+  for (const tx of transactions) {
+    const name = tx.person?.name
+    if (name && !seen.has(name.toLowerCase())) {
+      seen.add(name.toLowerCase())
+      people.push(name)
+    }
+  }
+  return people
 }
 
 export const getMonthName = (monthIndex) => {

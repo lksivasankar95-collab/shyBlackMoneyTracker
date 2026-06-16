@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   ArrowUpRight, ArrowDownLeft, Handshake, Plus, Wallet,
-  AlertTriangle, DollarSign,
+  AlertTriangle, DollarSign, ArrowRight, X,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -20,7 +20,7 @@ const FILTERS = [
   { id: 'paid', label: 'Paid' },
 ]
 
-export default function DebtsPage() {
+export default function DebtsPage({ onNavigate }) {
   const { debts, addDebt, deleteDebt, recordRepayment, debtsSummary } = useFinance()
   const { addToast } = useToast()
   const [activeFilter, setActiveFilter] = useState('all')
@@ -28,6 +28,7 @@ export default function DebtsPage() {
   const [repayTarget, setRepayTarget] = useState(null)
   const [repayAmount, setRepayAmount] = useState('')
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [addTxSuggestion, setAddTxSuggestion] = useState(null)
 
   const filtered = useMemo(() => {
     if (activeFilter === 'all') return debts
@@ -74,6 +75,14 @@ export default function DebtsPage() {
     }
     recordRepayment(repayTarget.id, num)
     addToast('Repayment recorded', 'success')
+    const isFullRepayment = num >= repayTarget.remainingAmount
+    if (isFullRepayment) {
+      setAddTxSuggestion({
+        personName: repayTarget.personName,
+        amount: repayTarget.amount,
+        type: repayTarget.type === 'lent' ? 'income' : 'expense',
+      })
+    }
     setRepayTarget(null)
     setRepayAmount('')
   }, [repayTarget, repayAmount, recordRepayment, addToast])
@@ -157,6 +166,32 @@ export default function DebtsPage() {
           </button>
         ))}
       </div>
+
+      {addTxSuggestion && (
+        <div className="mb-4 p-3 rounded-xl bg-neon/10 border border-neon/20 flex items-center gap-3 animate-fade-in">
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-neon">Debt fully settled</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">
+              {addTxSuggestion.type === 'income'
+                ? `Received ${formatCurrency(addTxSuggestion.amount)} from ${addTxSuggestion.personName}?`
+                : `Sent ${formatCurrency(addTxSuggestion.amount)} to ${addTxSuggestion.personName}?`
+              }
+            </p>
+          </div>
+          <button
+            onClick={() => { setAddTxSuggestion(null); onNavigate('add') }}
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium bg-neon/20 text-neon hover:bg-neon/30 transition-all shrink-0"
+          >
+            Add Transaction <ArrowRight size={12} />
+          </button>
+          <button
+            onClick={() => setAddTxSuggestion(null)}
+            className="text-gray-500 hover:text-white p-1"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState

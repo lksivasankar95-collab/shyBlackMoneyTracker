@@ -1,4 +1,4 @@
-import { storage, keys } from './storage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getMonthlyData, getCategoryBreakdown } from './analytics'
 
 export function createDefaultBudgets() {
@@ -12,11 +12,11 @@ export function createDefaultBudgets() {
 }
 
 export function getBudgets() {
-  return storage.get(keys.BUDGETS, createDefaultBudgets())
+  return safeStorage.get(STORAGE_KEYS.BUDGETS, createDefaultBudgets())
 }
 
 export function saveBudgets(budgets) {
-  storage.set(keys.BUDGETS, budgets)
+  safeStorage.set(STORAGE_KEYS.BUDGETS, budgets)
 }
 
 export function updateBudgetLimit(category, limit) {

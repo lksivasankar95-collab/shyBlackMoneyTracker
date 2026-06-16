@@ -33,6 +33,22 @@
   ::-webkit-scrollbar-track { @apply bg-transparent; }
   ::-webkit-scrollbar-thumb { @apply bg-matte-300 rounded-full; }
 
+  /* Eliminate 300ms tap delay on Android WebView */
+  button, a, [role="button"], select, label {
+    touch-action: manipulation;
+  }
+
+  /* Momentum scrolling for scroll containers */
+  .overflow-y-auto, .overflow-y-scroll, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Prevent text selection on interactive chrome */
+  nav, header, .bottom-nav {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
   input, textarea, select {
     font-size: 16px !important;
   }
@@ -141,6 +157,16 @@
 .animate-slide-up { animation: slideUp 0.35s ease-out; }
 .animate-neon-pulse { animation: neonPulse 2s ease-in-out infinite; }
 .animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in, .animate-slide-in, .animate-scale-in,
+  .animate-slide-up, .animate-neon-pulse, .animate-glow-pulse {
+    animation: none !important;
+  }
+  .transition-all, .transition-colors, .transition-transform {
+    transition-duration: 0ms !important;
+  }
+}
 
 .privacy-overlay {
   position: fixed;

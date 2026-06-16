@@ -4,7 +4,6 @@ import {
   ChevronRight, Check, ArrowLeft, FileText, Scale,
 } from 'lucide-react'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
-import { storage, keys } from '../utils/storage'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -115,8 +114,8 @@ export default function Onboarding({ onComplete }) {
     safeStorage.set(STORAGE_KEYS.ONBOARDING, onboardingData)
 
     if (onboardingData.savingsGoal > 0) {
-      const current = storage.get(keys.SAVINGS, { target: 0, saved: 0 })
-      storage.set(keys.SAVINGS, { ...current, target: onboardingData.savingsGoal })
+      const current = safeStorage.get(STORAGE_KEYS.SAVINGS, { target: 0, saved: 0 })
+      safeStorage.set(STORAGE_KEYS.SAVINGS, { ...current, target: onboardingData.savingsGoal })
     }
 
     setIsCompleting(false)

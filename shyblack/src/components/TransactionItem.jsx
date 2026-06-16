@@ -1,11 +1,27 @@
-import { Trash2 } from 'lucide-react'
+import { memo, useMemo } from 'react'
+import { Trash2, User, Smartphone } from 'lucide-react'
 import { formatCurrency, formatDate } from '../utils/helpers'
-import { ALL_CATEGORIES } from '../utils/constants'
+import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
 
-export default function TransactionItem({ transaction, onDelete, compact }) {
+function getSubtitle(tx) {
+  const parts = []
+  if (tx.person?.name) {
+    parts.push(tx.type === 'income' ? `from ${tx.person.name}` : `to ${tx.person.name}`)
+  }
+  if (tx.paymentMethod) {
+    const method = PAYMENT_METHODS.find((m) => m.id === tx.paymentMethod)
+    parts.push(`via ${method?.label || tx.paymentMethod}`)
+  }
+  if (tx.note) parts.push(tx.note)
+  parts.push(formatDate(tx.date))
+  return parts.join(' · ')
+}
+
+const TransactionItem = memo(function TransactionItem({ transaction, onDelete, compact }) {
   const cat = ALL_CATEGORIES.find((c) => c.id === transaction.category)
   const isIncome = transaction.type === 'income'
+  const subtitle = useMemo(() => getSubtitle(transaction), [transaction])
 
   return (
     <div className="flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2">
@@ -21,8 +37,20 @@ export default function TransactionItem({ transaction, onDelete, compact }) {
         </p>
         {!compact && (
           <p className="text-xs text-gray-600 mt-0.5 truncate">
-            {transaction.note && `${transaction.note} · `}
-            {formatDate(transaction.date)}
+            {subtitle}
+          </p>
+        )}
+        {transaction.person?.name && compact && (
+          <p className="text-[11px] text-gray-600 mt-0.5 truncate flex items-center gap-1">
+            <User size={10} className="shrink-0" />
+            {transaction.person.name}
+            {transaction.paymentMethod && (
+              <>
+                <span className="text-gray-700">·</span>
+                <Smartphone size={10} className="shrink-0" />
+                {PAYMENT_METHODS.find((m) => m.id === transaction.paymentMethod)?.label || transaction.paymentMethod}
+              </>
+            )}
           </p>
         )}
       </div>
@@ -52,4 +80,6 @@ export default function TransactionItem({ transaction, onDelete, compact }) {
       </div>
     </div>
   )
-}
+})
+
+export default TransactionItem

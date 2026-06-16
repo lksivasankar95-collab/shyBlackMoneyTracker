@@ -10,7 +10,9 @@
     "preview": "vite preview",
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",
-    "cap:build:android": "npm run build && npx cap sync"
+    "cap:build:android": "npm run build && npx cap sync",
+    "test": "node --require ./src/__tests__/setup.cjs ./node_modules/vitest/vitest.mjs run",
+    "test:watch": "node --require ./src/__tests__/setup.cjs ./node_modules/vitest/vitest.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^5.7.8",
@@ -35,6 +37,7 @@
     "eslint-plugin-react-refresh": "^0.4.4",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
-    "vite": "^4.5.14"
+    "vite": "^4.5.14",
+    "vitest": "^0.34.6"
   }
 }

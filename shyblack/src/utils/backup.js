@@ -3,6 +3,96 @@ import { APP_SCHEMA_VERSION } from './schema'
 
 export const BACKUP_SCHEMA_VERSION = 1
 
+// ── Encrypted backup helpers (AES-256-GCM + PBKDF2) ──────────────────────────
+
+async function deriveKey(password, salt) {
+  const enc = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
+    keyMaterial,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+function toBase64(bytes) {
+  return btoa(String.fromCharCode(...new Uint8Array(bytes)))
+}
+
+function fromBase64(str) {
+  return Uint8Array.from(atob(str), (c) => c.charCodeAt(0))
+}
+
+export async function encryptBackup(backupObj, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const key = await deriveKey(password, salt)
+  const plaintext = new TextEncoder().encode(JSON.stringify(backupObj))
+  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
+  return {
+    app: 'shyblack-finance',
+    encrypted: true,
+    version: BACKUP_SCHEMA_VERSION,
+    salt: toBase64(salt),
+    iv: toBase64(iv),
+    data: toBase64(ciphertext),
+  }
+}
+
+export async function decryptBackup(encryptedObj, password) {
+  const salt = fromBase64(encryptedObj.salt)
+  const iv = fromBase64(encryptedObj.iv)
+  const ciphertext = fromBase64(encryptedObj.data)
+  const key = await deriveKey(password, salt)
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
+  return JSON.parse(new TextDecoder().decode(plaintext))
+}
+
+export async function exportEncryptedBackup(password) {
+  const backup = collectBackupData()
+  const encryptedObj = await encryptBackup(backup, password)
+  const json = JSON.stringify(encryptedObj)
+  const blob = new Blob([json], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `shyblack_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
+
+export async function parseAndValidateEncryptedBackup(jsonString, password) {
+  let parsed
+  try {
+    parsed = JSON.parse(jsonString)
+  } catch {
+    return { success: false, error: 'Invalid JSON format. File may be corrupted.' }
+  }
+
+  if (!parsed.encrypted || parsed.app !== 'shyblack-finance') {
+    return { success: false, error: 'Not a ShyBlack encrypted backup file.' }
+  }
+
+  if (!parsed.salt || !parsed.iv || !parsed.data) {
+    return { success: false, error: 'Encrypted backup is missing required fields.' }
+  }
+
+  try {
+    const backup = await decryptBackup(parsed, password)
+    const validation = validateBackupData(backup)
+    if (!validation.valid) {
+      return { success: false, error: `Backup validation failed: ${validation.errors.join('; ')}` }
+    }
+    return { success: true, data: backup.data }
+  } catch {
+    return { success: false, error: 'Incorrect password or corrupted backup.' }
+  }
+}
+
 const REQUIRED_TOP_LEVEL = ['app', 'version', 'exportedAt', 'data']
 const REQUIRED_DATA_KEYS = ['transactions', 'debts', 'savingsGoal']
 

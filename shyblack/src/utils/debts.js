@@ -1,4 +1,4 @@
-import { storage, keys } from './storage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { generateId } from './helpers'
 
 const DEBT_TYPES = {
@@ -14,11 +14,11 @@ const DEBT_STATUS = {
 export { DEBT_TYPES, DEBT_STATUS }
 
 export function getDebts() {
-  return storage.get(keys.DEBTS, [])
+  return safeStorage.get(STORAGE_KEYS.DEBTS, [])
 }
 
 export function saveDebts(debts) {
-  return storage.set(keys.DEBTS, debts)
+  return safeStorage.set(STORAGE_KEYS.DEBTS, debts)
 }
 
 export function createDebt({ personName, amount, type, dueDate, notes }) {

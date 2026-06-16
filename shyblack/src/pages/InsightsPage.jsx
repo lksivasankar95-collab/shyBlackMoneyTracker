@@ -1,8 +1,7 @@
-import { useMemo } from 'react'
-import { Lightbulb, AlertTriangle, Heart, TrendingUp, Target, Sun, Calendar } from 'lucide-react'
+import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft } from 'lucide-react'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
-import { getCategoryTrends } from '../utils/analytics'
 import GlassCard from '../components/GlassCard'
 import FinancialScore from '../components/FinancialScore'
 import EmptyState from '../components/EmptyState'
@@ -22,9 +21,11 @@ const tipColors = {
 }
 
 export default function InsightsPage() {
-  const { transactions, insights } = useFinance()
+  const { transactions, insights, cashflowForecast } = useFinance()
 
-  const trends = useMemo(() => getCategoryTrends(transactions, 3), [transactions])
+  const { trends, scoreVelocity, streak, monthPrediction, scoreHistory } = insights
+  const hasScoreHistory = scoreHistory.some((m) => m.score !== null)
+  const hasCashflowData = cashflowForecast.some((m) => m.income > 0 || m.expense > 0)
 
   if (transactions.length === 0) {
     return (
@@ -34,7 +35,7 @@ export default function InsightsPage() {
           <EmptyState
             icon={Lightbulb}
             title="No insights yet"
-            description="Add transactions to unlock AI-powered financial insights"
+            description="Add transactions to unlock smart financial insights"
           />
         </GlassCard>
       </div>
@@ -157,11 +158,130 @@ export default function InsightsPage() {
         </GlassCard>
       )}
 
+      {/* Score velocity + logging streak */}
+      {(scoreVelocity || streak > 1) && (
+        <div className="flex gap-3 mt-4">
+          {scoreVelocity && (
+            <GlassCard className="flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                {scoreVelocity.direction === 'up'
+                  ? <TrendingUp size={14} className="text-neon" />
+                  : <TrendingDown size={14} className="text-red-400" />}
+                <span className="text-[11px] text-gray-500 font-medium">Score trend</span>
+              </div>
+              <p className={`text-lg font-extrabold tabular-nums ${scoreVelocity.direction === 'up' ? 'text-neon' : 'text-red-400'}`}>
+                {scoreVelocity.delta > 0 ? '+' : ''}{scoreVelocity.delta}
+              </p>
+              <p className="text-[10px] text-gray-500 mt-0.5">vs last month</p>
+            </GlassCard>
+          )}
+          {streak > 1 && (
+            <GlassCard className="flex-1">
+              <div className="flex items-center gap-1.5 mb-1">
+                <Flame size={14} className="text-orange-400" />
+                <span className="text-[11px] text-gray-500 font-medium">Logging streak</span>
+              </div>
+              <p className="text-lg font-extrabold tabular-nums text-orange-400">{streak}</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{streak === 1 ? 'day' : 'days'} in a row</p>
+            </GlassCard>
+          )}
+        </div>
+      )}
+
+      {/* Month-end spend projection */}
+      {monthPrediction && (
+        <GlassCard className="mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <BarChart2 size={16} className="text-purple-400" />
+            <h2 className="text-sm font-semibold">Month-end Forecast</h2>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-extrabold tabular-nums text-purple-400">
+              {formatCurrency(monthPrediction.projected)}
+            </span>
+            <span className="text-xs text-gray-500">projected total</span>
+          </div>
+          <p className="text-[11px] text-gray-500 mb-3">
+            {formatCurrency(monthPrediction.spentSoFar)} spent in {monthPrediction.daysElapsed} of {monthPrediction.daysInMonth} days
+          </p>
+          {monthPrediction.categoryProjections.slice(0, 3).map((c) => (
+            <div key={c.category} className="flex items-center justify-between py-1">
+              <span className="text-xs capitalize text-gray-400">{c.category.replace(/_/g, ' ')}</span>
+              <span className="text-xs font-medium tabular-nums">{formatCurrency(c.projected)}</span>
+            </div>
+          ))}
+        </GlassCard>
+      )}
+
+      {/* Financial Health Timeline */}
+      {hasScoreHistory && (
+        <GlassCard className="mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Activity size={16} className="text-neon" />
+            <h2 className="text-sm font-semibold">Health Timeline</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={100}>
+            <LineChart data={scoreHistory} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+              <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} />
+              <YAxis domain={[0, 1000]} tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
+              <Tooltip
+                contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 11 }}
+                labelStyle={{ color: '#9ca3af' }}
+                formatter={(v) => v !== null ? [v, 'Score'] : ['N/A', 'Score']}
+              />
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#00ff9f"
+                strokeWidth={2}
+                dot={{ r: 3, fill: '#00ff9f' }}
+                connectNulls={false}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+          <p className="text-[10px] text-gray-600 mt-1">Monthly financial score — last 6 months</p>
+        </GlassCard>
+      )}
+
+      {/* Cashflow Forecast */}
+      {hasCashflowData && (
+        <GlassCard className="mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <ArrowRightLeft size={16} className="text-blue-400" />
+            <h2 className="text-sm font-semibold">Cashflow Forecast</h2>
+          </div>
+          <ResponsiveContainer width="100%" height={100}>
+            <BarChart data={cashflowForecast} margin={{ top: 4, right: 4, bottom: 0, left: -20 }} barSize={16}>
+              <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} />
+              <YAxis tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
+              <Tooltip
+                contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 11 }}
+                labelStyle={{ color: '#9ca3af' }}
+                formatter={(v, name) => [formatCurrency(v), name.charAt(0).toUpperCase() + name.slice(1)]}
+              />
+              <Bar dataKey="income" fill="#00ff9f" radius={[3, 3, 0, 0]} />
+              <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+          <p className="text-[10px] text-gray-600 mt-1">Projected from recurring transactions — next 3 months</p>
+          <div className="flex gap-3 mt-2">
+            {cashflowForecast.map((m) => (
+              <div key={m.label} className="flex-1 p-2 rounded-lg bg-white/[0.02] text-center">
+                <p className="text-[10px] text-gray-500 mb-0.5">{m.label}</p>
+                <p className={`text-xs font-bold tabular-nums ${m.net >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                  {m.net >= 0 ? '+' : ''}{formatCurrency(m.net)}
+                </p>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
+      )}
+
       {insights.overspend && (
         <GlassCard className="mt-4 border-red-500/20">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle size={16} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-red-400">Alert</h2>
+            <h2 className="text-sm font-semibold text-red-400">Spending Alert</h2>
           </div>
           <p className="text-xs text-gray-400">{insights.overspend.message}</p>
         </GlassCard>

@@ -1,4 +1,4 @@
-import { ALL_CATEGORIES } from './constants'
+import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
 
 const GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'older']
 
@@ -39,12 +39,24 @@ function buildTransactionEntry(tx) {
   const cat = ALL_CATEGORIES.find((c) => c.id === tx.category)
   const purpose = tx.transactionPurpose || (tx.type === 'income' ? 'income' : 'expense')
   const style = getEntryStyle(tx.type, purpose)
+
+  const subtitleParts = []
+  if (tx.person?.name) {
+    subtitleParts.push(tx.type === 'income' ? `from ${tx.person.name}` : `to ${tx.person.name}`)
+  }
+  if (tx.paymentMethod) {
+    const method = PAYMENT_METHODS.find((m) => m.id === tx.paymentMethod)
+    subtitleParts.push(`via ${method?.label || tx.paymentMethod}`)
+  }
+  if (tx.note) subtitleParts.push(tx.note)
+  if (subtitleParts.length === 0) subtitleParts.push(cat?.label || '')
+
   return {
     id: `tx-${tx.id}`,
     type: 'transaction',
     sourceType: purpose,
     title: cat?.label || 'Unknown',
-    subtitle: tx.note || cat?.label || '',
+    subtitle: subtitleParts.join(' · '),
     amount: tx.type === 'income' ? tx.amount : -tx.amount,
     absAmount: tx.amount,
     timestamp: tx.createdAt || new Date(tx.date).getTime(),

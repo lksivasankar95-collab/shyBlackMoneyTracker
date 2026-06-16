@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
-  Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell,
+  Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -11,7 +11,7 @@ import Modal from '../components/Modal'
 import ConfirmationModal from '../components/ConfirmationModal'
 import SavingsProgress from '../components/SavingsProgress'
 import { formatCurrency } from '../utils/helpers'
-import { exportBackup, parseAndValidateBackup, restoreFromBackup } from '../utils/backup'
+import { exportBackup, parseAndValidateBackup, restoreFromBackup, exportEncryptedBackup, parseAndValidateEncryptedBackup } from '../utils/backup'
 import { safeStorage } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import {
@@ -37,6 +37,12 @@ export default function Settings({ onNavigate }) {
   const [modalPin3, setModalPin3] = useState('')
   const [pinError, setPinError] = useState('')
   const fileInputRef = useRef()
+  const encFileInputRef = useRef()
+  const [encModal, setEncModal] = useState(null) // 'export' | 'import'
+  const [encPassword, setEncPassword] = useState('')
+  const [encPassword2, setEncPassword2] = useState('')
+  const [encError, setEncError] = useState('')
+  const [encWorking, setEncWorking] = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [showRestoreConfirm, setShowRestoreConfirm] = useState(false)
   const [pendingRestore, setPendingRestore] = useState(null)
@@ -91,6 +97,54 @@ export default function Settings({ onNavigate }) {
     reader.readAsText(file)
     e.target.value = ''
   }
+
+  const handleEncImportFile = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      setPendingRestore({ _raw: ev.target.result, _encrypted: true })
+      setEncPassword('')
+      setEncError('')
+      setEncModal('import')
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
+
+  const handleEncExportSubmit = useCallback(async () => {
+    if (encPassword.length < 6) { setEncError('Password must be at least 6 characters'); return }
+    if (encPassword !== encPassword2) { setEncError('Passwords do not match'); return }
+    setEncWorking(true)
+    try {
+      await exportEncryptedBackup(encPassword)
+      setEncModal(null)
+      setEncPassword('')
+      setEncPassword2('')
+      addToast('Encrypted backup exported!', 'success')
+    } catch {
+      setEncError('Export failed. Please try again.')
+    }
+    setEncWorking(false)
+  }, [encPassword, encPassword2, addToast])
+
+  const handleEncImportSubmit = useCallback(async () => {
+    if (!encPassword) { setEncError('Enter the backup password'); return }
+    if (!pendingRestore?._raw) return
+    setEncWorking(true)
+    const result = await parseAndValidateEncryptedBackup(pendingRestore._raw, encPassword)
+    if (!result.success) {
+      setEncError(result.error)
+      setEncWorking(false)
+      return
+    }
+    setEncWorking(false)
+    setPendingRestore(result.data)
+    setEncModal(null)
+    setEncPassword('')
+    setEncError('')
+    setShowRestoreConfirm(true)
+  }, [encPassword, pendingRestore])
 
   const handleConfirmRestore = useCallback(() => {
     if (!pendingRestore) return
@@ -468,6 +522,22 @@ export default function Settings({ onNavigate }) {
             Import Backup
           </button>
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
+
+          <div className="w-full h-px bg-glass-border my-1" />
+
+          <button
+            onClick={() => { setEncPassword(''); setEncPassword2(''); setEncError(''); setEncModal('export') }}
+            className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
+          >
+            <KeyRound size={16} />
+            Export Encrypted Backup
+          </button>
+          <button onClick={() => encFileInputRef.current?.click()} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
+            <KeyRound size={16} />
+            Import Encrypted Backup
+          </button>
+          <input ref={encFileInputRef} type="file" accept=".json" onChange={handleEncImportFile} className="hidden" />
+          <p className="text-[10px] text-gray-600 text-center px-2">Encrypted backups require a password to restore</p>
         </div>
       </GlassCard>
 
@@ -635,6 +705,77 @@ export default function Settings({ onNavigate }) {
             className="btn-primary w-full text-sm"
           >
             Disable Privacy Lock
+          </button>
+        </div>
+      </Modal>
+
+      {/* Encrypted Export Modal */}
+      <Modal
+        open={encModal === 'export'}
+        onClose={() => { setEncModal(null); setEncPassword(''); setEncPassword2(''); setEncError('') }}
+        title="Export Encrypted Backup"
+      >
+        <div className="space-y-3.5">
+          <p className="text-xs text-gray-400">Set a password to protect your backup. You'll need it to restore.</p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Password</label>
+            <input
+              type="password"
+              value={encPassword}
+              onChange={(e) => { setEncPassword(e.target.value); setEncError('') }}
+              placeholder="At least 6 characters"
+              className="input-field"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm Password</label>
+            <input
+              type="password"
+              value={encPassword2}
+              onChange={(e) => { setEncPassword2(e.target.value); setEncError('') }}
+              placeholder="Repeat password"
+              className="input-field"
+            />
+          </div>
+          {encError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{encError}</p>}
+          <button
+            onClick={handleEncExportSubmit}
+            disabled={encWorking || !encPassword || !encPassword2}
+            className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            <KeyRound size={16} />
+            {encWorking ? 'Encrypting...' : 'Export Encrypted Backup'}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Encrypted Import Password Modal */}
+      <Modal
+        open={encModal === 'import'}
+        onClose={() => { setEncModal(null); setEncPassword(''); setEncError(''); setPendingRestore(null) }}
+        title="Enter Backup Password"
+      >
+        <div className="space-y-3.5">
+          <p className="text-xs text-gray-400">Enter the password used when this backup was created.</p>
+          <div>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Password</label>
+            <input
+              type="password"
+              value={encPassword}
+              onChange={(e) => { setEncPassword(e.target.value); setEncError('') }}
+              placeholder="Backup password"
+              className="input-field"
+              autoFocus
+            />
+          </div>
+          {encError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{encError}</p>}
+          <button
+            onClick={handleEncImportSubmit}
+            disabled={encWorking || !encPassword}
+            className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40"
+          >
+            {encWorking ? 'Decrypting...' : 'Decrypt & Restore'}
           </button>
         </div>
       </Modal>

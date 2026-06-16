@@ -5,9 +5,10 @@ import BrandHeader from './components/BrandHeader'
 import BottomNav from './components/BottomNav'
 import AndroidBackHandler from './components/AndroidBackHandler'
 import ErrorBoundary from './components/ErrorBoundary'
+import PageErrorBoundary from './components/PageErrorBoundary'
 import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
 import Onboarding from './pages/Onboarding'
-import { refreshReminderSchedule, getReminderPreference } from './utils/reminders'
+import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthlyRecap, checkDebtReminders } from './utils/reminders'
 import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
@@ -33,6 +34,7 @@ const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
+const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -45,6 +47,7 @@ const pages = {
   reports: ReportsPage,
   debts: DebtsPage,
   timeline: TimelinePage,
+  diagnostics: DiagnosticsPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -69,12 +72,15 @@ function ReminderInit() {
   const { transactions, debts } = useFinance()
 
   useEffect(() => {
-    if (!getReminderPreference()) return
     const timer = setTimeout(() => {
-      refreshReminderSchedule(transactions, debts)
+      if (getReminderPreference()) {
+        refreshReminderSchedule(transactions, debts)
+      }
+      checkAndScheduleMonthlyRecap(transactions).catch(() => {})
+      checkDebtReminders(debts).catch(() => {})
     }, 2000)
     return () => clearTimeout(timer)
-  }, [])
+  }, []) // intentional: run once on mount with snapshot of initial data
 
   return null
 }
@@ -137,14 +143,16 @@ function AppContent() {
       {showHeader && (
         <div className="sticky top-0 z-40 bg-matte/80 backdrop-blur-xl border-b border-glass-border">
           <div className="max-w-lg mx-auto px-4">
-            <BrandHeader compact />
+            <BrandHeader compact onSecretTap={() => handleNavigate('diagnostics')} />
           </div>
         </div>
       )}
       <AndroidBackHandler canGoBack={canGoBack} onGoBack={handleGoBack} />
       <Suspense fallback={<PageLoader />}>
         <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={currentPage}>
-          <Page onNavigate={handleNavigate} currentPage={currentPage} />
+          <PageErrorBoundary page={currentPage} onNavigate={handleNavigate}>
+            <Page onNavigate={handleNavigate} currentPage={currentPage} />
+          </PageErrorBoundary>
         </div>
       </Suspense>
       {navPages.includes(currentPage) && (

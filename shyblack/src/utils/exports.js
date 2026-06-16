@@ -1,17 +1,20 @@
 import { formatCurrency } from './helpers'
-import { ALL_CATEGORIES } from './constants'
+import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
 import { getMonthlyData } from './analytics'
 
 export function exportToCSV(transactions) {
-  const headers = ['Date', 'Type', 'Category', 'Amount', 'Note', 'Tags']
+  const headers = ['Date', 'Type', 'Category', 'Amount', 'Note', 'Person', 'Payment Method', 'Tags']
   const rows = transactions.map((t) => {
     const cat = ALL_CATEGORIES.find((c) => c.id === t.category)
+    const method = t.paymentMethod ? PAYMENT_METHODS.find((m) => m.id === t.paymentMethod) : null
     return [
       t.date,
       t.type,
       cat?.label || t.category,
       t.type === 'income' ? t.amount : -t.amount,
       t.note || '',
+      t.person?.name || '',
+      method?.label || t.paymentMethod || '',
       (t.tags || []).join('; '),
     ].join(',')
   })
