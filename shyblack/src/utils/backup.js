@@ -133,6 +133,7 @@ const VALIDATORS = {
   recurring: (items) => Array.isArray(items) && items.every((r) => typeof r === 'object' && r !== null),
   tags: (items) => Array.isArray(items) && items.every((t) => typeof t === 'object' && t !== null),
   security: (val) => typeof val === 'object' && val !== null,
+  emis: (items) => Array.isArray(items) && items.every((e) => typeof e === 'object' && e !== null && typeof e.id === 'string' && typeof e.name === 'string' && typeof e.amount === 'number'),
 }
 
 export function collectBackupData() {
@@ -149,6 +150,7 @@ export function collectBackupData() {
   data.budgets = safeStorage.get(STORAGE_KEYS.BUDGETS, {})
   data.recurring = safeStorage.get(STORAGE_KEYS.RECURRING, [])
   data.tags = safeStorage.get(STORAGE_KEYS.TAGS, [])
+  data.emis = safeStorage.get(STORAGE_KEYS.EMI, [])
   const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
   data.security = rawSecurity && typeof rawSecurity === 'object'
     ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
@@ -250,6 +252,7 @@ export function restoreFromBackup(backupData) {
     budgets: STORAGE_KEYS.BUDGETS,
     recurring: STORAGE_KEYS.RECURRING,
     tags: STORAGE_KEYS.TAGS,
+    emis: STORAGE_KEYS.EMI,
   }
 
   for (const [section, storageKey] of Object.entries(keyMap)) {

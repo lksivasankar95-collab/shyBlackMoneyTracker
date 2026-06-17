@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, Landmark } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, getTransactionDescription } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
@@ -194,7 +194,7 @@ export default function AddTransaction({ onNavigate }) {
       <h1 className="text-xl font-bold mb-6">Add Transaction</h1>
 
       {/* Type Selector */}
-      <div className="flex gap-3 mb-6">
+      <div className="flex gap-2 mb-6">
         {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((t) => {
           const Icon = TYPE_ICONS[t]
           const isActive = purpose === t
@@ -215,6 +215,13 @@ export default function AddTransaction({ onNavigate }) {
             </button>
           )
         })}
+        <button
+          onClick={() => onNavigate('add-emi')}
+          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-purple-500/30 bg-purple-500/10 text-purple-400 transition-all duration-200"
+        >
+          <Landmark size={20} />
+          EMI
+        </button>
       </div>
 
       {recentTemplates.length > 0 && (

@@ -19,6 +19,7 @@ export const STORAGE_KEYS = {
   GOALS: `${STORAGE_PREFIX}goals`,
   TEMPLATES: `${STORAGE_PREFIX}templates`,
   REVIEW: `${STORAGE_PREFIX}review`,
+  EMI: `${STORAGE_PREFIX}emi`,
 }
 
 function getAdapter() {

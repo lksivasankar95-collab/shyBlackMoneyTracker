@@ -14,6 +14,7 @@ import AnimatedNumber from '../components/AnimatedNumber'
 import SavingsProgress from '../components/SavingsProgress'
 import FinancialScore from '../components/FinancialScore'
 import NotificationBanner from '../components/NotificationBanner'
+import DashboardEmiWidget from '../components/DashboardEmiWidget'
 
 export default function Dashboard({ onNavigate }) {
   const {
@@ -24,6 +25,7 @@ export default function Dashboard({ onNavigate }) {
     executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
     goals, goalsProjections,
+    emiSummary,
   } = useFinance()
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
@@ -213,7 +215,10 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* ── 4. Recent Activity ───────────────────────── */}
+      {/* ── 4. Upcoming EMIs ─────────────────────────── */}
+      <DashboardEmiWidget emiSummary={emiSummary} onNavigate={onNavigate} />
+
+      {/* ── 5. Recent Activity ───────────────────────── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-300">Recent Activity</h2>
@@ -247,7 +252,7 @@ export default function Dashboard({ onNavigate }) {
         </GlassCard>
       </div>
 
-      {/* ── 5. Financial Score ───────────────────────── */}
+      {/* ── 6. Financial Score ───────────────────────── */}
       {insights.score.score > 0 && (
         <div
           className="mb-4 animate-glow-pulse cursor-pointer"
@@ -260,14 +265,14 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* ── 6. Savings Progress ──────────────────────── */}
+      {/* ── 7. Savings Progress ──────────────────────── */}
       {savingsGoal.target > 0 && (
         <GlassCard brand>
           <SavingsProgress savingsGoal={savingsGoal} />
         </GlassCard>
       )}
 
-      {/* ── 7. Goals Overview ────────────────────────── */}
+      {/* ── 8. Goals Overview ────────────────────────── */}
       {goals.length > 0 && (
         <button onClick={() => onNavigate('goals')} className="w-full text-left mt-4">
           <GlassCard>

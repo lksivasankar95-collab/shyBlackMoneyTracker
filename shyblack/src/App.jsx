@@ -39,6 +39,9 @@ const GoalsPage = lazy(() => import('./pages/GoalsPage'))
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'))
 const FinancialCalendar = lazy(() => import('./pages/FinancialCalendar'))
 const MonthlyReview = lazy(() => import('./pages/MonthlyReview'))
+const EmiCenter = lazy(() => import('./pages/EmiCenter'))
+const AddEmi = lazy(() => import('./pages/AddEmi'))
+const EmiDetail = lazy(() => import('./pages/EmiDetail'))
 
 const pages = {
   dashboard: Dashboard,
@@ -56,6 +59,9 @@ const pages = {
   subscriptions: SubscriptionsPage,
   calendar: FinancialCalendar,
   review: MonthlyReview,
+  'emi-center': EmiCenter,
+  'add-emi': AddEmi,
+  'emi-detail': EmiDetail,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -149,7 +155,8 @@ function AppContent() {
   }, [history])
 
   const canGoBack = history.length > 1
-  const Page = pages[currentPage]
+  const pageKey = currentPage.startsWith('emi-detail/') ? 'emi-detail' : currentPage.startsWith('edit-emi/') ? 'add-emi' : currentPage
+  const Page = pages[pageKey]
   const showHeader = currentPage === 'dashboard' || navPages.includes(currentPage)
 
   return (

@@ -1,8 +1,9 @@
 import { getDueRecurringTransactions, getSubscriptionSummary } from './recurring'
+import { getNextEmiDueDate, getEmiDueDate, isPaidThisMonth, EMI_STATUS } from './emi'
 import { PAYMENT_METHODS } from './constants'
 import { formatCurrency } from './helpers'
 
-export function getUpcomingEvents(transactions, recurring, debts, days = 30) {
+export function getUpcomingEvents(transactions, recurring, debts, days = 30, emis = []) {
   const now = new Date()
   const endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + days)
   const events = []
@@ -44,6 +45,26 @@ export function getUpcomingEvents(transactions, recurring, debts, days = 30) {
     })
   })
 
+  // EMI due dates
+  emis.forEach((emi) => {
+    if (emi.status !== EMI_STATUS.ACTIVE || emi.remainingMonths <= 0) return
+    if (isPaidThisMonth(emi, now.getFullYear(), now.getMonth())) return
+
+    const dueDate = getNextEmiDueDate(emi.dueDay)
+    if (dueDate > endDate || dueDate < now) return
+
+    events.push({
+      id: `emi-${emi.id}`,
+      date: dueDate.toISOString().split('T')[0],
+      type: 'emi',
+      title: `${emi.name} Due`,
+      subtitle: emi.lender || '',
+      amount: emi.amount,
+      source: 'emi',
+      isOverdue: dueDate < now,
+    })
+  })
+
   // Sort by date
   events.sort((a, b) => new Date(a.date) - new Date(b.date))
 
@@ -59,8 +80,8 @@ export function getUpcomingEvents(transactions, recurring, debts, days = 30) {
   return { events, groups, total: events.length }
 }
 
-export function getUpcomingSummary(transactions, recurring, debts, days = 30) {
-  const { events } = getUpcomingEvents(transactions, recurring, debts, days)
+export function getUpcomingSummary(transactions, recurring, debts, days = 30, emis = []) {
+  const { events } = getUpcomingEvents(transactions, recurring, debts, days, emis)
   const income = events.filter((e) => e.type === 'income').reduce((s, e) => s + e.amount, 0)
   const expense = events.filter((e) => e.type === 'expense').reduce((s, e) => s + e.amount, 0)
   return { income, expense, net: income - expense, count: events.length }

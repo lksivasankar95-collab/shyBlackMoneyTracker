@@ -13,6 +13,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'shopping', label: 'Shopping', icon: 'ShoppingBag' },
   { id: 'family', label: 'Family', icon: 'Users' },
   { id: 'trading_deposit', label: 'Trading Deposit', icon: 'TrendingDown' },
+  { id: 'emi', label: 'EMI', icon: 'Landmark' },
 ]
 
 export const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES]

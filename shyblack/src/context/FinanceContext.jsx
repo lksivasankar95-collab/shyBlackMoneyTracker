@@ -11,6 +11,7 @@ import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
 import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
 import { getTemplates, saveTemplates, createTemplate, deleteTemplate, getRecentTemplates } from '../utils/templates'
+import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary } from '../utils/emi'
 import {
   calculateFinancialScore, detectOverspending, getSavingsRecommendations,
   getHabitInsights, getFinancialHealth, checkStreakMilestone,
@@ -22,6 +23,10 @@ import { runMigrations } from '../utils/schema'
 import { checkAndNotifyBudget } from '../utils/budgetNotifications'
 import { hapticLight, hapticMedium } from '../utils/haptics'
 import * as privacy from '../utils/privacy'
+import {
+  scheduleEmiNotifications, cancelEmiNotifications,
+  rescheduleAllEmiNotifications, cancelAllEmiNotifications,
+} from '../utils/emiNotifications'
 
 export const FinanceContext = createContext()
 
@@ -76,6 +81,7 @@ function loadInitialState() {
       debts: sanitizeDebts(safeStorage.get(STORAGE_KEYS.DEBTS, [])),
       goals: getGoals(),
       templates: getTemplates(),
+      emis: getEmis(),
       _migrationResult: migrationResult,
       _recoverySnapshot: recoverySnapshot,
     }
@@ -89,6 +95,7 @@ function loadInitialState() {
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
+      emis: [],
       _migrationResult: null,
       _recoverySnapshot: fallbackSnap,
     }
@@ -97,7 +104,7 @@ function loadInitialState() {
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, _recoverySnapshot } = state
+  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, emis, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
   const overspendTimer = useRef(null)
@@ -107,9 +114,11 @@ export function FinanceProvider({ children }) {
   const budgetsRef = useRef(budgets)
   const transactionsRef = useRef(transactions)
   const savingsGoalRef = useRef(savingsGoal)
+  const emisRef = useRef(emis)
   useEffect(() => { budgetsRef.current = budgets }, [budgets])
   useEffect(() => { transactionsRef.current = transactions }, [transactions])
   useEffect(() => { savingsGoalRef.current = savingsGoal }, [savingsGoal])
+  useEffect(() => { emisRef.current = emis }, [emis])
 
   // Debounced transaction persistence with rolling snapshot chain
   useEffect(() => {
@@ -149,6 +158,7 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveDebts(debts) } catch {} }, [debts])
   useEffect(() => { try { saveGoals(goals) } catch {} }, [goals])
   useEffect(() => { try { saveTemplates(templates) } catch {} }, [templates])
+  useEffect(() => { try { saveEmis(emis) } catch {} }, [emis])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -396,6 +406,7 @@ export function FinanceProvider({ children }) {
   }, [debts])
 
   const clearAllData = useCallback(() => {
+    cancelAllEmiNotifications(emisRef.current).catch(() => {})
     safeStorage.clear()
     safeStorage.remove(STORAGE_KEYS.SCHEMA)
     privacy.clearPin()
@@ -407,6 +418,7 @@ export function FinanceProvider({ children }) {
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
+      emis: [],
     })
   }, [])
 
@@ -421,7 +433,11 @@ export function FinanceProvider({ children }) {
       ...(data.budgets ? { budgets: data.budgets } : {}),
       ...(data.recurring ? { recurring: data.recurring } : {}),
       ...(dts ? { debts: dts } : {}),
+      ...(data.emis ? { emis: data.emis } : {}),
     }))
+    if (data.emis) {
+      rescheduleAllEmiNotifications(data.emis).catch(() => {})
+    }
   }, [])
 
   const restoreFromSnapshot = useCallback(() => {
@@ -436,6 +452,7 @@ export function FinanceProvider({ children }) {
     const newState = loadInitialState()
     setState(newState)
     setRecoverySnapshot(newState._recoverySnapshot || null)
+    rescheduleAllEmiNotifications(newState.emis).catch(() => {})
   }, [])
 
   const insights = useMemo(() => {
@@ -503,6 +520,149 @@ export function FinanceProvider({ children }) {
 
   const recentTemplates = useMemo(() => getRecentTemplates(), [templates])
 
+  const addEmi = useCallback((data) => {
+    const newEmi = createEmi(data)
+    setState((prev) => ({ ...prev, emis: [newEmi, ...prev.emis] }))
+    scheduleEmiNotifications(newEmi).catch(() => {})
+    return newEmi
+  }, [])
+
+  const updateEmi = useCallback((id, updates) => {
+    const oldEmi = emisRef.current.find((e) => e.id === id)
+    let remainingMonthsOverride = null
+    if (oldEmi && updates.tenure && updates.tenure !== oldEmi.tenure) {
+      const paidMonths = oldEmi.tenure - oldEmi.remainingMonths
+      remainingMonthsOverride = Math.max(0, updates.tenure - paidMonths)
+    }
+    setState((prev) => ({
+      ...prev,
+      emis: prev.emis.map((e) =>
+        e.id === id
+          ? { ...e, ...updates, ...(remainingMonthsOverride !== null ? { remainingMonths: remainingMonthsOverride } : {}), updatedAt: Date.now() }
+          : e
+      ),
+    }))
+    cancelEmiNotifications(id).catch(() => {})
+    if (oldEmi) {
+      const merged = { ...oldEmi, ...updates, ...(remainingMonthsOverride !== null ? { remainingMonths: remainingMonthsOverride } : {}) }
+      if (merged.status === EMI_STATUS.ACTIVE && merged.remainingMonths > 0) {
+        scheduleEmiNotifications(merged).catch(() => {})
+      }
+    }
+  }, [])
+
+  const closeEmi = useCallback((id) => {
+    setState((prev) => ({
+      ...prev,
+      emis: prev.emis.map((e) =>
+        e.id === id
+          ? { ...e, status: EMI_STATUS.CLOSED, closedAt: Date.now(), updatedAt: Date.now() }
+          : e
+      ),
+    }))
+    cancelEmiNotifications(id).catch(() => {})
+  }, [])
+
+  const pauseEmi = useCallback((id) => {
+    setState((prev) => ({
+      ...prev,
+      emis: prev.emis.map((e) =>
+        e.id === id
+          ? { ...e, status: EMI_STATUS.PAUSED, updatedAt: Date.now() }
+          : e
+      ),
+    }))
+    cancelEmiNotifications(id).catch(() => {})
+  }, [])
+
+  const resumeEmi = useCallback((id) => {
+    let updatedEmi = null
+    setState((prev) => {
+      const emi = prev.emis.find((e) => e.id === id)
+      if (!emi) return prev
+      updatedEmi = { ...emi, status: EMI_STATUS.ACTIVE, updatedAt: Date.now() }
+      return {
+        ...prev,
+        emis: prev.emis.map((e) =>
+          e.id === id ? updatedEmi : e
+        ),
+      }
+    })
+    if (updatedEmi) {
+      scheduleEmiNotifications(updatedEmi).catch(() => {})
+    }
+  }, [])
+
+  const markEmiPaid = useCallback((emiId) => {
+    setState((prev) => {
+      const emi = prev.emis.find((e) => e.id === emiId)
+      if (!emi) return prev
+
+      const today = new Date().toISOString().split('T')[0]
+      const newTx = {
+        type: 'expense',
+        amount: emi.amount,
+        category: 'emi',
+        note: emi.name,
+        date: today,
+        tags: ['emi'],
+        source: emi.lender || undefined,
+        person: emi.contactName ? { name: emi.contactName, phoneNumber: emi.phoneNumber || undefined } : undefined,
+        id: generateId(),
+        createdAt: Date.now(),
+      }
+
+      const paymentRecord = {
+        id: generateId(),
+        date: today,
+        amount: emi.amount,
+        transactionId: newTx.id,
+        paidAt: Date.now(),
+      }
+
+      const newRemainingMonths = Math.max(0, emi.remainingMonths - 1)
+      const isCompleted = newRemainingMonths === 0
+
+      return {
+        ...prev,
+        transactions: [newTx, ...prev.transactions],
+        emis: prev.emis.map((e) =>
+          e.id === emiId
+            ? {
+                ...e,
+                lastPaidDate: today,
+                totalPaidCount: e.totalPaidCount + 1,
+                remainingMonths: newRemainingMonths,
+                status: isCompleted ? EMI_STATUS.CLOSED : e.status,
+                closedAt: isCompleted ? Date.now() : e.closedAt,
+                updatedAt: Date.now(),
+                paymentHistory: [...(e.paymentHistory || []), paymentRecord],
+              }
+            : e
+        ),
+      }
+    })
+    cancelEmiNotifications(emiId).catch(() => {})
+    const emi = emisRef.current.find((e) => e.id === emiId)
+    if (emi) {
+      const newRemaining = Math.max(0, emi.remainingMonths - 1)
+      if (newRemaining > 0) {
+        const nextRef = new Date()
+        nextRef.setMonth(nextRef.getMonth() + 1)
+        scheduleEmiNotifications(
+          { ...emi, remainingMonths: newRemaining },
+          nextRef,
+        ).catch(() => {})
+      }
+    }
+    checkStreakMilestone([{ date: new Date().toISOString().split('T')[0] }, ...transactionsRef.current]).catch(() => {})
+    hapticLight()
+  }, [])
+
+  const emiSummary = useMemo(() => {
+    try { return getEmiSummary(emis) } catch { return null }
+  }, [emis])
+
   const snapshotDiagnostics = useMemo(() => {
     try { return getRecoveryChainSummary() } catch { return null }
   }, [])
@@ -537,6 +697,7 @@ export function FinanceProvider({ children }) {
     clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
+    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
   }), [
     transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
     cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
@@ -551,6 +712,7 @@ export function FinanceProvider({ children }) {
     clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
+    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
   ])
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

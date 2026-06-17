@@ -9,12 +9,12 @@ import EmptyState from '../components/EmptyState'
 const VIEW_DAYS = [7, 30]
 
 export default function FinancialCalendar() {
-  const { transactions, recurring, debts } = useFinance()
+  const { transactions, recurring, debts, emis } = useFinance()
   const [viewDays, setViewDays] = useState(30)
 
   const { events, groups, total } = useMemo(
-    () => getUpcomingEvents(transactions, recurring, debts, viewDays),
-    [transactions, recurring, debts, viewDays],
+    () => getUpcomingEvents(transactions, recurring, debts, viewDays, emis),
+    [transactions, recurring, debts, viewDays, emis],
   )
 
   const dateKeys = Object.keys(groups).sort()
