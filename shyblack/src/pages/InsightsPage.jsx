@@ -46,7 +46,7 @@ export default function InsightsPage() {
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <h1 className="text-xl font-bold mb-6">Financial Insights</h1>
 
-      <FinancialScore score={insights.score} factors={insights.score.factors} />
+      <FinancialScore score={insights.score} factors={insights.score.factors} breakdown={insights.scoreBreakdown} />
 
       {insights.health && (
         <GlassCard brand className="mt-4">

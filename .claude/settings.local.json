@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"E:\\\\Siva Current Work Backup File\\\\New folder\\\\New folder\\\\tracker\\\\shyblack\\\\src\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(del \"E:\\\\Siva Current Work Backup File\\\\New folder\\\\New folder\\\\tracker\\\\shyblack\\\\src\\\\utils\\\\storage.js\")",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(node --version)"
+    ]
+  }
+}

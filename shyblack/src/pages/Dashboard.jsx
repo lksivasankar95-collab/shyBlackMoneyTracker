@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
-  AlertCircle, RefreshCw, SkipForward, RotateCcw,
+  AlertCircle, RefreshCw, SkipForward, RotateCcw, Target,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
@@ -23,6 +23,7 @@ export default function Dashboard({ onNavigate }) {
     pendingRecurring, executeAllRecurring, skipAllRecurring,
     executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
+    goals, goalsProjections,
   } = useFinance()
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
@@ -255,7 +256,7 @@ export default function Dashboard({ onNavigate }) {
           tabIndex={0}
           onKeyDown={(e) => e.key === 'Enter' && onNavigate('insights')}
         >
-          <FinancialScore score={insights.score} factors={[]} compact />
+          <FinancialScore score={insights.score} factors={[]} compact breakdown={insights.scoreBreakdown} />
         </div>
       )}
 
@@ -264,6 +265,36 @@ export default function Dashboard({ onNavigate }) {
         <GlassCard brand>
           <SavingsProgress savingsGoal={savingsGoal} />
         </GlassCard>
+      )}
+
+      {/* ── 7. Goals Overview ────────────────────────── */}
+      {goals.length > 0 && (
+        <button onClick={() => onNavigate('goals')} className="w-full text-left mt-4">
+          <GlassCard>
+            <div className="flex items-center gap-2 mb-2">
+              <Target size={14} className="text-purple-400" />
+              <h2 className="text-xs font-semibold text-gray-300">Financial Goals</h2>
+            </div>
+            <div className="space-y-2">
+              {goalsProjections.slice(0, 2).map((g) => (
+                <div key={g.id} className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-gray-400 truncate">{g.name}</span>
+                      <span className="text-gray-500 tabular-nums">{Math.round(g.projection?.progress || 0)}%</span>
+                    </div>
+                    <div className="w-full h-1 bg-matte-200 rounded-full overflow-hidden mt-0.5">
+                      <div className="h-full rounded-full bg-gradient-to-r from-purple-500 to-neon" style={{ width: `${Math.min(g.projection?.progress || 0, 100)}%` }} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {goals.length > 2 && (
+                <p className="text-[10px] text-gray-600">+{goals.length - 2} more goals</p>
+              )}
+            </div>
+          </GlassCard>
+        </button>
       )}
     </div>
   )

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, AlertTriangle, CheckCircle, ChevronDown, ChevronUp } from 'lucide-react'
+import { TrendingUp, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, BarChart3, PieChart, DollarSign, Activity, Hash } from 'lucide-react'
 import GlassCard from './GlassCard'
 
 const scoreColors = {
@@ -9,7 +9,15 @@ const scoreColors = {
   'Needs Work': { from: '#ef4444', to: '#dc2626', label: 'Needs Work' },
 }
 
-export default function FinancialScore({ score, factors, compact }) {
+const breakdownIcons = {
+  savings: DollarSign,
+  debt: AlertTriangle,
+  consistency: Activity,
+  budget: BarChart3,
+  tracking: Hash,
+}
+
+export default function FinancialScore({ score, factors, compact, breakdown }) {
   const [expanded, setExpanded] = useState(false)
   const { level } = score
   const colors = scoreColors[level] || scoreColors['Needs Work']
@@ -45,6 +53,29 @@ export default function FinancialScore({ score, factors, compact }) {
           <p className="text-xs text-gray-500">Financial Health Score</p>
         </div>
       </div>
+
+      {!compact && breakdown && (
+        <div className="mb-3 space-y-1.5">
+          {breakdown.categories.map((cat) => {
+            const Icon = breakdownIcons[cat.key] || TrendingUp
+            const pct = cat.max > 0 ? (cat.score / cat.max) * 100 : 0
+            return (
+              <div key={cat.key} className="flex items-center gap-2.5">
+                <Icon size={11} className="text-gray-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between mb-0.5">
+                    <span className="text-[10px] text-gray-500 font-medium">{cat.label}</span>
+                    <span className="text-[10px] font-medium tabular-nums">{cat.score}/{cat.max}</span>
+                  </div>
+                  <div className="w-full h-1 bg-matte-200 rounded-full overflow-hidden">
+                    <div className="h-full rounded-full bg-gradient-to-r from-gray-500 to-neon" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      )}
 
       {!compact && factors.length > 0 && (
         <>

@@ -3,6 +3,7 @@ import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound,
+  Calendar, Zap, Sparkles,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -24,7 +25,7 @@ import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } fro
 export default function Settings({ onNavigate }) {
   const {
     savingsGoal, updateSavings, clearAllData, transactions, importData,
-    security, updateSecurity, recurring, debts,
+    security, updateSecurity, recurring, debts, reloadFromStorage,
   } = useFinance()
   const { addToast } = useToast()
   const [target, setTarget] = useState(String(savingsGoal.target || ''))
@@ -151,6 +152,7 @@ export default function Settings({ onNavigate }) {
     setIsRestoring(true)
     try {
       const results = restoreFromBackup(pendingRestore)
+      reloadFromStorage()
       setRestoreSummary(results)
       setPendingRestore(null)
       setShowRestoreConfirm(false)
@@ -162,7 +164,7 @@ export default function Settings({ onNavigate }) {
       addToast('Restore failed. Data may be corrupted.', 'error')
     }
     setIsRestoring(false)
-  }, [pendingRestore, addToast])
+  }, [pendingRestore, addToast, reloadFromStorage])
 
   const handleResetData = useCallback(() => {
     clearAllData()
@@ -428,6 +430,55 @@ export default function Settings({ onNavigate }) {
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">Reports & Export</p>
               <p className="text-xs text-gray-500">CSV exports and monthly statements</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+        </div>
+      </GlassCard>
+
+      {/* Premium Features */}
+      <GlassCard brand className="mb-4">
+        <div className="space-y-1">
+          <button onClick={() => onNavigate('goals')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Target size={16} className="text-gray-400 group-hover:text-purple-400 transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Financial Goals</p>
+              <p className="text-xs text-gray-500">Track multiple savings goals with projections</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('subscriptions')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Repeat2 size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Subscriptions</p>
+              <p className="text-xs text-gray-500">Manage Netflix, Spotify, and other recurring bills</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('calendar')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Calendar size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Financial Calendar</p>
+              <p className="text-xs text-gray-500">Upcoming payments, renewals, and due dates</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('review')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Sparkles size={16} className="text-gray-400 group-hover:text-yellow-400 transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Monthly Review</p>
+              <p className="text-xs text-gray-500">Automated insights on your monthly finances</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>

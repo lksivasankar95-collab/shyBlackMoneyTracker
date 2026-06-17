@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, getTransactionDescription } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
@@ -21,7 +21,7 @@ const TYPE_ICONS = {
 const lastCategoryByType = { income: '', expense: '' }
 
 export default function AddTransaction({ onNavigate }) {
-  const { addTransaction, addRecurring, tags, addTag, recentPeople } = useFinance()
+  const { addTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate } = useFinance()
   const amountInputRef = useRef(null)
   const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
@@ -102,6 +102,7 @@ export default function AddTransaction({ onNavigate }) {
 
   const doSubmit = useCallback((transactionData) => {
     addTransaction(transactionData)
+    addTemplate(transactionData)
 
     if (isRecurring) {
       const nextDate = new Date(date)
@@ -130,7 +131,7 @@ export default function AddTransaction({ onNavigate }) {
     setError('')
     setPendingSubmit(null)
     setTimeout(() => setSuccess(false), 2000)
-  }, [addTransaction, addRecurring, isRecurring, date, frequency])
+  }, [addTransaction, addRecurring, isRecurring, date, frequency, addTemplate])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -215,6 +216,42 @@ export default function AddTransaction({ onNavigate }) {
           )
         })}
       </div>
+
+      {recentTemplates.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center gap-1.5 mb-2">
+            <Zap size={12} className="text-yellow-400" />
+            <span className="text-[10px] font-medium text-gray-500">Quick Templates</span>
+          </div>
+          <div className="flex gap-1.5 flex-wrap">
+            {recentTemplates.filter((t) => t.type === purpose).slice(0, 4).map((tmpl) => (
+              <button
+                key={tmpl.id}
+                type="button"
+                onClick={() => {
+                  setAmount(String(tmpl.amount))
+                  setCategory(tmpl.category)
+                  setNote(tmpl.note || '')
+                  setPersonName(tmpl.person?.name || '')
+                  setPaymentMethod(tmpl.paymentMethod || '')
+                  setSource(tmpl.source || '')
+                  setSelectedTags(tmpl.tags || [])
+                  const tmplCat = tmpl.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+                  if (tmplCat.find((c) => c.id === tmpl.category)) {
+                    lastCategoryByType[tmpl.type] = tmpl.category
+                  }
+                }}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-glass-border text-[10px] font-medium text-gray-400 hover:text-white hover:border-gray-500 transition-all"
+              >
+                <span>{tmpl.label}</span>
+                {tmpl.paymentMethod && (
+                  <span className="text-gray-600">· {PAYMENT_METHODS.find((m) => m.id === tmpl.paymentMethod)?.label || tmpl.paymentMethod}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         {/* Amount */}

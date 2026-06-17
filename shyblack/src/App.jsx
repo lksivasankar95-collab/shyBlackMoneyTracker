@@ -35,6 +35,10 @@ const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
+const GoalsPage = lazy(() => import('./pages/GoalsPage'))
+const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'))
+const FinancialCalendar = lazy(() => import('./pages/FinancialCalendar'))
+const MonthlyReview = lazy(() => import('./pages/MonthlyReview'))
 
 const pages = {
   dashboard: Dashboard,
@@ -48,6 +52,10 @@ const pages = {
   debts: DebtsPage,
   timeline: TimelinePage,
   diagnostics: DiagnosticsPage,
+  goals: GoalsPage,
+  subscriptions: SubscriptionsPage,
+  calendar: FinancialCalendar,
+  review: MonthlyReview,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -70,17 +78,23 @@ function PageLoader() {
 
 function ReminderInit() {
   const { transactions, debts } = useFinance()
+  const transactionsRef = useRef(transactions)
+  const debtsRef = useRef(debts)
+  useEffect(() => { transactionsRef.current = transactions }, [transactions])
+  useEffect(() => { debtsRef.current = debts }, [debts])
 
   useEffect(() => {
     const timer = setTimeout(() => {
+      const txs = transactionsRef.current
+      const dts = debtsRef.current
       if (getReminderPreference()) {
-        refreshReminderSchedule(transactions, debts)
+        refreshReminderSchedule(txs, dts)
       }
-      checkAndScheduleMonthlyRecap(transactions).catch(() => {})
-      checkDebtReminders(debts).catch(() => {})
+      checkAndScheduleMonthlyRecap(txs).catch(() => {})
+      checkDebtReminders(dts).catch(() => {})
     }, 2000)
     return () => clearTimeout(timer)
-  }, []) // intentional: run once on mount with snapshot of initial data
+  }, [])
 
   return null
 }

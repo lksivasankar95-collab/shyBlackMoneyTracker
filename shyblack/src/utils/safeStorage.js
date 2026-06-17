@@ -1,7 +1,8 @@
-const STORAGE_PREFIX = 'shyblack_'
+import { getStorageAdapter, ADAPTER_TYPES } from './storageAdapter'
 
+export const STORAGE_PREFIX = 'shyblack_'
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   TRANSACTIONS: `${STORAGE_PREFIX}transactions`,
   SAVINGS: `${STORAGE_PREFIX}savings`,
   BUDGETS: `${STORAGE_PREFIX}budgets`,
@@ -15,38 +16,19 @@ const STORAGE_KEYS = {
   BUDGET_NOTIF: `${STORAGE_PREFIX}budget_notif`,
   STREAK: `${STORAGE_PREFIX}streak`,
   SNAPSHOT: `${STORAGE_PREFIX}snapshot`,
+  GOALS: `${STORAGE_PREFIX}goals`,
+  TEMPLATES: `${STORAGE_PREFIX}templates`,
+  REVIEW: `${STORAGE_PREFIX}review`,
 }
 
-// Purge order on quota error: disposable logs first, never touch recovery-critical keys.
-// NEVER purge: SCHEMA, ONBOARDING, SETTINGS, STREAK, SNAPSHOT, TRANSACTIONS, SAVINGS, DEBTS, BUDGETS, RECURRING
-const QUOTA_PURGE_ORDER = [
-  `${STORAGE_PREFIX}budget_notif`,
-  `${STORAGE_PREFIX}reminder`,
-  `${STORAGE_PREFIX}tags`,
-]
-
-function isQuotaError(error) {
-  return (
-    error instanceof DOMException &&
-    (error.code === 22 || error.code === 1014 || error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
-  )
-}
-
-function tryParse(raw, fallback) {
-  if (raw === null || raw === undefined || raw === '') return fallback
-  try {
-    const parsed = JSON.parse(raw)
-    return parsed !== undefined ? parsed : fallback
-  } catch {
-    return fallback
-  }
+function getAdapter() {
+  return getStorageAdapter()
 }
 
 export const safeStorage = {
   get(key, fallback = null) {
     try {
-      const raw = localStorage.getItem(key)
-      return tryParse(raw, fallback)
+      return getAdapter().get(key, fallback)
     } catch {
       return fallback
     }
@@ -54,36 +36,23 @@ export const safeStorage = {
 
   getRaw(key) {
     try {
-      return localStorage.getItem(key)
+      return getAdapter().getRaw(key)
     } catch {
       return null
     }
   },
 
   set(key, value) {
-    const serialized = JSON.stringify(value)
     try {
-      localStorage.setItem(key, serialized)
-      return true
-    } catch (error) {
-      if (!isQuotaError(error)) return false
-      // Attempt recovery by purging lower-priority keys in order
-      for (const purgeKey of QUOTA_PURGE_ORDER) {
-        if (purgeKey === key) continue
-        try { localStorage.removeItem(purgeKey) } catch {}
-        try {
-          localStorage.setItem(key, serialized)
-          return true
-        } catch {}
-      }
+      return getAdapter().set(key, value)
+    } catch {
       return false
     }
   },
 
   remove(key) {
     try {
-      localStorage.removeItem(key)
-      return true
+      return getAdapter().remove(key)
     } catch {
       return false
     }
@@ -91,10 +60,7 @@ export const safeStorage = {
 
   clear() {
     try {
-      Object.values(STORAGE_KEYS).forEach((k) => {
-        try { localStorage.removeItem(k) } catch {}
-      })
-      return true
+      return getAdapter().clear()
     } catch {
       return false
     }
@@ -102,15 +68,7 @@ export const safeStorage = {
 
   getStorageInfo() {
     try {
-      let total = 0
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i)
-        if (key && key.startsWith(STORAGE_PREFIX)) {
-          const val = localStorage.getItem(key)
-          total += (key.length + (val ? val.length : 0)) * 2
-        }
-      }
-      return { usedBytes: total, usedKB: Math.round(total / 1024), keyCount: Object.values(STORAGE_KEYS).length }
+      return getAdapter().getStorageInfo()
     } catch {
       return { usedBytes: 0, usedKB: 0, keyCount: 0 }
     }
@@ -118,14 +76,9 @@ export const safeStorage = {
 
   isAvailable() {
     try {
-      const k = `${STORAGE_PREFIX}_test`
-      localStorage.setItem(k, '1')
-      localStorage.removeItem(k)
-      return true
+      return getAdapter().isAvailable()
     } catch {
       return false
     }
   },
 }
-
-export { STORAGE_KEYS }

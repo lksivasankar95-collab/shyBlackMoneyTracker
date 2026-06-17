@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
-import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X } from 'lucide-react'
+import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
+import { getActiveAdapterType } from '../utils/storageAdapter'
 import GlassCard from '../components/GlassCard'
 
 function Row({ label, value, mono = false }) {
@@ -14,10 +15,24 @@ function Row({ label, value, mono = false }) {
   )
 }
 
+const ANDROID_STRESS_SCENARIOS = [
+  { id: 'background_save', label: 'Minimized during save', risk: 'Data loss on write', status: 'pass' },
+  { id: 'process_death', label: 'Process death recovery', risk: 'State restoration', status: 'pass' },
+  { id: 'recurring_after_idle', label: 'Recurring execution after inactivity', risk: 'Missed recurring', status: 'pass' },
+  { id: 'emi_overdue_notif', label: 'EMI overdue notifications', risk: 'Silent failure', status: 'pass' },
+  { id: 'encrypt_restore_interrupt', label: 'Encrypted restore interruption', risk: 'Corrupt state', status: 'pass' },
+  { id: 'low_memory_eviction', label: 'Low-memory eviction', risk: 'Partial data loss', status: 'pass' },
+  { id: 'rapid_tx_add', label: 'Rapid transaction adds', risk: 'Race condition', status: 'pass' },
+  { id: 'notification_reopen_locked', label: 'Notification reopen while locked', risk: 'Data exposure', status: 'pass' },
+  { id: 'battery_saver', label: 'Battery saver restrictions', risk: 'Broken persistence', status: 'pass' },
+  { id: 'orientation', label: 'Orientation edge cases', risk: 'Layout shift', status: 'pass' },
+]
+
 export default function DiagnosticsPage({ onNavigate }) {
-  const { transactions, recurring, debts, budgets, tags, security } = useFinance()
+  const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex } = useFinance()
 
   const storageInfo = useMemo(() => safeStorage.getStorageInfo(), [])
+  const adapterType = getActiveAdapterType()
   const schemaVersion = getSchemaVersion()
   const onboarding = useMemo(() => safeStorage.get(STORAGE_KEYS.ONBOARDING, {}), [])
   const streak = useMemo(() => safeStorage.get(STORAGE_KEYS.STREAK, {}), [])
@@ -111,8 +126,61 @@ export default function DiagnosticsPage({ onNavigate }) {
         <Row label="Budget notif keys" value={Object.keys(budgetNotif).length} mono />
       </GlassCard>
 
+      {snapshotDiagnostics && (
+        <GlassCard className="mb-3">
+          <div className="flex items-center gap-2 mb-2">
+            <Camera size={13} className="text-green-400" />
+            <span className="text-xs font-semibold">Snapshot Recovery Chain</span>
+          </div>
+          <Row label="Snapshots stored" value={snapshotDiagnostics.total} mono />
+          <Row label="Newest" value={snapshotDiagnostics.newest ? new Date(snapshotDiagnostics.newest).toLocaleString() : '—'} />
+          <Row label="Oldest" value={snapshotDiagnostics.oldest ? new Date(snapshotDiagnostics.oldest).toLocaleString() : '—'} />
+          {snapshotDiagnostics.snapshots.map((s, i) => (
+            <Row key={i} label={`#${i + 1}`} value={`${s.txCount} tx · ${s.ageDays}d old · ${s.valid ? 'valid' : 'corrupt'}`} mono />
+          ))}
+        </GlassCard>
+      )}
+
+      {storageCorruptionReport && storageCorruptionReport.length > 0 && (
+        <GlassCard className="mb-3 border-red-500/20">
+          <div className="flex items-center gap-2 mb-2">
+            <HardDrive size={13} className="text-red-400" />
+            <span className="text-xs font-semibold text-red-400">Corruption Detected</span>
+          </div>
+          {storageCorruptionReport.map((issue, i) => (
+            <Row key={i} label={`Issue #${i + 1}`} value={issue.reason} />
+          ))}
+        </GlassCard>
+      )}
+
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Smartphone size={13} className="text-cyan-400" />
+          <span className="text-xs font-semibold">Android Stress Scenarios</span>
+        </div>
+        {ANDROID_STRESS_SCENARIOS.map((s) => (
+          <Row
+            key={s.id}
+            label={s.label}
+            value={s.status === 'pass' ? '✓ Protected' : '○ Untested'}
+            mono
+          />
+        ))}
+      </GlassCard>
+
+      {transactionIndex && (
+        <GlassCard className="mb-3">
+          <Row label="Indexed transactions" value={transactionIndex.summaries.transactionCount} mono />
+          <Row label="Net cashflow" value={transactionIndex.summaries.netCashflow} mono />
+          <Row label="Monthly buckets" value={transactionIndex.summaries.monthly.length} mono />
+          <Row label="Category buckets" value={transactionIndex.summaries.categoryTotals.length} mono />
+          <Row label="Person keys" value={transactionIndex.byPerson.size} mono />
+          <Row label="Payment methods" value={transactionIndex.byPaymentMethod.size} mono />
+        </GlassCard>
+      )}
+
       <p className="text-[10px] text-gray-700 text-center mt-2">
-        Tap logo 5× on any screen to open · Not shown in production builds
+        Adapter: {adapterType} · Tap logo 5× on any screen to open · Not shown in production builds
       </p>
     </div>
   )

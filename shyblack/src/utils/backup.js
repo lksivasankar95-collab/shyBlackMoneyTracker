@@ -1,5 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { APP_SCHEMA_VERSION } from './schema'
+import { recordBackupEvent } from './backupHealth'
 
 export const BACKUP_SCHEMA_VERSION = 1
 
@@ -7,8 +8,8 @@ export const BACKUP_SCHEMA_VERSION = 1
 
 async function deriveKey(password, salt) {
   const enc = new TextEncoder()
-  const keyMaterial = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
-  return crypto.subtle.deriveKey(
+  const keyMaterial = await _crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey'])
+  return _crypto.subtle.deriveKey(
     { name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
@@ -25,12 +26,38 @@ function fromBase64(str) {
   return Uint8Array.from(atob(str), (c) => c.charCodeAt(0))
 }
 
+let _crypto = null
+
+async function ensureCrypto() {
+  if (_crypto) return true
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    _crypto = globalThis.crypto
+    return true
+  }
+  if (typeof global !== 'undefined' && global.crypto) {
+    _crypto = global.crypto
+    return true
+  }
+  if (typeof window !== 'undefined' && window.crypto) {
+    _crypto = window.crypto
+    return true
+  }
+  try {
+    const mod = await import('node:crypto')
+    _crypto = mod.webcrypto || mod.default
+    return !!_crypto
+  } catch {
+    return false
+  }
+}
+
 export async function encryptBackup(backupObj, password) {
-  const salt = crypto.getRandomValues(new Uint8Array(16))
-  const iv = crypto.getRandomValues(new Uint8Array(12))
+  await ensureCrypto()
+  const salt = _crypto.getRandomValues(new Uint8Array(16))
+  const iv = _crypto.getRandomValues(new Uint8Array(12))
   const key = await deriveKey(password, salt)
   const plaintext = new TextEncoder().encode(JSON.stringify(backupObj))
-  const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
+  const ciphertext = await _crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
   return {
     app: 'shyblack-finance',
     encrypted: true,
@@ -42,11 +69,12 @@ export async function encryptBackup(backupObj, password) {
 }
 
 export async function decryptBackup(encryptedObj, password) {
+  await ensureCrypto()
   const salt = fromBase64(encryptedObj.salt)
   const iv = fromBase64(encryptedObj.iv)
   const ciphertext = fromBase64(encryptedObj.data)
   const key = await deriveKey(password, salt)
-  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
+  const plaintext = await _crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext)
   return JSON.parse(new TextDecoder().decode(plaintext))
 }
 
@@ -63,6 +91,7 @@ export async function exportEncryptedBackup(password) {
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
+  recordBackupEvent('encrypted_export', true)
 }
 
 export async function parseAndValidateEncryptedBackup(jsonString, password) {
@@ -120,7 +149,10 @@ export function collectBackupData() {
   data.budgets = safeStorage.get(STORAGE_KEYS.BUDGETS, {})
   data.recurring = safeStorage.get(STORAGE_KEYS.RECURRING, [])
   data.tags = safeStorage.get(STORAGE_KEYS.TAGS, [])
-  data.security = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
+  const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
+  data.security = rawSecurity && typeof rawSecurity === 'object'
+    ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
+    : {}
 
   return {
     app: 'shyblack-finance',
@@ -142,6 +174,7 @@ export function exportBackup() {
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
+  recordBackupEvent('export', true)
   return backup
 }
 
@@ -217,7 +250,6 @@ export function restoreFromBackup(backupData) {
     budgets: STORAGE_KEYS.BUDGETS,
     recurring: STORAGE_KEYS.RECURRING,
     tags: STORAGE_KEYS.TAGS,
-    security: STORAGE_KEYS.SETTINGS,
   }
 
   for (const [section, storageKey] of Object.entries(keyMap)) {
@@ -233,5 +265,6 @@ export function restoreFromBackup(backupData) {
     }
   }
 
+  recordBackupEvent('restore', results.failed.length === 0)
   return results
 }

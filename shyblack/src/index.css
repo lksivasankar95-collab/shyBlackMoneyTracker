@@ -151,20 +151,76 @@
   50% { box-shadow: 0 0 16px rgba(57, 255, 20, 0.2); }
 }
 
+@keyframes countUp {
+  from { opacity: 0.4; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes cardHighlight {
+  0% { background-color: rgba(57, 255, 20, 0.06); }
+  100% { background-color: transparent; }
+}
+
 .animate-fade-in { animation: fadeIn 0.2s ease-out; }
 .animate-slide-in { animation: slideIn 0.3s ease-out; }
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
 .animate-slide-up { animation: slideUp 0.35s ease-out; }
 .animate-neon-pulse { animation: neonPulse 2s ease-in-out infinite; }
 .animate-glow-pulse { animation: glowPulse 2s ease-in-out infinite; }
+.animate-count-up { animation: countUp 0.25s ease-out; }
+.animate-shimmer { animation: shimmer 1.5s ease-in-out infinite; background-size: 200% 100%; }
+.animate-card-highlight { animation: cardHighlight 0.6s ease-out; }
 
+/* Active press feedback on cards and interactive elements */
+.glass:active, .glass-brand:active {
+  transform: scale(0.985);
+  transition: transform 0.1s ease;
+}
+
+/* Card hover elevation */
+.glass, .glass-brand {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+/* Tabular numbers for financial data */
+.number-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth number transitions */
+.number-transition {
+  transition: all 0.2s ease-out;
+}
+
+/* Keyboard-safe scroll padding for inputs */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .keyboard-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
   .animate-fade-in, .animate-slide-in, .animate-scale-in,
-  .animate-slide-up, .animate-neon-pulse, .animate-glow-pulse {
+  .animate-slide-up, .animate-neon-pulse, .animate-glow-pulse,
+  .animate-count-up, .animate-shimmer, .animate-card-highlight {
     animation: none !important;
   }
-  .transition-all, .transition-colors, .transition-transform {
+  .transition-all, .transition-colors, .transition-transform,
+  .glass, .glass-brand {
     transition-duration: 0ms !important;
+  }
+}
+
+/* High contrast support */
+@media (prefers-contrast: high) {
+  .glass, .glass-brand {
+    border-width: 1.5px;
   }
 }
 

@@ -235,6 +235,19 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
   }
 }
 
+export function shouldShowReviewBanner(transactions) {
+  const now = new Date()
+  if (now.getDate() < 3) return true
+  if (wasMonthlyRecapSent()) return false
+  const lastMonth = now.getMonth() === 0 ? 11 : now.getMonth() - 1
+  const lastYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()
+  const monthTx = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === lastMonth && d.getFullYear() === lastYear
+  })
+  return monthTx.length >= 3
+}
+
 export async function checkDebtReminders(debts) {
   if (!debts || debts.length === 0) return
 

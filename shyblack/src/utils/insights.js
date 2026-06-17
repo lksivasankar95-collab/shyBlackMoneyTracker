@@ -374,6 +374,67 @@ export function getCashflowForecast(recurringList, months = 3) {
   return result
 }
 
+export function getScoreBreakdown(transactions) {
+  if (transactions.length === 0) return null
+  const income = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const expense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const savings = income - expense
+  const now = new Date()
+  const thisMonth = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+  const monthExpense = thisMonth.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+
+  // Savings discipline (0-250)
+  let savingsScore = 0
+  if (income > 0) {
+    const rate = (savings / income) * 100
+    savingsScore = Math.min(250, rate * 5)
+  }
+  if (savings <= 0) savingsScore = Math.max(0, savingsScore - 100)
+
+  // Debt health (0-200)
+  let debtScore = 200
+  const hasDebt = expense > income * 1.5
+  if (hasDebt) debtScore = 100
+
+  // Spending consistency (0-200)
+  let consistencyScore = 150
+  if (transactions.length >= 20) consistencyScore = 200
+  else if (transactions.length >= 10) consistencyScore = 175
+
+  const categories = getCategoryBreakdown(transactions, 'expense', now.getFullYear(), now.getMonth())
+  if (categories.length > 0 && monthExpense > 0) {
+    const topRatio = categories[0].amount / monthExpense
+    if (topRatio > 0.5) consistencyScore = Math.max(50, consistencyScore - 50)
+  }
+
+  // Budget discipline (0-200)
+  let budgetScore = 150
+  const comparison = compareSpending(transactions)
+  if (comparison && comparison.direction === 'down') budgetScore = 200
+  else if (comparison && comparison.direction === 'up' && comparison.change > 20) budgetScore = 100
+
+  // Transaction consistency (0-150)
+  let txScore = 50
+  if (transactions.length >= 10) txScore = 100
+  if (thisMonth.length >= 5) txScore = 150
+
+  const total = savingsScore + debtScore + consistencyScore + budgetScore + txScore
+
+  return {
+    total: Math.min(1000, Math.max(0, total)),
+    categories: [
+      { key: 'savings', label: 'Savings Discipline', score: Math.round(savingsScore), max: 250 },
+      { key: 'debt', label: 'Debt Health', score: Math.round(debtScore), max: 200 },
+      { key: 'consistency', label: 'Spending Consistency', score: Math.round(consistencyScore), max: 200 },
+      { key: 'budget', label: 'Budget Discipline', score: Math.round(budgetScore), max: 200 },
+      { key: 'tracking', label: 'Transaction Consistency', score: Math.round(txScore), max: 150 },
+    ],
+  }
+}
+
 export function predictMonthEndSpend(transactions) {
   const now = new Date()
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()

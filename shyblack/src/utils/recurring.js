@@ -34,9 +34,18 @@ export function getDueRecurringTransactions(recurring) {
 
 export function advanceNextDate(dateStr, frequency) {
   const d = new Date(dateStr)
-  if (frequency === 'weekly') d.setDate(d.getDate() + 7)
-  else if (frequency === 'yearly') d.setFullYear(d.getFullYear() + 1)
-  else d.setMonth(d.getMonth() + 1) // monthly is default
+  if (frequency === 'weekly') {
+    d.setDate(d.getDate() + 7)
+  } else if (frequency === 'yearly') {
+    d.setFullYear(d.getFullYear() + 1)
+  } else {
+    const origDay = d.getDate()
+    d.setMonth(d.getMonth() + 1)
+    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
+    if (origDay > lastDay) {
+      d.setDate(lastDay)
+    }
+  }
   return d.toISOString().split('T')[0]
 }
 

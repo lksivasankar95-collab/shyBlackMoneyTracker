@@ -6,5 +6,11 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['src/__tests__/**/*.test.js'],
+    pool: 'forks',
+    poolOptions: {
+      forks: {
+        execArgv: ['--require', './src/__tests__/setup.cjs'],
+      },
+    },
   },
 })

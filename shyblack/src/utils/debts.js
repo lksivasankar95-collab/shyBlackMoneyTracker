@@ -41,5 +41,6 @@ export function applyRepayment(debt, repaymentAmount) {
     ...debt,
     remainingAmount: newRemaining,
     status: newRemaining === 0 ? DEBT_STATUS.PAID : debt.status,
+    updatedAt: Date.now(),
   }
 }

@@ -1,16 +1,21 @@
 import { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { generateId, extractPeopleFromTransactions } from '../utils/helpers'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
+import { buildIndexes } from '../utils/indexer'
+import { saveSnapshot, findRecoverySnapshot, getRecoveryChainSummary, detectCorruption } from '../utils/snapshotRecovery'
+import { getBackupHealth, getBackupStats } from '../utils/backupHealth'
 import { getBudgets, saveBudgets } from '../utils/budgets'
 import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTransactions, advanceNextDate } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
+import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
+import { getTemplates, saveTemplates, createTemplate, deleteTemplate, getRecentTemplates } from '../utils/templates'
 import {
   calculateFinancialScore, detectOverspending, getSavingsRecommendations,
   getHabitInsights, getFinancialHealth, checkStreakMilestone,
   getMonthlyScoreHistory, getScoreVelocity, getLoggingStreak,
-  predictMonthEndSpend, getCashflowForecast,
+  predictMonthEndSpend, getCashflowForecast, getScoreBreakdown,
 } from '../utils/insights'
 import { getCategoryTrends } from '../utils/analytics'
 import { runMigrations } from '../utils/schema'
@@ -46,26 +51,21 @@ function sanitizeSavingsGoal(raw) {
   }
 }
 
-const SNAPSHOT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000 // 30 days
-
-function checkRecoverySnapshot(transactions) {
-  if (transactions.length > 0) return null
-  try {
-    const onboarding = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
-    if (!onboarding?.hasCompletedOnboarding) return null
-    const snap = safeStorage.get(STORAGE_KEYS.SNAPSHOT, null)
-    if (!snap?.transactions?.length || !snap.ts) return null
-    if (Date.now() - snap.ts > SNAPSHOT_MAX_AGE_MS) return null
-    return snap
-  } catch {
-    return null
-  }
-}
-
 function loadInitialState() {
   try {
     const migrationResult = runMigrations()
-    const transactions = sanitizeTransactions(safeStorage.get(STORAGE_KEYS.TRANSACTIONS, []))
+    let transactions = sanitizeTransactions(safeStorage.get(STORAGE_KEYS.TRANSACTIONS, []))
+    let recoverySnapshot = null
+
+    if (transactions.length === 0) {
+      recoverySnapshot = findRecoverySnapshot(transactions)
+      if (recoverySnapshot) {
+        transactions = sanitizeTransactions(recoverySnapshot.transactions || [])
+      }
+    }
+
+    const goals = getGoals()
+    if (goals.length === 0) migrateLegacySavingsGoal()
     return {
       transactions,
       savingsGoal: sanitizeSavingsGoal(safeStorage.get(STORAGE_KEYS.SAVINGS, { target: 0, saved: 0 })),
@@ -74,27 +74,30 @@ function loadInitialState() {
       tags: getTags(),
       security: getSecuritySettings(),
       debts: sanitizeDebts(safeStorage.get(STORAGE_KEYS.DEBTS, [])),
+      goals: getGoals(),
+      templates: getTemplates(),
       _migrationResult: migrationResult,
-      _recoverySnapshot: checkRecoverySnapshot(transactions),
+      _recoverySnapshot: recoverySnapshot,
     }
   } catch {
+    const fallbackSnap = findRecoverySnapshot([])
     return {
-      transactions: [],
-      savingsGoal: { target: 0, saved: 0 },
+      transactions: sanitizeTransactions(fallbackSnap?.transactions || []),
+      savingsGoal: fallbackSnap?.savingsGoal || { target: 0, saved: 0 },
       budgets: {},
       recurring: [],
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
       _migrationResult: null,
-      _recoverySnapshot: null,
+      _recoverySnapshot: fallbackSnap,
     }
   }
 }
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, _recoverySnapshot } = state
+  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
   const overspendTimer = useRef(null)
@@ -108,23 +111,19 @@ export function FinanceProvider({ children }) {
   useEffect(() => { transactionsRef.current = transactions }, [transactions])
   useEffect(() => { savingsGoalRef.current = savingsGoal }, [savingsGoal])
 
-  // Debounced transaction persistence — write snapshot after each successful flush
+  // Debounced transaction persistence with rolling snapshot chain
   useEffect(() => {
     if (txPersistTimer.current) clearTimeout(txPersistTimer.current)
     txPersistTimer.current = setTimeout(() => {
       try {
         safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactions)
-        safeStorage.set(STORAGE_KEYS.SNAPSHOT, {
-          transactions: transactions.slice(0, 100),
-          savingsGoal: savingsGoalRef.current,
-          ts: Date.now(),
-        })
+        saveSnapshot(transactions, savingsGoalRef.current)
       } catch {}
     }, 300)
     return () => { if (txPersistTimer.current) clearTimeout(txPersistTimer.current) }
   }, [transactions])
 
-  // Flush on app background to prevent Android lifecycle data loss
+  // Flush + snapshot on app background to prevent Android lifecycle data loss
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
@@ -132,7 +131,10 @@ export function FinanceProvider({ children }) {
           clearTimeout(txPersistTimer.current)
           txPersistTimer.current = null
         }
-        try { safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactionsRef.current) } catch {}
+        try {
+          safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactionsRef.current)
+          saveSnapshot(transactionsRef.current, savingsGoalRef.current)
+        } catch {}
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -145,6 +147,8 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveTags(tags) } catch {} }, [tags])
   useEffect(() => { try { saveSecuritySettings(security) } catch {} }, [security])
   useEffect(() => { try { saveDebts(debts) } catch {} }, [debts])
+  useEffect(() => { try { saveGoals(goals) } catch {} }, [goals])
+  useEffect(() => { try { saveTemplates(templates) } catch {} }, [templates])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -428,10 +432,18 @@ export function FinanceProvider({ children }) {
     setRecoverySnapshot(null)
   }, [recoverySnapshot])
 
+  const reloadFromStorage = useCallback(() => {
+    const newState = loadInitialState()
+    setState(newState)
+    setRecoverySnapshot(newState._recoverySnapshot || null)
+  }, [])
+
   const insights = useMemo(() => {
     try {
+      const score = calculateFinancialScore(transactions)
       return {
-        score: calculateFinancialScore(transactions),
+        score,
+        scoreBreakdown: getScoreBreakdown(transactions),
         overspend: detectOverspending(transactions),
         recommendations: getSavingsRecommendations(transactions, savingsGoal),
         habits: getHabitInsights(transactions),
@@ -451,34 +463,94 @@ export function FinanceProvider({ children }) {
     }
   }, [transactions, savingsGoal])
 
+  const transactionIndex = useMemo(() => {
+    try { return buildIndexes(transactions) } catch { return null }
+  }, [transactions])
+
   const cashflowForecast = useMemo(() => {
     try { return getCashflowForecast(recurring, 3) } catch { return [] }
   }, [recurring])
+
+  const goalsProjections = useMemo(() => {
+    return goals.map((g) => ({ ...g, projection: getGoalProjection(g) }))
+  }, [goals])
+
+  const addGoal = useCallback((data) => {
+    const goal = createGoal(data)
+    setState((prev) => ({ ...prev, goals: getGoals() }))
+    return goal
+  }, [])
+
+  const editGoal = useCallback((id, updates) => {
+    updateGoal(id, updates)
+    setState((prev) => ({ ...prev, goals: getGoals() }))
+  }, [])
+
+  const removeGoal = useCallback((id) => {
+    deleteGoal(id)
+    setState((prev) => ({ ...prev, goals: getGoals() }))
+  }, [])
+
+  const addTemplate = useCallback((tx) => {
+    createTemplate(tx)
+    setState((prev) => ({ ...prev, templates: getTemplates() }))
+  }, [])
+
+  const removeTemplate = useCallback((id) => {
+    deleteTemplate(id)
+    setState((prev) => ({ ...prev, templates: getTemplates() }))
+  }, [])
+
+  const recentTemplates = useMemo(() => getRecentTemplates(), [templates])
+
+  const snapshotDiagnostics = useMemo(() => {
+    try { return getRecoveryChainSummary() } catch { return null }
+  }, [])
+
+  const storageCorruptionReport = useMemo(() => {
+    try { return detectCorruption() } catch { return [] }
+  }, [])
+
+  const backupHealth = useMemo(() => {
+    try { return getBackupHealth() } catch { return { status: 'unknown', message: '' } }
+  }, [])
+
+  const backupStats = useMemo(() => {
+    try { return getBackupStats() } catch { return { totalExports: 0, totalEncryptedExports: 0, totalRestores: 0 } }
+  }, [])
 
   const recentPeople = useMemo(() => extractPeopleFromTransactions(transactions), [transactions])
 
   const dismissNotification = useCallback(() => setNotification(null), [])
 
   const value = useMemo(() => ({
-    transactions, savingsGoal, budgets, recurring, tags, security, notification, insights,
-    cashflowForecast, recoverySnapshot, recentPeople,
+    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
+    cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
+    templates, recentTemplates,
+    snapshotDiagnostics, storageCorruptionReport,
+    backupHealth, backupStats,
     pendingRecurring,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
     addTag, removeTag, updateSecurity,
-    clearAllData, importData, dismissNotification, restoreFromSnapshot,
+    clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
+    addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
   }), [
-    transactions, savingsGoal, budgets, recurring, tags, security, notification, insights,
-    cashflowForecast, recoverySnapshot, recentPeople,
+    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
+    cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
+    templates, recentTemplates,
+    snapshotDiagnostics, storageCorruptionReport,
+    backupHealth, backupStats,
     pendingRecurring,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
     addTag, removeTag, updateSecurity,
-    clearAllData, importData, dismissNotification, restoreFromSnapshot,
+    clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
+    addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
   ])
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

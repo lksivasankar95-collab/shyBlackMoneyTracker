@@ -284,31 +284,40 @@ export default function Analytics() {
             <h2 className="text-sm font-semibold">Daily Spending</h2>
             <Calendar size={14} className="text-gray-500" />
           </div>
-          <div className="grid grid-cols-7 gap-1.5">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((d) => (
-              <div key={d} className="text-[10px] text-gray-600 text-center font-medium py-1">{d[0]}</div>
+          <div className="grid grid-cols-7 gap-1">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+              <div key={d} className={`text-[10px] text-center font-medium py-1 ${i === 0 || i === 6 ? 'text-gray-600' : 'text-gray-700'}`}>{d}</div>
             ))}
             {Array.from({ length: firstDay }, (_, i) => (
               <div key={`empty-${i}`} />
             ))}
-            {heatmap.map((d) => {
+            {heatmap.map((d, i) => {
               const intensity = d.amount > 0 ? Math.min(d.amount / maxHeat, 1) : 0
+              const dayOfWeek = (firstDay + i) % 7
+              const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
               return (
                 <div
                   key={d.day}
-                  className="aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all duration-200"
+                  className={`aspect-square rounded-lg flex items-center justify-center text-[10px] font-medium transition-all duration-200 ${isWeekend && d.amount > 0 ? 'ring-1 ring-white/5' : ''}`}
                   style={{
                     backgroundColor: intensity > 0 ? `rgba(57, 255, 20, ${intensity * 0.6 + 0.1})` : 'rgba(255,255,255,0.03)',
-                    color: intensity > 0.3 ? '#000' : '#666',
-                    boxShadow: intensity > 0.5 ? '0 0 6px rgba(57,255,20,0.2)' : 'none',
+                    color: intensity > 0.3 ? '#000' : isWeekend ? '#555' : '#444',
+                    boxShadow: intensity > 0.5 ? '0 0 8px rgba(57,255,20,0.25)' : 'none',
                   }}
-                  title={`Day ${d.day}: ${formatCurrency(d.amount)}`}
+                  title={`${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek]} ${d.day}: ${formatCurrency(d.amount)}`}
                 >
                   {d.day}
                 </div>
               )
             })}
           </div>
+          {heatmap.length > 0 && (
+            <div className="flex items-center justify-between mt-3 pt-3 border-t border-glass-border text-[10px] text-gray-500">
+              <span>Total: {formatCurrency(heatmap.reduce((s, d) => s + d.amount, 0))}</span>
+              <span>Avg: {formatCurrency(Math.round(heatmap.reduce((s, d) => s + d.amount, 0) / heatmap.filter((d) => d.amount > 0).length || 1))}/day</span>
+              <span>Peak: {formatCurrency(Math.max(...heatmap.map((d) => d.amount)))}</span>
+            </div>
+          )}
         </GlassCard>
       )}
     </div>
