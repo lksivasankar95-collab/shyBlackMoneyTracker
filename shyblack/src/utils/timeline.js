@@ -1,4 +1,5 @@
 import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
+import { formatCurrency } from './helpers'
 
 const GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'older']
 
@@ -15,6 +16,10 @@ const ENTRY_STYLES = {
   lent: { icon: 'ArrowUpRight', bg: 'bg-green-500/10', text: 'text-green-400', ring: 'ring-green-500/20' },
   borrowed: { icon: 'ArrowDownLeft', bg: 'bg-orange-500/10', text: 'text-orange-400', ring: 'ring-orange-500/20' },
   debt_paid: { icon: 'CheckCircle2', bg: 'bg-neon/10', text: 'text-neon', ring: 'ring-neon/20' },
+  emi_paid: { icon: 'CheckCircle2', bg: 'bg-purple-500/10', text: 'text-purple-400', ring: 'ring-purple-500/20' },
+  document_added: { icon: 'FileText', bg: 'bg-neon/10', text: 'text-neon', ring: 'ring-neon/20' },
+  goal_completed: { icon: 'Award', bg: 'bg-amber-500/10', text: 'text-amber-400', ring: 'ring-amber-500/20' },
+  payment_added: { icon: 'ArrowDownLeft', bg: 'bg-blue-500/10', text: 'text-blue-400', ring: 'ring-blue-500/20' },
 }
 
 function getGroupKey(timestamp) {
@@ -100,7 +105,7 @@ function buildDebtEntry(debt) {
   }
 }
 
-export function buildTimeline(transactions, debts) {
+export function buildTimeline(transactions, debts, emis, documents, goals) {
   const entries = []
 
   transactions.forEach((tx) => {
@@ -111,7 +116,92 @@ export function buildTimeline(transactions, debts) {
   debts.forEach((debt) => {
     if (!debt.createdAt) return
     entries.push(buildDebtEntry(debt))
+
+    if (debt.payments && debt.payments.length > 0) {
+      debt.payments.forEach((p, i) => {
+        const ts = p.createdAt || p.paidAt || Date.now()
+        entries.push({
+          id: `payment-${debt.id}-${i}`,
+          type: 'payment',
+          sourceType: 'payment_added',
+          title: `Payment to ${debt.personName}`,
+          subtitle: formatCurrency(p.amount) + (p.notes ? ` · ${p.notes}` : ''),
+          amount: -p.amount,
+          absAmount: p.amount,
+          timestamp: ts,
+          style: ENTRY_STYLES.payment_added,
+          isOverdue: false,
+          isLarge: false,
+          data: { ...p, ledgerId: debt.id, personName: debt.personName },
+        })
+      })
+    }
   })
+
+  if (emis) {
+    emis.forEach((emi) => {
+      if (emi.paymentHistory && emi.paymentHistory.length > 0) {
+        emi.paymentHistory.forEach((p, i) => {
+          const ts = p.paidAt || Date.now()
+          entries.push({
+            id: `emi-${emi.id}-${i}`,
+            type: 'emi_payment',
+            sourceType: 'emi_paid',
+            title: `${emi.name} EMI Paid`,
+            subtitle: formatCurrency(p.amount) + ` · ${p.date || ''}`,
+            amount: -p.amount,
+            absAmount: p.amount,
+            timestamp: ts,
+            style: ENTRY_STYLES.emi_paid,
+            isOverdue: false,
+            isLarge: false,
+            data: { ...p, emiId: emi.id, emiName: emi.name },
+          })
+        })
+      }
+    })
+  }
+
+  if (documents) {
+    documents.forEach((doc) => {
+      if (!doc.createdAt) return
+      entries.push({
+        id: `doc-${doc.id}`,
+        type: 'document',
+        sourceType: 'document_added',
+        title: doc.title,
+        subtitle: `Document added · ${doc.category || 'other'}`,
+        amount: 0,
+        absAmount: 0,
+        timestamp: doc.createdAt,
+        style: ENTRY_STYLES.document_added,
+        isOverdue: false,
+        isLarge: false,
+        data: doc,
+      })
+    })
+  }
+
+  if (goals) {
+    goals.forEach((goal) => {
+      if (goal.status === 'completed' && goal.updatedAt) {
+        entries.push({
+          id: `goal-${goal.id}-completed`,
+          type: 'goal',
+          sourceType: 'goal_completed',
+          title: `Goal Completed: ${goal.name}`,
+          subtitle: `Target: ${formatCurrency(goal.target)}`,
+          amount: 0,
+          absAmount: 0,
+          timestamp: goal.updatedAt,
+          style: ENTRY_STYLES.goal_completed,
+          isOverdue: false,
+          isLarge: false,
+          data: goal,
+        })
+      }
+    })
+  }
 
   entries.sort((a, b) => b.timestamp - a.timestamp)
 
@@ -140,11 +230,17 @@ export function filterTimeline(entries, filter) {
   return entries.filter((e) => {
     switch (filter) {
       case 'debts':
-        return e.type === 'debt'
+        return e.type === 'debt' || e.type === 'payment'
       case 'expenses':
         return e.sourceType === 'expense'
       case 'income':
         return e.sourceType === 'income'
+      case 'emi':
+        return e.type === 'emi_payment'
+      case 'documents':
+        return e.type === 'document'
+      case 'goals':
+        return e.type === 'goal'
       default:
         return true
     }

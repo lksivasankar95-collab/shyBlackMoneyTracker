@@ -34,8 +34,8 @@ async function ensureCrypto() {
     _crypto = globalThis.crypto
     return true
   }
-  if (typeof global !== 'undefined' && global.crypto) {
-    _crypto = global.crypto
+  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
+    _crypto = globalThis.crypto
     return true
   }
   if (typeof window !== 'undefined' && window.crypto) {
@@ -139,6 +139,9 @@ const VALIDATORS = {
   goals: (items) => Array.isArray(items) && items.every((g) => typeof g === 'object' && g !== null && typeof g.id === 'string'),
   templates: (items) => Array.isArray(items) && items.every((t) => typeof t === 'object' && t !== null),
   archive: (val) => typeof val === 'object' && val !== null,
+  documents: (items) => Array.isArray(items) && items.every((d) => typeof d === 'object' && d !== null && typeof d.id === 'string' && typeof d.title === 'string'),
+  documentFiles: (val) => typeof val === 'object' && val !== null,
+  relationships: (items) => Array.isArray(items) && items.every((r) => typeof r === 'object' && r !== null && typeof r.id === 'string'),
 }
 
 export function collectBackupData() {
@@ -160,6 +163,9 @@ export function collectBackupData() {
   data.transfers = safeStorage.get(STORAGE_KEYS.TRANSFERS, [])
   data.goals = safeStorage.get(STORAGE_KEYS.GOALS, [])
   data.templates = safeStorage.get(STORAGE_KEYS.TEMPLATES, [])
+  data.documents = safeStorage.get(STORAGE_KEYS.DOCUMENTS, [])
+  data.documentFiles = safeStorage.get(STORAGE_KEYS.DOCUMENT_FILES, {})
+  data.relationships = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, [])
   data.archive = safeStorage.get(STORAGE_KEYS.ARCHIVE, { version: 1, transactions: [] })
   const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
   data.security = rawSecurity && typeof rawSecurity === 'object'
@@ -268,6 +274,9 @@ export function restoreFromBackup(backupData) {
     goals: STORAGE_KEYS.GOALS,
     templates: STORAGE_KEYS.TEMPLATES,
     archive: STORAGE_KEYS.ARCHIVE,
+    documents: STORAGE_KEYS.DOCUMENTS,
+    documentFiles: STORAGE_KEYS.DOCUMENT_FILES,
+    relationships: STORAGE_KEYS.RELATIONSHIPS,
   }
 
   for (const [section, storageKey] of Object.entries(keyMap)) {

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
   Search, Filter, X, Calendar, ArrowUpDown, Tag,
-  ChevronRight, TrendingUp, TrendingDown,
+  ChevronRight, TrendingUp, TrendingDown, FolderOpen, Wallet,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
@@ -9,6 +9,8 @@ import { ALL_CATEGORIES } from '../utils/constants'
 import { getArchivedTransactions, getArchiveStats } from '../utils/archiveEngine'
 import { getTransfers } from '../utils/transfers'
 import { getEmis } from '../utils/emi'
+import { getDocuments } from '../utils/documents'
+import { getAccounts } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
@@ -19,6 +21,8 @@ const SEARCH_TABS = [
   { id: 'goals', label: 'Goals' },
   { id: 'emis', label: 'EMIs' },
   { id: 'transfers', label: 'Transfers' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'accounts', label: 'Accounts' },
 ]
 
 function useDebounce(value, delay) {
@@ -47,7 +51,7 @@ export default function SearchPage({ onNavigate }) {
 
   const searchResults = useMemo(() => {
     const q = debouncedQuery.toLowerCase().trim()
-    const results = { transactions: [], debts: [], goals: [], emis: [], transfers: [], total: 0 }
+    const results = { transactions: [], debts: [], goals: [], emis: [], transfers: [], documents: [], accounts: [], total: 0 }
 
     const matchText = (text) => !q || (text && text.toLowerCase().includes(q))
     const matchAmount = (amt) => {
@@ -114,7 +118,23 @@ export default function SearchPage({ onNavigate }) {
       }).slice(0, 50)
     }
 
-    results.total = results.transactions.length + results.debts.length + results.goals.length + results.emis.length + results.transfers.length
+    if (activeTab === 'all' || activeTab === 'documents') {
+      const allDocs = getDocuments()
+      results.documents = allDocs.filter((d) => {
+        if (q && !matchText(d.title) && !matchText(d.notes) && !matchText(d.category)) return false
+        return true
+      }).slice(0, 50)
+    }
+
+    if (activeTab === 'all' || activeTab === 'accounts') {
+      const allAccts = getAccounts()
+      results.accounts = allAccts.filter((a) => {
+        if (q && !matchText(a.name) && !matchText(a.type)) return false
+        return true
+      }).slice(0, 50)
+    }
+
+    results.total = results.transactions.length + results.debts.length + results.goals.length + results.emis.length + results.transfers.length + results.documents.length + results.accounts.length
     return results
   }, [debouncedQuery, transactions, debts, goals, emis, transfers, activeTab, filters])
 
@@ -250,7 +270,7 @@ export default function SearchPage({ onNavigate }) {
         </GlassCard>
       ) : searchResults.total === 0 && !debouncedQuery ? (
         <GlassCard>
-          <EmptyState icon={Search} title="Search all your data" description="Type to search transactions, debts, goals, EMIs, and transfers" />
+          <EmptyState icon={Search} title="Search all your data" description="Type to search transactions, debts, goals, EMIs, transfers, documents, and accounts" />
         </GlassCard>
       ) : (
         <div className="space-y-2">
@@ -356,6 +376,46 @@ export default function SearchPage({ onNavigate }) {
                       <p className="text-[10px] text-gray-500">{formatDate(t.date)}</p>
                     </div>
                     <p className="text-xs font-semibold tabular-nums text-amber-400">{formatCurrency(t.amount)}</p>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'documents') && searchResults.documents.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Documents</p>}
+              {searchResults.documents.map((d) => (
+                <GlassCard key={d.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center shrink-0">
+                      <FolderOpen size={14} className="text-neon" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{d.title}</p>
+                      <p className="text-[10px] text-gray-500">{d.category || 'Document'} · {d.type || 'file'}</p>
+                    </div>
+                    <p className="text-[10px] text-gray-500">{formatDate(d.date || d.createdAt)}</p>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'accounts') && searchResults.accounts.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Accounts</p>}
+              {searchResults.accounts.map((a) => (
+                <GlassCard key={a.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                      <Wallet size={14} className="text-cyan-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{a.name}</p>
+                      <p className="text-[10px] text-gray-500">{a.type || 'Account'} · {a.institution || ''}</p>
+                    </div>
+                    <p className="text-xs font-semibold tabular-nums text-cyan-400">{formatCurrency(a.balance || 0)}</p>
                   </div>
                 </GlassCard>
               ))}

@@ -12,6 +12,8 @@ import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthly
 import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
+import QuickActionCenter from './components/QuickActionCenter'
+import ScrollRestoration from './components/ScrollRestoration'
 
 const DEBUG = true
 const debug = (msg, data) => {
@@ -38,7 +40,6 @@ const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
 const GoalsPage = lazy(() => import('./pages/GoalsPage'))
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'))
 const FinancialCalendar = lazy(() => import('./pages/FinancialCalendarPage'))
-const MonthlyReview = lazy(() => import('./pages/MonthlyReview'))
 const EmiCenter = lazy(() => import('./pages/EmiCenterPage'))
 const NetWorthPage = lazy(() => import('./pages/NetWorthPage'))
 const FinancialHealthPage = lazy(() => import('./pages/FinancialHealthPage'))
@@ -49,6 +50,13 @@ const FinancialTimelinePage = lazy(() => import('./pages/FinancialTimelinePage')
 const AchievementsPage = lazy(() => import('./pages/AchievementsPage'))
 const SearchPage = lazy(() => import('./pages/SearchPage'))
 const CategoryDetail = lazy(() => import('./pages/CategoryDetail'))
+const DocumentVaultPage = lazy(() => import('./pages/DocumentVaultPage'))
+const StatementCenterPage = lazy(() => import('./pages/StatementCenterPage'))
+const PersonCenterPage = lazy(() => import('./pages/PersonCenterPage'))
+const AccountCenterPage = lazy(() => import('./pages/AccountCenterPage'))
+const DataQualityPage = lazy(() => import('./pages/DataQualityPage'))
+const ReviewCenterPage = lazy(() => import('./pages/ReviewCenterPage'))
+const TrendsPage = lazy(() => import('./pages/TrendsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -65,7 +73,6 @@ const pages = {
   goals: GoalsPage,
   subscriptions: SubscriptionsPage,
   calendar: FinancialCalendar,
-  review: MonthlyReview,
   'emi-center': EmiCenter,
   networth: NetWorthPage,
   'financial-health': FinancialHealthPage,
@@ -76,6 +83,13 @@ const pages = {
   achievements: AchievementsPage,
   search: SearchPage,
   'category-detail': CategoryDetail,
+  documents: DocumentVaultPage,
+  statements: StatementCenterPage,
+  people: PersonCenterPage,
+  'account-center': AccountCenterPage,
+  'data-quality': DataQualityPage,
+  review: ReviewCenterPage,
+  trends: TrendsPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -153,6 +167,7 @@ function AppContent() {
     prevPage.current = page
     setHistory(prev => prev[prev.length - 1] !== page ? [...prev, page] : prev)
     setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
   const handleGoBack = useCallback(() => {
@@ -183,6 +198,7 @@ function AppContent() {
         </div>
       )}
       <AndroidBackHandler canGoBack={canGoBack} onGoBack={handleGoBack} />
+      <ScrollRestoration pageKey={currentPage} />
       <Suspense fallback={<PageLoader />}>
         <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={currentPage}>
           <PageErrorBoundary page={currentPage} onNavigate={handleNavigate}>
@@ -193,6 +209,7 @@ function AppContent() {
       {navPages.includes(currentPage) && (
         <BottomNav active={currentPage} onNavigate={handleNavigate} />
       )}
+      <QuickActionCenter onNavigate={handleNavigate} />
     </div>
   )
 }

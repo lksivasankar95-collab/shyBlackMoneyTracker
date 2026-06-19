@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { Download, FileText, BarChart3, Calendar, Share2, Save, Eye, Loader2 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { exportToCSV, generateMonthlyStatement, generateStatementHTML, downloadCSV, downloadHTML } from '../utils/exports'
 import { generateMonthlyReport, generateCategoryReport, generateDateRangeReport, generateAnnualReport } from '../utils/pdfReport'
+import { downloadBlob, createPreviewUrl, shareBlob } from '../utils/downloadUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
@@ -30,6 +31,17 @@ export default function ReportsPage() {
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pdfError, setPdfError] = useState(null)
   const [showPreview, setShowPreview] = useState(false)
+  const [previewBlobUrl, setPreviewBlobUrl] = useState(null)
+  const previewRef = useRef(null)
+
+  useEffect(() => {
+    return () => {
+      if (previewRef.current) {
+        previewRef.current.revoke()
+        previewRef.current = null
+      }
+    }
+  }, [])
 
   const statement = useMemo(() => generateMonthlyStatement(transactions, selectedYear, selectedMonth), [transactions, selectedYear, selectedMonth])
 
@@ -53,6 +65,11 @@ export default function ReportsPage() {
     setPdfDataUri(null)
     setPdfBlob(null)
     setShowPreview(false)
+    setPreviewBlobUrl(null)
+    if (previewRef.current) {
+      previewRef.current.revoke()
+      previewRef.current = null
+    }
     try {
       if (transactions.length === 0) throw new Error('No transactions to generate report from.')
       const r = await new Promise((resolve, reject) => {
@@ -85,6 +102,9 @@ export default function ReportsPage() {
       })
       setPdfDataUri(r.dataUri)
       setPdfBlob(r.blob)
+      const preview = createPreviewUrl(r.dataUri)
+      previewRef.current = preview
+      setPreviewBlobUrl(preview.url)
       addToast(`${r.pageCount}-page PDF generated!`, 'success')
     } catch (e) {
       setPdfError(e.message || 'Failed to generate PDF')
@@ -95,30 +115,21 @@ export default function ReportsPage() {
   }, [transactions, reportType, selectedMonth, selectedYear, dateFrom, dateTo, addToast])
 
   const handleDownloadPDF = useCallback(() => {
-    if (!pdfDataUri) return
-    const link = document.createElement('a')
-    link.href = pdfDataUri
-    link.download = `shyblack_report_${Date.now()}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    if (!pdfBlob) return
+    downloadBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
     addToast('PDF downloaded!', 'success')
-  }, [pdfDataUri, addToast])
+  }, [pdfBlob, addToast])
 
   const handleSharePDF = useCallback(async () => {
     if (!pdfBlob) return
-    if (navigator.share && navigator.canShare) {
-      const file = new File([pdfBlob], `shyblack_report_${Date.now()}.pdf`, { type: 'application/pdf' })
-      try {
-        await navigator.share({ files: [file], title: 'ShyBlack Finance Report' })
-        addToast('PDF shared!', 'success')
-      } catch {
-        addToast('Share cancelled or failed', 'error')
-      }
-    } else {
-      addToast('Sharing not supported on this device. Use Download instead.', 'error')
+    const result = await shareBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`, 'ShyBlack Finance Report')
+    if (result.shared) {
+      addToast('PDF shared!', 'success')
+    } else if (result.method === 'unsupported') {
+      handleDownloadPDF()
+      addToast('Share not supported — file downloaded instead', 'info')
     }
-  }, [pdfBlob, addToast])
+  }, [pdfBlob, handleDownloadPDF, addToast])
 
   const handleSavePDF = useCallback(() => {
     handleDownloadPDF()
@@ -269,10 +280,10 @@ export default function ReportsPage() {
                   </button>
                 </div>
 
-                {showPreview && (
+                {showPreview && previewBlobUrl && (
                   <div className="mt-2 rounded-xl overflow-hidden border border-glass-border">
                     <iframe
-                      src={pdfDataUri}
+                      src={previewBlobUrl}
                       className="w-full h-[400px]"
                       title="PDF Preview"
                     />

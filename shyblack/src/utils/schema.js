@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
-export const APP_SCHEMA_VERSION = 3
+export const APP_SCHEMA_VERSION = 7
 export const SCHEMA_VERSION_KEY = STORAGE_KEYS.SCHEMA
 
 const SCHEMA_MIGRATIONS = {
@@ -22,6 +22,58 @@ const SCHEMA_MIGRATIONS = {
     const accounts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, null)
     if (accounts === null) {
       safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
+    }
+  },
+  4: () => {
+    const emis = safeStorage.get(STORAGE_KEYS.EMIS, [])
+    if (!Array.isArray(emis)) return
+    let changed = false
+    const migrated = emis.map((emi) => {
+      if (emi && !emi.frequency) {
+        changed = true
+        return { ...emi, frequency: 'monthly' }
+      }
+      return emi
+    })
+    if (changed) {
+      safeStorage.set(STORAGE_KEYS.EMIS, migrated)
+    }
+  },
+  5: () => {
+    const debts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
+    if (!Array.isArray(debts)) return
+    let changed = false
+    const migrated = debts.map((debt) => {
+      if (!debt || debt.originalAmount !== undefined) return debt
+      changed = true
+      return {
+        ...debt,
+        originalAmount: debt.amount || 0,
+        currentBalance: debt.remainingAmount ?? debt.amount ?? 0,
+        status: debt.status === 'paid' ? 'settled' : 'active',
+        createdDate: debt.createdAt || Date.now(),
+        settlementDate: debt.status === 'paid' ? (debt.updatedAt || Date.now()) : null,
+        payments: [],
+      }
+    })
+    if (changed) {
+      safeStorage.set(STORAGE_KEYS.DEBTS, migrated)
+    }
+  },
+  6: () => {
+    const docs = safeStorage.get(STORAGE_KEYS.DOCUMENTS, null)
+    if (docs === null) {
+      safeStorage.set(STORAGE_KEYS.DOCUMENTS, [])
+    }
+    const files = safeStorage.get(STORAGE_KEYS.DOCUMENT_FILES, null)
+    if (files === null) {
+      safeStorage.set(STORAGE_KEYS.DOCUMENT_FILES, {})
+    }
+  },
+  7: () => {
+    const rels = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, null)
+    if (rels === null) {
+      safeStorage.set(STORAGE_KEYS.RELATIONSHIPS, [])
     }
   },
 }

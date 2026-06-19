@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   ArrowUpCircle, ArrowDownCircle, TrendingUp, TrendingDown, Send,
   ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Filter,
-  History, Sparkles, AlertTriangle,
+  History, Sparkles, AlertTriangle, FileText, Award, Landmark,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
@@ -12,7 +12,7 @@ import EmptyState from '../components/EmptyState'
 
 const ICON_MAP = {
   ArrowUpCircle, ArrowDownCircle, TrendingUp, TrendingDown, Send,
-  ArrowUpRight, ArrowDownLeft, CheckCircle2,
+  ArrowUpRight, ArrowDownLeft, CheckCircle2, FileText, Award, Landmark,
 }
 
 const FILTERS = [
@@ -20,6 +20,9 @@ const FILTERS = [
   { id: 'debts', label: 'Debts' },
   { id: 'expenses', label: 'Expenses' },
   { id: 'income', label: 'Income' },
+  { id: 'emi', label: 'EMI' },
+  { id: 'documents', label: 'Docs' },
+  { id: 'goals', label: 'Goals' },
 ]
 
 const INSIGHT_ICONS = {
@@ -35,10 +38,10 @@ const INSIGHT_COLORS = {
 }
 
 export default function TimelinePage() {
-  const { transactions, debts } = useFinance()
+  const { transactions, debts, emis, documents, goals } = useFinance()
   const [activeFilter, setActiveFilter] = useState('all')
 
-  const timeline = useMemo(() => buildTimeline(transactions, debts), [transactions, debts])
+  const timeline = useMemo(() => buildTimeline(transactions, debts, emis, documents, goals), [transactions, debts, emis, documents, goals])
 
   const filteredGroups = useMemo(() => {
     const result = {}

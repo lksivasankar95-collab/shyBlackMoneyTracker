@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { generateId, extractPeopleFromTransactions } from '../utils/helpers'
+import { generateId, extractPeopleFromTransactions, formatCurrency } from '../utils/helpers'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { buildIndexes } from '../utils/indexer'
 import { saveSnapshot, findRecoverySnapshot, getRecoveryChainSummary, detectCorruption } from '../utils/snapshotRecovery'
@@ -8,11 +8,15 @@ import { getBudgets, saveBudgets } from '../utils/budgets'
 import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTransactions, advanceNextDate } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
-import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
+import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS, addPayment, undoLastPayment, editPayment, deletePayment, settleLedger, getLedgerSummary, getLedgerStatement, getLedgerInsights } from '../utils/debts'
 import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
 import { getTemplates, saveTemplates, createTemplate, deleteTemplate, getRecentTemplates } from '../utils/templates'
-import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary } from '../utils/emi'
+import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary, getEnhancedEmiSummary, undoPayment } from '../utils/emi'
 import { getAccounts, saveAccounts, saveNetWorthSnapshot } from '../utils/networth'
+import {
+  getDocuments, saveDocuments, createDocument, updateDocument, deleteDocument,
+  getDocumentStats, getDocumentById, getDocumentFileData,
+} from '../utils/documents'
 import { archiveOldTransactions, getArchiveStats } from '../utils/archiveEngine'
 import { runIntegrityCheck, applyRepairs } from '../utils/dataIntegrity'
 import {
@@ -30,6 +34,8 @@ import {
   scheduleEmiNotifications, cancelEmiNotifications,
   rescheduleAllEmiNotifications, cancelAllEmiNotifications,
 } from '../utils/emiNotifications'
+import { runAllDataChecks } from '../utils/dataQuality'
+import { generateReviewSummary } from '../utils/reviewCenter'
 
 export const FinanceContext = createContext()
 
@@ -91,6 +97,8 @@ function loadInitialState() {
 
     const goals = getGoals()
     if (goals.length === 0) migrateLegacySavingsGoal()
+    const docs = getDocuments()
+    const docFiles = getDocumentFileData
     return {
       transactions,
       savingsGoal: sanitizeSavingsGoal(safeStorage.get(STORAGE_KEYS.SAVINGS, { target: 0, saved: 0 })),
@@ -103,6 +111,7 @@ function loadInitialState() {
       templates: getTemplates(),
       emis: getEmis(),
       accounts: getAccounts(),
+      documents: docs,
       _migrationResult: migrationResult,
       _recoverySnapshot: recoverySnapshot,
     }
@@ -118,6 +127,7 @@ function loadInitialState() {
       debts: [],
       emis: [],
       accounts: [],
+      documents: [],
       _migrationResult: null,
       _recoverySnapshot: fallbackSnap,
     }
@@ -126,7 +136,7 @@ function loadInitialState() {
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, emis, accounts, _recoverySnapshot } = state
+  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, emis, accounts, documents, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
   const overspendTimer = useRef(null)
@@ -190,6 +200,7 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveTemplates(templates) } catch {} }, [templates])
   useEffect(() => { try { saveEmis(emis) } catch {} }, [emis])
   useEffect(() => { try { saveAccounts(accounts) } catch {} }, [accounts])
+  useEffect(() => { try { saveDocuments(documents) } catch {} }, [documents])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -420,20 +431,88 @@ export function FinanceProvider({ children }) {
     }))
   }, [])
 
+  const addLedgerPayment = useCallback((ledgerId, amount, notes) => {
+    const result = addPayment(ledgerId, amount, notes)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        debts: prev.debts.map((d) => (d.id === ledgerId ? result.ledger : d)),
+      }))
+    }
+    return result
+  }, [])
+
+  const undoLedgerPayment = useCallback((ledgerId) => {
+    const result = undoLastPayment(ledgerId)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        debts: prev.debts.map((d) => (d.id === ledgerId ? result.ledger : d)),
+      }))
+    }
+    return result
+  }, [])
+
+  const editLedgerPayment = useCallback((ledgerId, paymentId, updates) => {
+    const result = editPayment(ledgerId, paymentId, updates)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        debts: prev.debts.map((d) => (d.id === ledgerId ? result.ledger : d)),
+      }))
+    }
+    return result
+  }, [])
+
+  const deleteLedgerPayment = useCallback((ledgerId, paymentId) => {
+    const result = deletePayment(ledgerId, paymentId)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        debts: prev.debts.map((d) => (d.id === ledgerId ? result.ledger : d)),
+      }))
+    }
+    return result
+  }, [])
+
+  const doSettleLedger = useCallback((ledgerId) => {
+    const result = settleLedger(ledgerId)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        debts: prev.debts.map((d) => (d.id === ledgerId ? result.ledger : d)),
+      }))
+    }
+    return result
+  }, [])
+
+  const ledgerInsights = useMemo(() => {
+    try { return getLedgerInsights(debts) } catch { return [] }
+  }, [debts])
+
   const debtsSummary = useMemo(() => {
-    const totalLent = debts.filter((d) => d.type === DEBT_TYPES.LENT).reduce((s, d) => s + d.amount, 0)
-    const totalBorrowed = debts.filter((d) => d.type === DEBT_TYPES.BORROWED).reduce((s, d) => s + d.amount, 0)
-    const pendingReceivables = debts
-      .filter((d) => d.type === DEBT_TYPES.LENT && d.status === DEBT_STATUS.PENDING)
-      .reduce((s, d) => s + d.remainingAmount, 0)
-    const pendingPayables = debts
-      .filter((d) => d.type === DEBT_TYPES.BORROWED && d.status === DEBT_STATUS.PENDING)
-      .reduce((s, d) => s + d.remainingAmount, 0)
-    const now = new Date()
-    const overdueDebts = debts.filter(
-      (d) => d.status === DEBT_STATUS.PENDING && d.dueDate && new Date(d.dueDate) < now
-    )
-    return { totalLent, totalBorrowed, pendingReceivables, pendingPayables, overdueCount: overdueDebts.length, overdueDebts }
+    try {
+      const summary = getLedgerSummary(debts)
+      const now = new Date()
+      const overdueDebts = debts.filter(
+        (d) => d.status === 'active' && d.currentBalance > 0 && d.dueDate && new Date(d.dueDate) < now
+      )
+      return { ...summary, overdueCount: overdueDebts.length, overdueDebts }
+    } catch {
+      const totalLent = debts.filter((d) => d.type === DEBT_TYPES.LENT).reduce((s, d) => s + (d.originalAmount || d.amount || 0), 0)
+      const totalBorrowed = debts.filter((d) => d.type === DEBT_TYPES.BORROWED).reduce((s, d) => s + (d.originalAmount || d.amount || 0), 0)
+      const pendingReceivables = debts
+        .filter((d) => d.type === DEBT_TYPES.LENT && d.status !== 'settled' && d.status !== DEBT_STATUS.PAID)
+        .reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+      const pendingPayables = debts
+        .filter((d) => d.type === DEBT_TYPES.BORROWED && d.status !== 'settled' && d.status !== DEBT_STATUS.PAID)
+        .reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+      const now = new Date()
+      const overdueDebts = debts.filter(
+        (d) => d.status !== 'settled' && d.status !== DEBT_STATUS.PAID && d.dueDate && new Date(d.dueDate) < now
+      )
+      return { totalLent, totalBorrowed, pendingReceivables, pendingPayables, overdueCount: overdueDebts.length, overdueDebts, totalActive: 0, totalSettled: 0 }
+    }
   }, [debts])
 
   const clearAllData = useCallback(() => {
@@ -489,19 +568,27 @@ export function FinanceProvider({ children }) {
     rescheduleAllEmiNotifications(newState.emis).catch(() => {})
   }, [])
 
-  const insights = useMemo(() => {
-    const txLen = transactions.length
-    if (txLen < 3) {
-      return {
-        score: { score: 0, level: 'N/A', factors: [] },
-        overspend: null, recommendations: [], habits: [], health: null,
-        scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+  const [debouncedInsights, setDebouncedInsights] = useState({
+    score: { score: 0, level: 'N/A', factors: [] },
+    overspend: null, recommendations: [], habits: [], health: null,
+    scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+  })
+  const insightsTimerRef = useRef(null)
+
+  useEffect(() => {
+    if (insightsTimerRef.current) clearTimeout(insightsTimerRef.current)
+    insightsTimerRef.current = setTimeout(() => {
+      const txLen = transactions.length
+      if (txLen < 3) {
+        setDebouncedInsights({
+          score: { score: 0, level: 'N/A', factors: [] },
+          overspend: null, recommendations: [], habits: [], health: null,
+          scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+        })
+        return
       }
-    }
-    const start = performance.now()
-    const result = (() => {
       try {
-        return {
+        setDebouncedInsights({
           score: calculateFinancialScore(transactions),
           scoreBreakdown: getScoreBreakdown(transactions),
           overspend: detectOverspending(transactions),
@@ -513,17 +600,19 @@ export function FinanceProvider({ children }) {
           streak: getLoggingStreak(transactions),
           monthPrediction: predictMonthEndSpend(transactions),
           trends: getCategoryTrends(transactions, 3),
-        }
+        })
       } catch {
-        return {
+        setDebouncedInsights({
           score: { score: 0, level: 'N/A', factors: [] },
           overspend: null, recommendations: [], habits: [], health: null,
           scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
-        }
+        })
       }
-    })()
-    return result
+    }, 400)
+    return () => { if (insightsTimerRef.current) clearTimeout(insightsTimerRef.current) }
   }, [transactions, savingsGoal])
+
+  const insights = debouncedInsights
 
   const transactionIndex = useMemo(() => {
     try { return buildIndexes(transactions) } catch { return null }
@@ -708,8 +797,19 @@ export function FinanceProvider({ children }) {
     hapticLight()
   }, [])
 
+  const undoEmiPayment = useCallback((emiId) => {
+    const result = undoPayment(emiId)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        emis: prev.emis.map((e) => (e.id === emiId ? result.emi : e)),
+      }))
+    }
+    return result
+  }, [])
+
   const emiSummary = useMemo(() => {
-    try { return getEmiSummary(emis) } catch { return null }
+    try { return getEnhancedEmiSummary(emis) } catch { return getEmiSummary(emis) }
   }, [emis])
 
   const snapshotDiagnostics = useMemo(() => {
@@ -732,37 +832,77 @@ export function FinanceProvider({ children }) {
 
   const dismissNotification = useCallback(() => setNotification(null), [])
 
+  const addDocument = useCallback((data) => {
+    const doc = createDocument(data)
+    setState((prev) => ({ ...prev, documents: getDocuments() }))
+    return doc
+  }, [])
+
+  const editDocument = useCallback((id, updates) => {
+    const result = updateDocument(id, updates)
+    if (result) {
+      setState((prev) => ({ ...prev, documents: getDocuments() }))
+    }
+    return result
+  }, [])
+
+  const removeDocument = useCallback((id) => {
+    const ok = deleteDocument(id)
+    if (ok) {
+      setState((prev) => ({ ...prev, documents: getDocuments() }))
+    }
+    return ok
+  }, [])
+
+  const documentStats = useMemo(() => {
+    try { return getDocumentStats() } catch { return { total: 0, totalFileSize: 0, thisMonth: 0, byCategory: {}, recent: [] } }
+  }, [documents])
+
+  const dataQuality = useMemo(() => {
+    try {
+      const rels = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, [])
+      const transfers = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, []).filter((t) => t.type === 'transfer')
+      return runAllDataChecks(transactions, documents, debts, emis, accounts, rels, transfers)
+    } catch { return { issues: [], total: 0, bySeverity: {}, byCheck: {} } }
+  }, [transactions, documents, debts, emis, accounts])
+
+  const reviewSummary = useMemo(() => {
+    try { return generateReviewSummary(transactions, debts, emis, goals, accounts) }
+    catch { return null }
+  }, [transactions, debts, emis, goals, accounts])
+
   const value = useMemo(() => ({
     transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
     cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
     templates, recentTemplates,
     snapshotDiagnostics, storageCorruptionReport,
     backupHealth, backupStats,
-    pendingRecurring,
+    pendingRecurring, dataQuality, reviewSummary,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
     addTag, removeTag, updateSecurity,
     clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
-    debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
+    debts, addDebt, updateDebt, deleteDebt, recordRepayment, addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
-    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
+    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment, emiSummary,
     accounts, updateAccounts,
+    documents, addDocument, editDocument, removeDocument, documentStats,
   }), [
-    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
+    documents, documentStats,
     cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
     templates, recentTemplates,
     snapshotDiagnostics, storageCorruptionReport,
     backupHealth, backupStats,
-    pendingRecurring,
+    pendingRecurring, dataQuality, reviewSummary,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
     addTag, removeTag, updateSecurity,
     clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
-    debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
+    debts, addDebt, updateDebt, deleteDebt, recordRepayment, addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
-    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
+    emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment, emiSummary,
     accounts, updateAccounts,
   ])
 

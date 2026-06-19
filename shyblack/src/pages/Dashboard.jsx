@@ -1,15 +1,16 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
-  TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight, ArrowUpRight, ArrowDownRight,
+  TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
   AlertCircle, RefreshCw, Repeat2, RotateCcw, SkipForward, Sparkles, Target, Heart, FileText, BarChart3,
-  Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award,
+  Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award, FolderOpen, FileDown, Users, Wallet,
+  ShieldCheck,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
 import { getCategorySummary } from '../utils/categoryDrilldown'
 import { setCategoryDetailId } from '../pages/CategoryDetail'
-import { calculateNetWorth, getAccounts, getStoredNetWorthHistory, getNetWorthTrend, saveNetWorthSnapshot } from '../utils/networth'
+import { calculateNetWorth, getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
 import TransactionItem from '../components/TransactionItem'
@@ -31,7 +32,8 @@ export default function Dashboard({ onNavigate }) {
     executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
     goals, goalsProjections,
-    emiSummary,
+    emiSummary, documents, documentStats,
+    dataQuality, reviewSummary,
   } = useFinance()
 
   const accounts = useMemo(() => getAccounts(), [])
@@ -41,9 +43,9 @@ export default function Dashboard({ onNavigate }) {
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
   const [showRecurringDetail, setShowRecurringDetail] = useState(false)
 
-  const now = new Date()
-  const monthly = getMonthlySummary(now.getFullYear(), now.getMonth())
-  const balance = useMemo(() => getBalance(), [getBalance])
+  const now = useMemo(() => new Date(), [])
+  const monthly = useMemo(() => getMonthlySummary(now.getFullYear(), now.getMonth()), [getMonthlySummary, now])
+  const balance = useMemo(() => getBalance(), [transactions])
 
   const netWorth = useMemo(() => {
     return balance + debtsSummary.pendingReceivables - debtsSummary.pendingPayables
@@ -282,6 +284,59 @@ export default function Dashboard({ onNavigate }) {
       {/* ── 5. Upcoming EMIs ─────────────────────────── */}
       <DashboardEmiWidget emiSummary={emiSummary} onNavigate={onNavigate} />
 
+      {/* ── 5.5 Document Vault ─────────────────────── */}
+      {documentStats.total > 0 && (
+        <button onClick={() => onNavigate('documents')} className="w-full text-left mb-4">
+          <GlassCard>
+            <div className="flex items-center gap-2 mb-2">
+              <FolderOpen size={14} className="text-neon" />
+              <h2 className="text-xs font-semibold text-gray-300">Document Vault</h2>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-white tabular-nums">{documentStats.total}</span>
+                <span className="text-[10px] text-gray-500">total</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-neon tabular-nums">{documentStats.thisMonth}</span>
+                <span className="text-[10px] text-gray-500">this month</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold text-yellow-400 tabular-nums">
+                  {Object.keys(documentStats.byCategory).length}
+                </span>
+                <span className="text-[10px] text-gray-500">categories</span>
+              </div>
+            </div>
+          </GlassCard>
+        </button>
+      )}
+
+      {/* ── 5.8 Account Summary ────────────────────── */}
+      {accounts.length > 0 && (
+        <button onClick={() => onNavigate('account-center')} className="w-full text-left mb-4">
+          <GlassCard>
+            <div className="flex items-center gap-2 mb-2">
+              <Wallet size={14} className="text-cyan-400" />
+              <h2 className="text-xs font-semibold text-gray-300">Accounts</h2>
+            </div>
+            <div className="space-y-1.5">
+              {accounts.slice(0, 3).map((a) => (
+                <div key={a.id} className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">{a.name}</span>
+                  <span className={`text-xs font-semibold tabular-nums ${(a.balance || 0) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                    {formatCurrency(a.balance || 0)}
+                  </span>
+                </div>
+              ))}
+              {accounts.length > 3 && (
+                <p className="text-[10px] text-gray-600 text-center pt-1">+{accounts.length - 3} more accounts</p>
+              )}
+            </div>
+          </GlassCard>
+        </button>
+      )}
+
       {/* ── 6. Quick Links ──────────────────────────── */}
       <div className="mb-4">
         <h2 className="text-sm font-semibold text-gray-300 mb-3">Quick Links</h2>
@@ -375,6 +430,55 @@ export default function Dashboard({ onNavigate }) {
             <Award size={16} className="text-amber-400" />
             <span className="text-[10px] font-medium text-gray-400">Badges</span>
           </button>
+          <button
+            onClick={() => onNavigate('documents')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <FolderOpen size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Documents</span>
+          </button>
+          <button
+            onClick={() => onNavigate('statements')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <FileDown size={16} className="text-blue-400" />
+            <span className="text-[10px] font-medium text-gray-400">Statements</span>
+          </button>
+          <button
+            onClick={() => onNavigate('people')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Users size={16} className="text-blue-400" />
+            <span className="text-[10px] font-medium text-gray-400">People</span>
+          </button>
+          <button
+            onClick={() => onNavigate('account-center')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Wallet size={16} className="text-cyan-400" />
+            <span className="text-[10px] font-medium text-gray-400">Accounts</span>
+          </button>
+          <button
+            onClick={() => onNavigate('trends')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <BarChart3 size={16} className="text-blue-400" />
+            <span className="text-[10px] font-medium text-gray-400">Trends</span>
+          </button>
+          <button
+            onClick={() => onNavigate('review')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Calendar size={16} className="text-violet-400" />
+            <span className="text-[10px] font-medium text-gray-400">Review</span>
+          </button>
+          <button
+            onClick={() => onNavigate('data-quality')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <ShieldCheck size={16} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-gray-400">Quality</span>
+          </button>
         </div>
       </GlassCard>
 
@@ -423,6 +527,25 @@ export default function Dashboard({ onNavigate }) {
         >
           <FinancialScore score={insights.score} factors={[]} compact breakdown={insights.scoreBreakdown} />
         </div>
+      )}
+
+      {/* ── 9.5 Data Quality ───────────────────────── */}
+      {dataQuality && dataQuality.total > 0 && (
+        <button onClick={() => onNavigate('data-quality')} className="w-full text-left mb-4">
+          <GlassCard>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle size={14} className="text-amber-400" />
+              <h2 className="text-xs font-semibold text-amber-400">Data Quality</h2>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-lg font-bold text-amber-400 tabular-nums">{dataQuality.total}</span>
+              <span className="text-[10px] text-gray-500">issues found</span>
+              {dataQuality.bySeverity.medium > 0 && (
+                <span className="text-xs text-amber-400">{dataQuality.bySeverity.medium} need attention</span>
+              )}
+            </div>
+          </GlassCard>
+        </button>
       )}
 
       {/* ── 10. Savings Progress ──────────────────────── */}

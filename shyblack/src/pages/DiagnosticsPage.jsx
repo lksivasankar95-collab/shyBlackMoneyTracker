@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone } from 'lucide-react'
+import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone, FolderOpen, Link2, Wallet, Activity, AlertCircle } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
@@ -29,7 +29,7 @@ const ANDROID_STRESS_SCENARIOS = [
 ]
 
 export default function DiagnosticsPage({ onNavigate }) {
-  const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex } = useFinance()
+  const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex, emis, documents, accounts, goals, dataQuality } = useFinance()
 
   const storageInfo = useMemo(() => safeStorage.getStorageInfo(), [])
   const adapterType = getActiveAdapterType()
@@ -37,6 +37,7 @@ export default function DiagnosticsPage({ onNavigate }) {
   const onboarding = useMemo(() => safeStorage.get(STORAGE_KEYS.ONBOARDING, {}), [])
   const streak = useMemo(() => safeStorage.get(STORAGE_KEYS.STREAK, {}), [])
   const budgetNotif = useMemo(() => safeStorage.get(STORAGE_KEYS.BUDGET_NOTIF, {}), [])
+  const relationships = useMemo(() => safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, []), [])
 
   const txByType = useMemo(() => ({
     income: transactions.filter((t) => t.type === 'income').length,
@@ -44,6 +45,11 @@ export default function DiagnosticsPage({ onNavigate }) {
   }), [transactions])
 
   const recurringActive = recurring.filter((r) => r.active !== false).length
+  const activeEmis = emis.filter((e) => e.status !== 'closed').length
+  const activeGoals = goals.filter((g) => (g.saved || 0) < (g.target || 1)).length
+
+  const docFileSize = documents.reduce((s, d) => s + (d.fileSize || d.size || 0), 0)
+  const docFileSizeKB = docFileSize > 0 ? (docFileSize / 1024).toFixed(1) : '0'
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -73,29 +79,23 @@ export default function DiagnosticsPage({ onNavigate }) {
         <Row label="Keys tracked" value={storageInfo.keyCount} mono />
         <Row label="Schema (current)" value={`v${schemaVersion}`} mono />
         <Row label="Schema (target)" value={`v${APP_SCHEMA_VERSION}`} mono />
+        <Row label="Adapter" value={adapterType} mono />
       </GlassCard>
 
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <RefreshCw size={13} className="text-blue-400" />
-          <span className="text-xs font-semibold">Transactions</span>
+          <span className="text-xs font-semibold">Data Counts</span>
         </div>
-        <Row label="Total" value={transactions.length} mono />
-        <Row label="Income" value={txByType.income} mono />
-        <Row label="Expense" value={txByType.expense} mono />
-        <Row label="Oldest date" value={transactions.length > 0 ? transactions[transactions.length - 1].date : null} mono />
-        <Row label="Newest date" value={transactions.length > 0 ? transactions[0].date : null} mono />
-      </GlassCard>
-
-      <GlassCard className="mb-3">
-        <div className="flex items-center gap-2 mb-2">
-          <Repeat2 size={13} className="text-purple-400" />
-          <span className="text-xs font-semibold">Recurring / Debts / Tags</span>
-        </div>
-        <Row label="Recurring total" value={recurring.length} mono />
-        <Row label="Recurring active" value={recurringActive} mono />
-        <Row label="Debts total" value={debts.length} mono />
-        <Row label="Debts pending" value={debts.filter((d) => d.status === 'pending').length} mono />
+        <Row label="Transactions" value={transactions.length} mono />
+        <Row label="Income / Expense" value={`${txByType.income} / ${txByType.expense}`} mono />
+        <Row label="Debts" value={`${debts.length} (${debts.filter((d) => d.remainingAmount > 0).length} active)`} mono />
+        <Row label="Goals" value={`${goals.length} (${activeGoals} in progress)`} mono />
+        <Row label="EMIs" value={`${emis.length} (${activeEmis} active)`} mono />
+        <Row label="Recurring" value={`${recurring.length} (${recurringActive} active)`} mono />
+        <Row label="Accounts" value={accounts.length} mono />
+        <Row label="Documents" value={`${documents.length} (${docFileSizeKB} KB)`} mono />
+        <Row label="Relationships" value={relationships.length} mono />
         <Row label="Tags" value={tags.length} mono />
         <Row label="Budget categories" value={Object.keys(budgets).length} mono />
       </GlassCard>
@@ -126,6 +126,23 @@ export default function DiagnosticsPage({ onNavigate }) {
         <Row label="Budget notif keys" value={Object.keys(budgetNotif).length} mono />
       </GlassCard>
 
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Activity size={13} className="text-cyan-400" />
+          <span className="text-xs font-semibold">Performance</span>
+        </div>
+        <Row label="Oldest tx date" value={transactions.length > 0 ? transactions[transactions.length - 1].date : '—'} mono />
+        <Row label="Newest tx date" value={transactions.length > 0 ? transactions[0].date : '—'} mono />
+        <Row label="Data quality issues" value={dataQuality?.total ?? 0} mono />
+        {transactionIndex && (
+          <>
+            <Row label="Index monthly buckets" value={transactionIndex.summaries.monthly.length} mono />
+            <Row label="Index category buckets" value={transactionIndex.summaries.categoryTotals.length} mono />
+            <Row label="Index person keys" value={transactionIndex.byPerson.size} mono />
+          </>
+        )}
+      </GlassCard>
+
       {snapshotDiagnostics && (
         <GlassCard className="mb-3">
           <div className="flex items-center gap-2 mb-2">
@@ -135,7 +152,7 @@ export default function DiagnosticsPage({ onNavigate }) {
           <Row label="Snapshots stored" value={snapshotDiagnostics.total} mono />
           <Row label="Newest" value={snapshotDiagnostics.newest ? new Date(snapshotDiagnostics.newest).toLocaleString() : '—'} />
           <Row label="Oldest" value={snapshotDiagnostics.oldest ? new Date(snapshotDiagnostics.oldest).toLocaleString() : '—'} />
-          {snapshotDiagnostics.snapshots.map((s, i) => (
+          {snapshotDiagnostics.snapshots && snapshotDiagnostics.snapshots.slice(0, 5).map((s, i) => (
             <Row key={i} label={`#${i + 1}`} value={`${s.txCount} tx · ${s.ageDays}d old · ${s.valid ? 'valid' : 'corrupt'}`} mono />
           ))}
         </GlassCard>
@@ -159,28 +176,12 @@ export default function DiagnosticsPage({ onNavigate }) {
           <span className="text-xs font-semibold">Android Stress Scenarios</span>
         </div>
         {ANDROID_STRESS_SCENARIOS.map((s) => (
-          <Row
-            key={s.id}
-            label={s.label}
-            value={s.status === 'pass' ? '✓ Protected' : '○ Untested'}
-            mono
-          />
+          <Row key={s.id} label={s.label} value={s.status === 'pass' ? '✓ Protected' : '○ Untested'} mono />
         ))}
       </GlassCard>
 
-      {transactionIndex && (
-        <GlassCard className="mb-3">
-          <Row label="Indexed transactions" value={transactionIndex.summaries.transactionCount} mono />
-          <Row label="Net cashflow" value={transactionIndex.summaries.netCashflow} mono />
-          <Row label="Monthly buckets" value={transactionIndex.summaries.monthly.length} mono />
-          <Row label="Category buckets" value={transactionIndex.summaries.categoryTotals.length} mono />
-          <Row label="Person keys" value={transactionIndex.byPerson.size} mono />
-          <Row label="Payment methods" value={transactionIndex.byPaymentMethod.size} mono />
-        </GlassCard>
-      )}
-
       <p className="text-[10px] text-gray-700 text-center mt-2">
-        Adapter: {adapterType} · Tap logo 5× on any screen to open · Not shown in production builds
+        Tap logo 5× on any screen to open · Not shown in production builds
       </p>
     </div>
   )

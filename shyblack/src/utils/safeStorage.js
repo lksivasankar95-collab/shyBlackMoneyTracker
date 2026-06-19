@@ -27,6 +27,9 @@ export const STORAGE_KEYS = {
   ACHIEVEMENTS: `${STORAGE_PREFIX}achievements`,
   ARCHIVE: `${STORAGE_PREFIX}archive`,
   SEARCH_INDEX: `${STORAGE_PREFIX}search_idx`,
+  DOCUMENTS: `${STORAGE_PREFIX}documents`,
+  DOCUMENT_FILES: `${STORAGE_PREFIX}document_files`,
+  RELATIONSHIPS: `${STORAGE_PREFIX}relationships`,
 }
 
 function getAdapter() {

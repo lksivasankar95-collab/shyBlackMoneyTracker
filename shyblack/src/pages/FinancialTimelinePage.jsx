@@ -33,7 +33,7 @@ export default function FinancialTimelinePage() {
   const storedNwHistory = useMemo(() => getStoredNetWorthHistory(), [])
 
   const timeline = useMemo(() => {
-    return buildTimeline({ transactions, debts, goals, savingsGoal, budgets, storedNetWorthHistory })
+    return buildTimeline({ transactions, debts, goals, savingsGoal, budgets, storedNetWorthHistory: storedNwHistory })
   }, [transactions, debts, goals, savingsGoal, budgets, storedNwHistory])
 
   const insights = useMemo(() => getTimelineInsights(timeline), [timeline])
