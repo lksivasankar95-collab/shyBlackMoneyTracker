@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, Landmark } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, getTransactionDescription } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
@@ -215,13 +215,6 @@ export default function AddTransaction({ onNavigate }) {
             </button>
           )
         })}
-        <button
-          onClick={() => onNavigate('add-emi')}
-          className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border border-purple-500/30 bg-purple-500/10 text-purple-400 transition-all duration-200"
-        >
-          <Landmark size={20} />
-          EMI
-        </button>
       </div>
 
       {recentTemplates.length > 0 && (

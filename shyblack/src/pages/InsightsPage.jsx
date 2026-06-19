@@ -2,6 +2,7 @@ import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun,
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
+import { ALL_CATEGORIES } from '../utils/constants'
 import GlassCard from '../components/GlassCard'
 import FinancialScore from '../components/FinancialScore'
 import EmptyState from '../components/EmptyState'
@@ -143,7 +144,7 @@ export default function InsightsPage() {
             {trends.slice(0, 5).map((trend) => (
               <div key={trend.category}>
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs capitalize">{trend.category}</span>
+                  <span className="text-xs capitalize">{ALL_CATEGORIES.find((c) => c.id === trend.category)?.label || trend.category}</span>
                   <span className="text-xs text-gray-500 tabular-nums">{formatCurrency(trend.total)}</span>
                 </div>
                 <div className="w-full h-1.5 bg-matte-200 rounded-full overflow-hidden">
@@ -206,7 +207,7 @@ export default function InsightsPage() {
           </p>
           {monthPrediction.categoryProjections.slice(0, 3).map((c) => (
             <div key={c.category} className="flex items-center justify-between py-1">
-              <span className="text-xs capitalize text-gray-400">{c.category.replace(/_/g, ' ')}</span>
+              <span className="text-xs text-gray-400">{c.label || c.category.replace(/_/g, ' ')}</span>
               <span className="text-xs font-medium tabular-nums">{formatCurrency(c.projected)}</span>
             </div>
           ))}

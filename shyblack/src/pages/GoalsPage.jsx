@@ -1,28 +1,48 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Target, Plus, Trash2, TrendingUp, CheckCircle2, ChevronRight, AlertTriangle, Calendar } from 'lucide-react'
+import {
+  Target, Plus, Trash2, TrendingUp, CheckCircle2, ChevronRight,
+  AlertTriangle, Calendar, Clock, PiggyBank, Car, Home, Sparkles,
+} from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
+import { createGoal, updateGoal, deleteGoal, getGoalProjection } from '../utils/goals'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
 import Modal from '../components/Modal'
 
+const GOAL_PRESETS = [
+  { name: 'Emergency Fund', icon: PiggyBank, color: 'text-yellow-400 bg-yellow-500/10', defaultTarget: 50000 },
+  { name: 'Vehicle Purchase', icon: Car, color: 'text-blue-400 bg-blue-500/10', defaultTarget: 500000 },
+  { name: 'House Down Payment', icon: Home, color: 'text-purple-400 bg-purple-500/10', defaultTarget: 2000000 },
+  { name: 'Custom Goal', icon: Sparkles, color: 'text-neon bg-neon/10', defaultTarget: 10000 },
+]
+
 export default function GoalsPage() {
-  const { goals, goalsProjections, addGoal, editGoal, removeGoal } = useFinance()
+  const { goals: contextGoals, addGoal, editGoal, removeGoal } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
-  const [form, setForm] = useState({ name: '', target: '', saved: '', monthlyContribution: '' })
+  const [form, setForm] = useState({
+    name: '', target: '', saved: '', monthlyContribution: '', targetDate: '',
+  })
+
+  const goals = contextGoals || []
+  const goalsProjections = useMemo(
+    () => goals.map((g) => ({ ...g, projection: getGoalProjection(g) })),
+    [goals]
+  )
 
   const resetForm = useCallback(() => {
-    setForm({ name: '', target: '', saved: '', monthlyContribution: '' })
+    setForm({ name: '', target: '', saved: '', monthlyContribution: '', targetDate: '' })
   }, [])
 
   const openAdd = useCallback(() => {
     resetForm()
     setShowAddModal(true)
+    setEditTarget(null)
   }, [resetForm])
 
   const openEdit = useCallback((goal) => {
@@ -31,8 +51,18 @@ export default function GoalsPage() {
       target: String(goal.target),
       saved: String(goal.saved),
       monthlyContribution: String(goal.monthlyContribution || ''),
+      targetDate: goal.targetDate || '',
     })
     setEditTarget(goal)
+    setShowAddModal(true)
+  }, [])
+
+  const applyPreset = useCallback((preset) => {
+    setForm((f) => ({
+      ...f,
+      name: preset.name,
+      target: String(preset.defaultTarget),
+    }))
   }, [])
 
   const handleSave = useCallback(() => {
@@ -40,15 +70,17 @@ export default function GoalsPage() {
     const target = parseFloat(form.target)
     const saved = parseFloat(form.saved) || 0
     const monthlyContribution = parseFloat(form.monthlyContribution) || 0
+    const targetDate = form.targetDate || null
 
     if (!name) { addToast('Enter a goal name', 'error'); return }
     if (!target || target <= 0) { addToast('Enter a valid target amount', 'error'); return }
+    if (saved >= target) { addToast('Saved amount already meets target', 'error'); return }
 
     if (editTarget) {
-      editGoal(editTarget.id, { name, target, saved, monthlyContribution })
+      editGoal(editTarget.id, { name, target, saved, monthlyContribution, targetDate })
       addToast('Goal updated', 'success')
     } else {
-      addGoal({ name, target, saved, monthlyContribution })
+      addGoal({ name, target, saved, monthlyContribution, targetDate })
       addToast('Goal created', 'success')
     }
 
@@ -67,6 +99,16 @@ export default function GoalsPage() {
   const achieved = useMemo(() => goalsProjections.filter((g) => g.projection?.isAchieved), [goalsProjections])
   const active = useMemo(() => goalsProjections.filter((g) => !g.projection?.isAchieved), [goalsProjections])
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return null
+    const d = new Date(dateStr)
+    return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  }
+
+  const getMonthsBetween = (from, to) => {
+    return (to.getFullYear() - from.getFullYear()) * 12 + to.getMonth() - from.getMonth()
+  }
+
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center justify-between mb-5">
@@ -81,7 +123,7 @@ export default function GoalsPage() {
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all"
         >
           <Plus size={14} />
-          Add Goal
+          New Goal
         </button>
       </div>
 
@@ -89,20 +131,21 @@ export default function GoalsPage() {
         <EmptyState
           icon={Target}
           title="No goals yet"
-          description="Set financial goals like Emergency Fund, MacBook, or Trip"
+          description="Set financial goals like Emergency Fund, Vehicle, or House Down Payment"
           action={
             <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">
-              Create First Goal
+              Create Your First Goal
             </button>
           }
         />
       )}
 
+      {/* Achieved Goals */}
       {achieved.length > 0 && (
         <div className="mb-4">
           <h2 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
             <CheckCircle2 size={12} className="text-neon" />
-            Achieved
+            Achieved ({achieved.length})
           </h2>
           <div className="space-y-2">
             {achieved.map((g) => (
@@ -115,7 +158,10 @@ export default function GoalsPage() {
                     <p className="text-sm font-semibold">{g.name}</p>
                     <p className="text-xs text-neon">{formatCurrency(g.target)}</p>
                   </div>
-                  <button onClick={() => setDeleteTarget(g.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                  <button
+                    onClick={() => setDeleteTarget(g.id)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                  >
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -125,14 +171,49 @@ export default function GoalsPage() {
         </div>
       )}
 
+      {/* Active Goals */}
       {active.length > 0 && (
         <div className="space-y-3">
           {active.map((g) => {
             const p = g.projection
+            const totalRemaining = p ? p.remaining : g.target - g.saved
+
+            let forecastMonths = null
+            if (p && p.monthsToGoal !== null) {
+              forecastMonths = p.monthsToGoal
+            } else if (g.monthlyContribution > 0) {
+              forecastMonths = Math.ceil(totalRemaining / g.monthlyContribution)
+            }
+
+            let targetDateEta = null
+            if (g.targetDate) {
+              const targetD = new Date(g.targetDate)
+              const now = new Date()
+              const monthsUntilTarget = getMonthsBetween(now, targetD)
+              if (monthsUntilTarget > 0) {
+                const requiredMonthly = totalRemaining / monthsUntilTarget
+                targetDateEta = {
+                  monthsLeft: monthsUntilTarget,
+                  requiredMonthly: Math.round(requiredMonthly),
+                  onTrack: g.monthlyContribution >= requiredMonthly,
+                }
+              }
+            }
+
+            const dailyRate = g.monthlyContribution > 0
+              ? Math.round(g.monthlyContribution / 30)
+              : 0
+
             return (
-              <GlassCard key={g.id} onClick={() => openEdit(g)} className="cursor-pointer hover:border-neon/20 transition-all">
+              <GlassCard
+                key={g.id}
+                onClick={() => openEdit(g)}
+                className="cursor-pointer hover:border-neon/20 transition-all"
+              >
                 <div className="flex items-start gap-3">
-                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${p?.isAchieved ? 'bg-neon/10' : 'bg-purple-500/10'}`}>
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                    p?.isAchieved ? 'bg-neon/10' : 'bg-purple-500/10'
+                  }`}>
                     <Target size={18} className={p?.isAchieved ? 'text-neon' : 'text-purple-400'} />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -144,27 +225,66 @@ export default function GoalsPage() {
                       <span className="text-lg font-extrabold tabular-nums">{formatCurrency(g.saved)}</span>
                       <span className="text-xs text-gray-500">/ {formatCurrency(g.target)}</span>
                     </div>
+
                     {p && (
                       <>
                         <div className="w-full h-1.5 bg-matte-200 rounded-full overflow-hidden mt-2">
                           <div
-                            className={`h-full rounded-full transition-all duration-500 ${p.isAchieved ? 'bg-neon' : 'bg-gradient-to-r from-purple-500 to-neon'}`}
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              p.isAchieved ? 'bg-neon' : 'bg-gradient-to-r from-purple-500 to-neon'
+                            }`}
                             style={{ width: `${Math.min(p.progress, 100)}%` }}
                           />
                         </div>
-                        <div className="flex items-center justify-between mt-1.5">
-                          <span className="text-[10px] text-gray-500">{Math.round(p.progress)}%</span>
-                          {p.monthsToGoal !== null && (
-                            <span className="text-[10px] text-gray-500 flex items-center gap-1">
-                              <Calendar size={9} />
-                              {p.monthsToGoal}m left
-                            </span>
+
+                        {/* Stats Grid */}
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                          <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
+                            <p className="text-[10px] text-gray-600">Progress</p>
+                            <p className="text-xs font-bold tabular-nums">{Math.round(p.progress)}%</p>
+                          </div>
+                          {forecastMonths !== null && (
+                            <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
+                              <p className="text-[10px] text-gray-600">ETA</p>
+                              <p className="text-xs font-bold tabular-nums">{forecastMonths}m</p>
+                            </div>
+                          )}
+                          {g.monthlyContribution > 0 && (
+                            <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
+                              <p className="text-[10px] text-gray-600">Monthly</p>
+                              <p className="text-xs font-bold tabular-nums text-neon">
+                                {formatCurrency(g.monthlyContribution)}
+                              </p>
+                            </div>
                           )}
                         </div>
-                        {g.monthlyContribution > 0 && (
-                          <p className="text-[10px] text-gray-600 mt-1">
-                            {formatCurrency(g.monthlyContribution)}/mo contribution
-                          </p>
+
+                        {/* Target Date Info */}
+                        {targetDateEta && (
+                          <div className={`flex items-center gap-1.5 mt-2 p-2 rounded-lg text-xs ${
+                            targetDateEta.onTrack
+                              ? 'bg-neon/5 text-neon'
+                              : 'bg-yellow-500/10 text-yellow-400'
+                          }`}>
+                            {targetDateEta.onTrack ? (
+                              <CheckCircle2 size={12} />
+                            ) : (
+                              <AlertTriangle size={12} />
+                            )}
+                            <span>
+                              {targetDateEta.onTrack
+                                ? `On track for ${formatDate(g.targetDate)}`
+                                : `Need ${formatCurrency(targetDateEta.requiredMonthly)}/mo to hit target date`
+                              }
+                            </span>
+                          </div>
+                        )}
+
+                        {p.progress >= 80 && !p.isAchieved && (
+                          <div className="flex items-center gap-1.5 mt-2 text-xs text-neon bg-neon/5 rounded-lg p-2">
+                            <TrendingUp size={12} />
+                            <span>Almost there! Just {formatCurrency(totalRemaining)} to go</span>
+                          </div>
                         )}
                       </>
                     )}
@@ -176,32 +296,156 @@ export default function GoalsPage() {
         </div>
       )}
 
-      <Modal open={showAddModal} onClose={() => { setShowAddModal(false); setEditTarget(null); resetForm() }} title={editTarget ? 'Edit Goal' : 'New Goal'}>
-        <div className="space-y-4">
+      {/* Add/Edit Goal Modal */}
+      <Modal
+        open={showAddModal}
+        onClose={() => { setShowAddModal(false); setEditTarget(null); resetForm() }}
+        title={editTarget ? 'Edit Goal' : 'New Goal'}
+      >
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+          {/* Presets (only for new goals) */}
+          {!editTarget && (
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-2 block">Quick Start</label>
+              <div className="grid grid-cols-2 gap-2">
+                {GOAL_PRESETS.map((preset) => {
+                  const Icon = preset.icon
+                  return (
+                    <button
+                      key={preset.name}
+                      onClick={() => applyPreset(preset)}
+                      className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${
+                        form.name === preset.name
+                          ? 'border-neon/50 bg-neon/10'
+                          : 'border-glass-border bg-white/[0.03] hover:bg-white/[0.06]'
+                      }`}
+                    >
+                      <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${preset.color}`}>
+                        <Icon size={14} />
+                      </div>
+                      <span className="text-xs font-medium truncate">{preset.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1.5 block">Goal Name</label>
-            <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Emergency Fund, MacBook..." className="input-field" maxLength={50} autoFocus />
+            <input
+              type="text"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              placeholder="e.g. Emergency Fund, MacBook..."
+              className="input-field"
+              maxLength={50}
+              autoFocus
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1.5 block">Target Amount</label>
-            <input type="text" inputMode="numeric" value={form.target} onChange={(e) => setForm((f) => ({ ...f, target: e.target.value.replace(/\D/g, '') }))} placeholder="0" className="input-field text-lg font-bold tabular-nums" />
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.target}
+              onChange={(e) => setForm((f) => ({ ...f, target: e.target.value.replace(/\D/g, '') }))}
+              placeholder="0"
+              className="input-field text-lg font-bold tabular-nums"
+            />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Saved So Far <span className="text-gray-600 font-normal">(optional)</span></label>
-            <input type="text" inputMode="numeric" value={form.saved} onChange={(e) => setForm((f) => ({ ...f, saved: e.target.value.replace(/\D/g, '') }))} placeholder="0" className="input-field" />
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+              Saved So Far <span className="text-gray-600 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.saved}
+              onChange={(e) => setForm((f) => ({ ...f, saved: e.target.value.replace(/\D/g, '') }))}
+              placeholder="0"
+              className="input-field"
+            />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Monthly Contribution <span className="text-gray-600 font-normal">(optional)</span></label>
-            <input type="text" inputMode="numeric" value={form.monthlyContribution} onChange={(e) => setForm((f) => ({ ...f, monthlyContribution: e.target.value.replace(/\D/g, '') }))} placeholder="0" className="input-field" />
-            {parseFloat(form.monthlyContribution) > 0 && parseFloat(form.target) > 0 && (
-              <p className="text-[10px] text-gray-500 mt-1">
-                ~{Math.ceil((parseFloat(form.target) - (parseFloat(form.saved) || 0)) / parseFloat(form.monthlyContribution))} months to goal
-              </p>
-            )}
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+              Monthly Contribution <span className="text-gray-600 font-normal">(optional)</span>
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={form.monthlyContribution}
+              onChange={(e) => setForm((f) => ({ ...f, monthlyContribution: e.target.value.replace(/\D/g, '') }))}
+              placeholder="0"
+              className="input-field"
+            />
           </div>
-          <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!form.name.trim() || !form.target} className="flex-1 btn-primary text-sm">Save</button>
-            <button onClick={() => { setShowAddModal(false); setEditTarget(null); resetForm() }} className="flex-1 btn-secondary text-sm">Cancel</button>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+              Target Date <span className="text-gray-600 font-normal">(optional)</span>
+            </label>
+            <input
+              type="date"
+              value={form.targetDate}
+              onChange={(e) => setForm((f) => ({ ...f, targetDate: e.target.value }))}
+              className="input-field"
+              min={new Date().toISOString().split('T')[0]}
+            />
+          </div>
+
+          {/* Forecast */}
+          {parseFloat(form.target) > 0 && (
+            <div className="p-3 rounded-xl bg-white/[0.03] space-y-1.5">
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Forecast</p>
+              {parseFloat(form.monthlyContribution) > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">At current pace</span>
+                  <span className="font-semibold tabular-nums">
+                    {Math.ceil(
+                      (parseFloat(form.target) - (parseFloat(form.saved) || 0)) /
+                      parseFloat(form.monthlyContribution)
+                    )} months
+                  </span>
+                </div>
+              )}
+              {form.targetDate && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Required monthly</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatCurrency(
+                      Math.ceil(
+                        (parseFloat(form.target) - (parseFloat(form.saved) || 0)) /
+                        Math.max(1, getMonthsBetween(new Date(), new Date(form.targetDate)))
+                      )
+                    )}
+                  </span>
+                </div>
+              )}
+              {parseFloat(form.monthlyContribution) > 0 && (
+                <div className="flex items-center justify-between text-xs">
+                  <span className="text-gray-400">Daily savings needed</span>
+                  <span className="font-semibold tabular-nums">
+                    {formatCurrency(Math.round(parseFloat(form.monthlyContribution) / 30))}/day
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex gap-2 pt-2 sticky bottom-0 bg-matte">
+            <button
+              onClick={handleSave}
+              disabled={!form.name.trim() || !form.target}
+              className="flex-1 btn-primary text-sm"
+            >
+              {editTarget ? 'Save Changes' : 'Create Goal'}
+            </button>
+            <button
+              onClick={() => { setShowAddModal(false); setEditTarget(null); resetForm() }}
+              className="flex-1 btn-secondary text-sm"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       </Modal>

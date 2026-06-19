@@ -37,11 +37,18 @@ const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
 const GoalsPage = lazy(() => import('./pages/GoalsPage'))
 const SubscriptionsPage = lazy(() => import('./pages/SubscriptionsPage'))
-const FinancialCalendar = lazy(() => import('./pages/FinancialCalendar'))
+const FinancialCalendar = lazy(() => import('./pages/FinancialCalendarPage'))
 const MonthlyReview = lazy(() => import('./pages/MonthlyReview'))
-const EmiCenter = lazy(() => import('./pages/EmiCenter'))
-const AddEmi = lazy(() => import('./pages/AddEmi'))
-const EmiDetail = lazy(() => import('./pages/EmiDetail'))
+const EmiCenter = lazy(() => import('./pages/EmiCenterPage'))
+const NetWorthPage = lazy(() => import('./pages/NetWorthPage'))
+const FinancialHealthPage = lazy(() => import('./pages/FinancialHealthPage'))
+const StatementExportPage = lazy(() => import('./pages/StatementExportPage'))
+const TransferPage = lazy(() => import('./pages/TransferPage'))
+const CashFlowForecastPage = lazy(() => import('./pages/CashFlowForecastPage'))
+const FinancialTimelinePage = lazy(() => import('./pages/FinancialTimelinePage'))
+const AchievementsPage = lazy(() => import('./pages/AchievementsPage'))
+const SearchPage = lazy(() => import('./pages/SearchPage'))
+const CategoryDetail = lazy(() => import('./pages/CategoryDetail'))
 
 const pages = {
   dashboard: Dashboard,
@@ -60,8 +67,15 @@ const pages = {
   calendar: FinancialCalendar,
   review: MonthlyReview,
   'emi-center': EmiCenter,
-  'add-emi': AddEmi,
-  'emi-detail': EmiDetail,
+  networth: NetWorthPage,
+  'financial-health': FinancialHealthPage,
+  'statement-export': StatementExportPage,
+  transfers: TransferPage,
+  'cash-flow-forecast': CashFlowForecastPage,
+  'financial-timeline': FinancialTimelinePage,
+  achievements: AchievementsPage,
+  search: SearchPage,
+  'category-detail': CategoryDetail,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -155,7 +169,7 @@ function AppContent() {
   }, [history])
 
   const canGoBack = history.length > 1
-  const pageKey = currentPage.startsWith('emi-detail/') ? 'emi-detail' : currentPage.startsWith('edit-emi/') ? 'add-emi' : currentPage
+  const pageKey = currentPage
   const Page = pages[pageKey]
   const showHeader = currentPage === 'dashboard' || navPages.includes(currentPage)
 

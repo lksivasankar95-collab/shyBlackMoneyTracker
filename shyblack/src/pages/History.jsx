@@ -1,29 +1,110 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Search, ArrowUpDown, X, User } from 'lucide-react'
+import {
+  Search, X, SlidersHorizontal, Calendar, ArrowUpDown, Filter,
+  ChevronDown, ChevronUp,
+} from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate, groupBy, extractPeopleFromTransactions } from '../utils/helpers'
+import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import TransactionItem from '../components/TransactionItem'
 import EmptyState from '../components/EmptyState'
 import GlassCard from '../components/GlassCard'
 import ConfirmationModal from '../components/ConfirmationModal'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 
 const PAGE_SIZE = 50
+
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest First' },
+  { id: 'oldest', label: 'Oldest First' },
+  { id: 'highest', label: 'Highest Amount' },
+  { id: 'lowest', label: 'Lowest Amount' },
+]
+
+const DATE_PRESETS = [
+  { id: 'today', label: 'Today' },
+  { id: 'week', label: 'This Week' },
+  { id: 'month', label: 'This Month' },
+  { id: 'lastMonth', label: 'Last Month' },
+  { id: 'custom', label: 'Custom' },
+]
+
+function getDateRange(preset) {
+  const now = new Date()
+  const today = now.toISOString().split('T')[0]
+  if (preset === 'today') return { dateFrom: today, dateTo: today }
+  if (preset === 'week') {
+    const start = new Date(now)
+    start.setDate(now.getDate() - now.getDay())
+    const end = new Date(start)
+    end.setDate(start.getDate() + 6)
+    return { dateFrom: start.toISOString().split('T')[0], dateTo: end.toISOString().split('T')[0] }
+  }
+  if (preset === 'month') {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1)
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    return { dateFrom: start.toISOString().split('T')[0], dateTo: end.toISOString().split('T')[0] }
+  }
+  if (preset === 'lastMonth') {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    const end = new Date(now.getFullYear(), now.getMonth(), 0)
+    return { dateFrom: start.toISOString().split('T')[0], dateTo: end.toISOString().split('T')[0] }
+  }
+  return { dateFrom: '', dateTo: '' }
+}
 
 export default function History() {
   const { transactions, deleteTransaction } = useFinance()
   const [search, setSearch] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
   const [filterType, setFilterType] = useState('all')
-  const [filterPerson, setFilterPerson] = useState('')
-  const [sortOrder, setSortOrder] = useState('desc')
+  const [filterCategory, setFilterCategory] = useState('')
+  const [datePreset, setDatePreset] = useState('')
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
+  const [minAmount, setMinAmount] = useState('')
+  const [maxAmount, setMaxAmount] = useState('')
+  const [sortId, setSortId] = useState('newest')
+  const [showFilters, setShowFilters] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const allCategories = useMemo(() => [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], [])
-  const allPeople = useMemo(() => extractPeopleFromTransactions(transactions), [transactions])
+  const categoriesForType = useMemo(() => {
+    if (filterType === 'income') return INCOME_CATEGORIES
+    if (filterType === 'expense') return EXPENSE_CATEGORIES
+    return allCategories
+  }, [filterType, allCategories])
 
-  const toggleSort = useCallback(() => setSortOrder((o) => o === 'desc' ? 'asc' : 'desc'), [])
+  const handleDatePreset = useCallback((preset) => {
+    setDatePreset(preset)
+    if (preset !== 'custom') {
+      const range = getDateRange(preset)
+      setDateFrom(range.dateFrom)
+      setDateTo(range.dateTo)
+    }
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setSearch('')
+    setFilterType('all')
+    setFilterCategory('')
+    setDatePreset('')
+    setDateFrom('')
+    setDateTo('')
+    setMinAmount('')
+    setMaxAmount('')
+    setSortId('newest')
+  }, [])
+
+  const activeFilterCount = useMemo(() => {
+    let count = 0
+    if (search) count++
+    if (filterType !== 'all') count++
+    if (filterCategory) count++
+    if (dateFrom || dateTo) count++
+    if (minAmount || maxAmount) count++
+    if (sortId !== 'newest') count++
+    return count
+  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, sortId])
 
   const handleDeleteRequest = useCallback((id) => {
     setPendingDelete(id)
@@ -37,10 +118,10 @@ export default function History() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [search, filterType, filterCategory, sortOrder, filterPerson])
+  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, sortId])
 
   const filtered = useMemo(() => {
-    let result = [...transactions]
+    let result = transactions
 
     if (filterType !== 'all') {
       result = result.filter((t) => t.type === filterType)
@@ -50,110 +131,249 @@ export default function History() {
       result = result.filter((t) => t.category === filterCategory)
     }
 
-    if (filterPerson) {
-      result = result.filter((t) => t.person?.name?.toLowerCase() === filterPerson.toLowerCase())
+    if (dateFrom) {
+      result = result.filter((t) => t.date >= dateFrom)
+    }
+    if (dateTo) {
+      result = result.filter((t) => t.date <= dateTo)
+    }
+
+    if (minAmount) {
+      const min = Number(minAmount)
+      if (!isNaN(min)) result = result.filter((t) => t.amount >= min)
+    }
+    if (maxAmount) {
+      const max = Number(maxAmount)
+      if (!isNaN(max)) result = result.filter((t) => t.amount <= max)
     }
 
     if (search.trim()) {
-      const q = search.toLowerCase()
+      const q = search.toLowerCase().trim()
+      const qNum = Number(q)
+      const isNumeric = !isNaN(qNum)
       result = result.filter((t) => {
-        const numMatch = !isNaN(Number(q)) && t.amount === Number(q)
-        const personMatch = t.person?.name?.toLowerCase().includes(q)
-        const methodMatch = t.paymentMethod?.toLowerCase().includes(q)
+        if (isNumeric && t.amount === qNum) return true
+        if (t.note?.toLowerCase().includes(q)) return true
+        if (t.category?.toLowerCase().includes(q)) return true
+        if (t.source?.toLowerCase().includes(q)) return true
+        if (t.person?.name?.toLowerCase().includes(q)) return true
+        if (t.paymentMethod?.toLowerCase().includes(q)) return true
         const methodLabel = PAYMENT_METHODS.find((m) => m.id === t.paymentMethod)?.label?.toLowerCase()
-        return numMatch || personMatch || methodMatch || methodLabel?.includes(q) ||
-          t.category?.toLowerCase().includes(q) || t.note?.toLowerCase().includes(q) ||
-          t.tags?.some((tag) => tag.toLowerCase().includes(q))
+        if (methodLabel?.includes(q)) return true
+        if (t.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
+        return false
       })
     }
 
     result.sort((a, b) => {
-      const diff = new Date(b.date) - new Date(a.date)
-      return sortOrder === 'desc' ? diff : -diff
+      if (sortId === 'oldest') return a.date.localeCompare(b.date)
+      if (sortId === 'highest') return b.amount - a.amount
+      if (sortId === 'lowest') return a.amount - b.amount
+      return b.date.localeCompare(a.date)
     })
 
     return result
-  }, [transactions, filterType, filterCategory, search, sortOrder])
+  }, [transactions, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, search, sortId])
 
   const visibleFiltered = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
   const grouped = useMemo(() => groupBy(visibleFiltered, 'date'), [visibleFiltered])
   const hasMore = filtered.length > visibleCount
 
-  const clearFilters = useCallback(() => {
-    setSearch('')
-    setFilterCategory('')
-    setFilterType('all')
-    setFilterPerson('')
-    setSortOrder('desc')
-  }, [])
-
-  const hasFilters = search || filterCategory || filterType !== 'all' || filterPerson
-
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
-      <h1 className="text-xl font-bold mb-5">Transaction History</h1>
-
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-        <input
-          type="text"
-          placeholder="Search by amount, person, payment method..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="input-field pl-10 text-sm"
-        />
+      {/* Header */}
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-bold">Transaction History</h1>
+        {filtered.length > 0 && (
+          <span className="text-[10px] text-gray-600 bg-matte-200 px-2 py-1 rounded-lg">
+            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+          </span>
+        )}
       </div>
 
-      <GlassCard className="mb-5 px-3 py-2">
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {['all', 'income', 'expense'].map((type) => (
-            <button
-              key={type}
-              onClick={() => setFilterType(type)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all min-h-[32px] ${
-                filterType === type ? 'bg-neon text-black' : 'text-gray-500 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {type === 'all' ? 'All' : type.charAt(0).toUpperCase() + type.slice(1)}
-            </button>
-          ))}
-          <span className="w-px h-5 bg-glass-border" />
-          <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
-            className="bg-transparent text-xs text-gray-400 border border-glass-border rounded-lg px-2 py-1.5 focus:outline-none focus:border-neon/30 min-h-[32px]"
+      {/* Search */}
+      <div className="relative mb-3">
+        <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+        <input
+          type="text"
+          placeholder="Search notes, category, person, amount..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full bg-matte-200 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder-gray-600 border border-white/[0.06] focus:border-neon/30 focus:outline-none transition-all"
+        />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
           >
-            <option value="">All Categories</option>
-            {allCategories.map((cat) => (
-              <option key={cat.id} value={cat.id}>{cat.label}</option>
-            ))}
-          </select>
-          {allPeople.length > 0 && (
+            <X size={15} />
+          </button>
+        )}
+      </div>
+
+      {/* Filter Toggle + Active count */}
+      <div className="flex items-center gap-2 mb-3">
+        <button
+          onClick={() => setShowFilters((p) => !p)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+            showFilters || activeFilterCount > 0
+              ? 'bg-neon/10 text-neon border border-neon/30'
+              : 'text-gray-500 border border-white/[0.06] hover:text-white'
+          }`}
+        >
+          <SlidersHorizontal size={12} />
+          Filters
+          {activeFilterCount > 0 && (
+            <span className="ml-0.5 w-4 h-4 rounded-full bg-neon text-black text-[9px] font-bold flex items-center justify-center">
+              {activeFilterCount}
+            </span>
+          )}
+        </button>
+        {activeFilterCount > 0 && (
+          <button
+            onClick={clearFilters}
+            className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-white transition-colors"
+          >
+            <X size={10} />
+            Clear all
+          </button>
+        )}
+      </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <GlassCard className="mb-4 !p-3 border-neon/10">
+          {/* Date Presets */}
+          <div className="mb-3">
+            <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+              <Calendar size={11} />
+              Date Range
+            </label>
+            <div className="flex gap-1.5 flex-wrap mb-2">
+              {DATE_PRESETS.map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => handleDatePreset(p.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                    datePreset === p.id
+                      ? 'bg-neon/10 text-neon border border-neon/30'
+                      : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+            {datePreset === 'custom' && (
+              <div className="flex gap-2">
+                <input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
+                  placeholder="From"
+                />
+                <input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
+                  placeholder="To"
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Type + Category */}
+          <div className="mb-3">
+            <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+              <Filter size={11} />
+              Transaction Type
+            </label>
+            <div className="flex gap-1.5 mb-2">
+              {[
+                { id: 'all', label: 'All' },
+                { id: 'income', label: 'Income' },
+                { id: 'expense', label: 'Expense' },
+              ].map((t) => (
+                <button
+                  key={t.id}
+                  onClick={() => { setFilterType(t.id); setFilterCategory('') }}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                    filterType === t.id
+                      ? t.id === 'all'
+                        ? 'bg-neon/10 text-neon border border-neon/30'
+                        : t.id === 'income'
+                          ? 'bg-green-500/15 text-green-400 border border-green-500/30'
+                          : 'bg-red-500/15 text-red-400 border border-red-500/30'
+                      : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
             <select
-              value={filterPerson}
-              onChange={(e) => setFilterPerson(e.target.value)}
-              className="bg-transparent text-xs text-gray-400 border border-glass-border rounded-lg px-2 py-1.5 focus:outline-none focus:border-neon/30 min-h-[32px]"
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none text-gray-400"
             >
-              <option value="">All People</option>
-              {allPeople.map((name) => (
-                <option key={name} value={name}>{name}</option>
+              <option value="">{filterType === 'all' ? 'All Categories' : filterType === 'income' ? 'All Income' : 'All Expenses'}</option>
+              {categoriesForType.map((cat) => (
+                <option key={cat.id} value={cat.id}>{cat.label}</option>
               ))}
             </select>
-          )}
-          <button
-            onClick={toggleSort}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-gray-500 hover:text-white hover:bg-white/5 transition-all min-h-[32px]"
-          >
-            <ArrowUpDown size={12} />
-            {sortOrder === 'desc' ? 'Newest' : 'Oldest'}
-          </button>
-        </div>
-      </GlassCard>
+          </div>
 
-      {hasFilters && (
-        <button onClick={clearFilters} className="flex items-center gap-1 text-xs text-gray-500 hover:text-neon transition-colors mb-4 pl-1 min-h-[28px]">
-          <X size={12} /> Clear filters
-        </button>
+          {/* Amount */}
+          <div className="mb-3">
+            <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+              <span className="text-[11px]">₹</span>
+              Amount Range
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder="Min"
+                value={minAmount}
+                onChange={(e) => setMinAmount(e.target.value)}
+                className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
+                min="0"
+              />
+              <input
+                type="number"
+                placeholder="Max"
+                value={maxAmount}
+                onChange={(e) => setMaxAmount(e.target.value)}
+                className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
+                min="0"
+              />
+            </div>
+          </div>
+
+          {/* Sort */}
+          <div>
+            <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+              <ArrowUpDown size={11} />
+              Sort By
+            </label>
+            <div className="flex gap-1.5 flex-wrap">
+              {SORT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  onClick={() => setSortId(opt.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                    sortId === opt.id
+                      ? 'bg-neon/10 text-neon border border-neon/30'
+                      : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </GlassCard>
       )}
 
       <ConfirmationModal
@@ -170,8 +390,8 @@ export default function History() {
       {filtered.length === 0 ? (
         <GlassCard>
           <EmptyState
-            title={hasFilters ? 'No matches found' : 'No transactions'}
-            description={hasFilters ? 'Try adjusting your search or filters' : 'Add your first transaction to see it here'}
+            title={activeFilterCount > 0 ? 'No matches found' : 'No transactions'}
+            description={activeFilterCount > 0 ? 'Try adjusting your search or filters' : 'Add your first transaction to see it here'}
           />
         </GlassCard>
       ) : (

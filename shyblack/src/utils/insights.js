@@ -1,6 +1,7 @@
 import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analytics'
 import { formatCurrency } from './currency'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
+import { ALL_CATEGORIES } from './constants'
 
 export function calculateFinancialScore(transactions) {
   if (transactions.length === 0) return { score: 0, level: 'N/A', factors: [] }
@@ -132,7 +133,8 @@ export function getSavingsRecommendations(transactions, savingsGoal) {
   const categories = getCategoryBreakdown(transactions, 'expense', now.getFullYear(), now.getMonth())
   categories.forEach((c) => {
     if (c.amount > avgExpense * 0.3) {
-      tips.push({ type: 'saving', text: `Consider reducing "${c.category}" expenses`, impact: 'medium' })
+      const catLabel = ALL_CATEGORIES.find((cat) => cat.id === c.category)?.label || c.category
+      tips.push({ type: 'saving', text: `Consider reducing "${catLabel}" expenses`, impact: 'medium' })
     }
   })
 
@@ -458,11 +460,15 @@ export function predictMonthEndSpend(transactions) {
   thisMonthExpenses.forEach((t) => {
     byCategory[t.category] = (byCategory[t.category] || 0) + t.amount
   })
-  const categoryProjections = Object.entries(byCategory).map(([category, spent]) => ({
-    category,
-    projected: Math.round((spent / daysElapsed) * daysInMonth),
-    spentSoFar: spent,
-  })).sort((a, b) => b.projected - a.projected)
+  const categoryProjections = Object.entries(byCategory).map(([category, spent]) => {
+    const catLabel = ALL_CATEGORIES.find((c) => c.id === category)?.label || category
+    return {
+      category,
+      label: catLabel,
+      projected: Math.round((spent / daysElapsed) * daysInMonth),
+      spentSoFar: spent,
+    }
+  }).sort((a, b) => b.projected - a.projected)
 
   return { projected, spentSoFar, daysElapsed, daysInMonth, categoryProjections }
 }

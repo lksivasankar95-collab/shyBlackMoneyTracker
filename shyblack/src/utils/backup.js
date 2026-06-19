@@ -134,6 +134,11 @@ const VALIDATORS = {
   tags: (items) => Array.isArray(items) && items.every((t) => typeof t === 'object' && t !== null),
   security: (val) => typeof val === 'object' && val !== null,
   emis: (items) => Array.isArray(items) && items.every((e) => typeof e === 'object' && e !== null && typeof e.id === 'string' && typeof e.name === 'string' && typeof e.amount === 'number'),
+  accounts: (items) => Array.isArray(items) && items.every((a) => typeof a === 'object' && a !== null && typeof a.id === 'string'),
+  transfers: (items) => Array.isArray(items) && items.every((t) => typeof t === 'object' && t !== null && typeof t.id === 'string'),
+  goals: (items) => Array.isArray(items) && items.every((g) => typeof g === 'object' && g !== null && typeof g.id === 'string'),
+  templates: (items) => Array.isArray(items) && items.every((t) => typeof t === 'object' && t !== null),
+  archive: (val) => typeof val === 'object' && val !== null,
 }
 
 export function collectBackupData() {
@@ -150,7 +155,12 @@ export function collectBackupData() {
   data.budgets = safeStorage.get(STORAGE_KEYS.BUDGETS, {})
   data.recurring = safeStorage.get(STORAGE_KEYS.RECURRING, [])
   data.tags = safeStorage.get(STORAGE_KEYS.TAGS, [])
-  data.emis = safeStorage.get(STORAGE_KEYS.EMI, [])
+  data.emis = safeStorage.get(STORAGE_KEYS.EMIS, [])
+  data.accounts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
+  data.transfers = safeStorage.get(STORAGE_KEYS.TRANSFERS, [])
+  data.goals = safeStorage.get(STORAGE_KEYS.GOALS, [])
+  data.templates = safeStorage.get(STORAGE_KEYS.TEMPLATES, [])
+  data.archive = safeStorage.get(STORAGE_KEYS.ARCHIVE, { version: 1, transactions: [] })
   const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
   data.security = rawSecurity && typeof rawSecurity === 'object'
     ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
@@ -252,7 +262,12 @@ export function restoreFromBackup(backupData) {
     budgets: STORAGE_KEYS.BUDGETS,
     recurring: STORAGE_KEYS.RECURRING,
     tags: STORAGE_KEYS.TAGS,
-    emis: STORAGE_KEYS.EMI,
+    emis: STORAGE_KEYS.EMIS,
+    accounts: STORAGE_KEYS.NET_WORTH_ACCOUNTS,
+    transfers: STORAGE_KEYS.TRANSFERS,
+    goals: STORAGE_KEYS.GOALS,
+    templates: STORAGE_KEYS.TEMPLATES,
+    archive: STORAGE_KEYS.ARCHIVE,
   }
 
   for (const [section, storageKey] of Object.entries(keyMap)) {

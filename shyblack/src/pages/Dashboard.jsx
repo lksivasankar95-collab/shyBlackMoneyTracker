@@ -1,11 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
-  TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
-  AlertCircle, RefreshCw, SkipForward, RotateCcw, Target,
+  TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight, ArrowUpRight, ArrowDownRight,
+  AlertCircle, RefreshCw, Repeat2, RotateCcw, SkipForward, Sparkles, Target, Heart, FileText, BarChart3,
+  Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
+import { getCategorySummary } from '../utils/categoryDrilldown'
+import { setCategoryDetailId } from '../pages/CategoryDetail'
+import { calculateNetWorth, getAccounts, getStoredNetWorthHistory, getNetWorthTrend, saveNetWorthSnapshot } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
 import TransactionItem from '../components/TransactionItem'
@@ -15,18 +19,24 @@ import SavingsProgress from '../components/SavingsProgress'
 import FinancialScore from '../components/FinancialScore'
 import NotificationBanner from '../components/NotificationBanner'
 import DashboardEmiWidget from '../components/DashboardEmiWidget'
+import QuickActions from '../components/QuickActions'
+import CategoryIcon from '../components/CategoryIcon'
 
 export default function Dashboard({ onNavigate }) {
   const {
     transactions, getBalance, getMonthlySummary, savingsGoal,
     deleteTransaction, insights, notification, dismissNotification,
-    security, updateSecurity, debtsSummary,
+    security, updateSecurity, debtsSummary, debts,
     pendingRecurring, executeAllRecurring, skipAllRecurring,
     executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
     goals, goalsProjections,
     emiSummary,
   } = useFinance()
+
+  const accounts = useMemo(() => getAccounts(), [])
+  const netWorthData = useMemo(() => calculateNetWorth(transactions, debts, accounts), [transactions, debts, accounts])
+  const netWorthTrend = useMemo(() => getNetWorthTrend(getStoredNetWorthHistory(), '30d'), [])
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
   const [showRecurringDetail, setShowRecurringDetail] = useState(false)
@@ -41,6 +51,9 @@ export default function Dashboard({ onNavigate }) {
 
   const recentTx = useMemo(() => transactions.slice(0, 3), [transactions])
 
+  const categorySummary = useMemo(() => getCategorySummary(transactions), [transactions])
+  const topCategories = useMemo(() => categorySummary.slice(0, 4), [categorySummary])
+
   const toggleHide = useCallback(() => {
     const next = !hideBalance
     setHideBalance(next)
@@ -53,33 +66,36 @@ export default function Dashboard({ onNavigate }) {
     <div className="p-4 max-w-lg mx-auto pb-24">
 
       {/* ── 1. Net Worth ─────────────────────────────── */}
-      <div className="mb-5">
+      <button onClick={() => onNavigate('networth')} className="w-full text-left mb-5">
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500 font-medium">Net Worth</p>
-          <button
-            onClick={toggleHide}
-            className="p-2 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
-          >
-            {hideBalance ? <EyeOff size={16} /> : <Eye size={16} />}
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); toggleHide() }}
+              className="p-2 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
+            >
+              {hideBalance ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+            <ChevronRight size={14} className="text-gray-600" />
+          </div>
         </div>
         <h1 className="text-4xl font-extrabold text-gradient-brand mt-1 tracking-tight glow-neon-sm">
           {hideBalance ? '••••••' : <AnimatedNumber value={netWorth} format={formatCurrency} />}
         </h1>
-        {debtsSummary.pendingReceivables > 0 || debtsSummary.pendingPayables > 0 ? (
-          <p className="text-[11px] text-gray-600 mt-1">
-            {debtsSummary.pendingReceivables > 0 && (
-              <span className="text-neon/70">+{formatCurrency(debtsSummary.pendingReceivables)} receivable</span>
-            )}
-            {debtsSummary.pendingReceivables > 0 && debtsSummary.pendingPayables > 0 && (
-              <span className="mx-1">·</span>
-            )}
-            {debtsSummary.pendingPayables > 0 && (
-              <span className="text-red-400/70">-{formatCurrency(debtsSummary.pendingPayables)} payable</span>
-            )}
-          </p>
-        ) : null}
-      </div>
+        {netWorthData && (
+          <div className="flex items-center gap-2 mt-1">
+            <span className="flex items-center gap-1 text-[11px]">
+              <span className="text-neon/60">Assets</span>
+              <span className="text-neon font-medium">{formatCurrency(netWorthData.totalAssets)}</span>
+            </span>
+            <span className="text-gray-700">|</span>
+            <span className="flex items-center gap-1 text-[11px]">
+              <span className="text-red-400/60">Liabilities</span>
+              <span className="text-red-400 font-medium">{formatCurrency(netWorthData.totalLiabilities)}</span>
+            </span>
+          </div>
+        )}
+      </button>
 
       {/* ── Snapshot recovery banner ─────────────────── */}
       {recoverySnapshot && (
@@ -121,7 +137,55 @@ export default function Dashboard({ onNavigate }) {
         />
       </div>
 
-      {/* ── 3. Pending Actions ────────────────────────── */}
+      {/* ── 3. Category Summary ──────────────────────── */}
+      {topCategories.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-xs font-semibold text-gray-300">Category Summary</h2>
+            {categorySummary.length > 4 && (
+              <button
+                onClick={() => onNavigate('analytics')}
+                className="text-[10px] text-neon/70 hover:text-neon transition-colors"
+              >
+                View All
+              </button>
+            )}
+          </div>
+          <div className="space-y-1.5">
+            {topCategories.map((cat) => {
+              const catDef = ALL_CATEGORIES.find((c) => c.id === cat.categoryId)
+              const isCatIncome = cat.type === 'income'
+              return (
+                <button
+                  key={cat.categoryId}
+                  onClick={() => { setCategoryDetailId(cat.categoryId); onNavigate('category-detail') }}
+                  className="w-full flex items-center gap-3 p-2.5 rounded-xl bg-white/[0.02] hover:bg-white/[0.05] transition-all border border-transparent hover:border-glass-border"
+                >
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                    isCatIncome ? 'bg-neon/10 text-neon' : 'bg-red-500/10 text-red-400'
+                  }`}>
+                    <CategoryIcon icon={catDef?.icon} size={16} />
+                  </div>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-xs font-medium truncate">{cat.label}</p>
+                    <p className="text-[10px] text-gray-600">{cat.txCount} transaction{cat.txCount !== 1 ? 's' : ''}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-xs font-bold tabular-nums ${isCatIncome ? 'text-neon' : 'text-red-400'}`}>
+                      {formatCurrency(cat.total)}
+                    </p>
+                    <p className={`text-[10px] tabular-nums ${isCatIncome ? 'text-neon/60' : 'text-red-400/60'}`}>
+                      {cat.percentage.toFixed(1)}%
+                    </p>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── 4. Pending Actions ────────────────────────── */}
       {hasPendingActions && (
         <div className="mb-4 space-y-2">
 
@@ -215,10 +279,106 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* ── 4. Upcoming EMIs ─────────────────────────── */}
+      {/* ── 5. Upcoming EMIs ─────────────────────────── */}
       <DashboardEmiWidget emiSummary={emiSummary} onNavigate={onNavigate} />
 
-      {/* ── 5. Recent Activity ───────────────────────── */}
+      {/* ── 6. Quick Links ──────────────────────────── */}
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">Quick Links</h2>
+        <QuickActions onNavigate={onNavigate} />
+      </div>
+
+      {/* ── 7. More Features ────────────────────────── */}
+      <GlassCard className="mb-4 !p-3">
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            onClick={() => onNavigate('networth')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <BarChart3 size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Net Worth</span>
+          </button>
+          <button
+            onClick={() => onNavigate('financial-health')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Heart size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Health</span>
+          </button>
+          <button
+            onClick={() => onNavigate('statement-export')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <FileText size={16} className="text-yellow-400" />
+            <span className="text-[10px] font-medium text-gray-400">Statement</span>
+          </button>
+          <button
+            onClick={() => onNavigate('subscriptions')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Repeat2 size={16} className="text-blue-400" />
+            <span className="text-[10px] font-medium text-gray-400">Subscriptions</span>
+          </button>
+          <button
+            onClick={() => onNavigate('review')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Sparkles size={16} className="text-purple-400" />
+            <span className="text-[10px] font-medium text-gray-400">Review</span>
+          </button>
+          <button
+            onClick={() => onNavigate('insights')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <TrendingUp size={16} className="text-orange-400" />
+            <span className="text-[10px] font-medium text-gray-400">Insights</span>
+          </button>
+          <button
+            onClick={() => onNavigate('calendar')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Calendar size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Calendar</span>
+          </button>
+          <button
+            onClick={() => onNavigate('transfers')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <ArrowLeftRight size={16} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-gray-400">Transfer</span>
+          </button>
+          <button
+            onClick={() => onNavigate('emi-center')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <CreditCard size={16} className="text-purple-400" />
+            <span className="text-[10px] font-medium text-gray-400">EMIs</span>
+          </button>
+          <button
+            onClick={() => onNavigate('cash-flow-forecast')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Activity size={16} className="text-cyan-400" />
+            <span className="text-[10px] font-medium text-gray-400">Forecast</span>
+          </button>
+          <button
+            onClick={() => onNavigate('financial-timeline')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <PieChart size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Timeline</span>
+          </button>
+          <button
+            onClick={() => onNavigate('achievements')}
+            className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+          >
+            <Award size={16} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-gray-400">Badges</span>
+          </button>
+        </div>
+      </GlassCard>
+
+      {/* ── 8. Recent Activity ───────────────────────── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-300">Recent Activity</h2>
@@ -252,7 +412,7 @@ export default function Dashboard({ onNavigate }) {
         </GlassCard>
       </div>
 
-      {/* ── 6. Financial Score ───────────────────────── */}
+      {/* ── 9. Financial Score ───────────────────────── */}
       {insights.score.score > 0 && (
         <div
           className="mb-4 animate-glow-pulse cursor-pointer"
@@ -265,14 +425,14 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
-      {/* ── 7. Savings Progress ──────────────────────── */}
+      {/* ── 10. Savings Progress ──────────────────────── */}
       {savingsGoal.target > 0 && (
         <GlassCard brand>
           <SavingsProgress savingsGoal={savingsGoal} />
         </GlassCard>
       )}
 
-      {/* ── 8. Goals Overview ────────────────────────── */}
+      {/* ── 11. Goals Overview ───────────────────────── */}
       {goals.length > 0 && (
         <button onClick={() => onNavigate('goals')} className="w-full text-left mt-4">
           <GlassCard>

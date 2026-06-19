@@ -258,7 +258,7 @@ export default function Analytics() {
         <div className="space-y-4">
           {trends.slice(0, 5).map((trend) => (
             <GlassCard brand key={trend.category}>
-              <h3 className="text-sm font-semibold capitalize mb-3">{trend.category}</h3>
+              <h3 className="text-sm font-semibold mb-3">{EXPENSE_CATEGORIES.find((c) => c.id === trend.category)?.label || trend.category}</h3>
               <div className="h-32 -mx-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={trend.data} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>

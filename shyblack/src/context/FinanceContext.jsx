@@ -12,6 +12,9 @@ import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATU
 import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
 import { getTemplates, saveTemplates, createTemplate, deleteTemplate, getRecentTemplates } from '../utils/templates'
 import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary } from '../utils/emi'
+import { getAccounts, saveAccounts, saveNetWorthSnapshot } from '../utils/networth'
+import { archiveOldTransactions, getArchiveStats } from '../utils/archiveEngine'
+import { runIntegrityCheck, applyRepairs } from '../utils/dataIntegrity'
 import {
   calculateFinancialScore, detectOverspending, getSavingsRecommendations,
   getHabitInsights, getFinancialHealth, checkStreakMilestone,
@@ -69,6 +72,23 @@ function loadInitialState() {
       }
     }
 
+    const integrityResult = runIntegrityCheck({ transactions, debts: sanitizeDebts(safeStorage.get(STORAGE_KEYS.DEBTS, [])), goals: getGoals(), accounts: getAccounts(), transfers: safeStorage.get(STORAGE_KEYS.TRANSFERS, []), emis: getEmis() })
+    if (integrityResult.hasIssues && integrityResult.summary.totalRepairs > 0) {
+      const repaired = applyRepairs(integrityResult)
+      if (repaired.transactions) transactions = sanitizeTransactions(repaired.transactions)
+      if (repaired.debts) safeStorage.set(STORAGE_KEYS.DEBTS, repaired.debts)
+      if (repaired.goals) safeStorage.set(STORAGE_KEYS.GOALS, repaired.goals)
+      if (repaired.accounts) safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, repaired.accounts)
+      if (repaired.transfers) safeStorage.set(STORAGE_KEYS.TRANSFERS, repaired.transfers)
+      if (repaired.emis) safeStorage.set(STORAGE_KEYS.EMIS, repaired.emis)
+    }
+
+    const archiveResult = archiveOldTransactions(transactions)
+    if (archiveResult.archivedCount > 0) {
+      safeStorage.set(STORAGE_KEYS.TRANSACTIONS, archiveResult.active)
+      transactions = sanitizeTransactions(archiveResult.active)
+    }
+
     const goals = getGoals()
     if (goals.length === 0) migrateLegacySavingsGoal()
     return {
@@ -82,6 +102,7 @@ function loadInitialState() {
       goals: getGoals(),
       templates: getTemplates(),
       emis: getEmis(),
+      accounts: getAccounts(),
       _migrationResult: migrationResult,
       _recoverySnapshot: recoverySnapshot,
     }
@@ -96,6 +117,7 @@ function loadInitialState() {
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
       emis: [],
+      accounts: [],
       _migrationResult: null,
       _recoverySnapshot: fallbackSnap,
     }
@@ -104,7 +126,7 @@ function loadInitialState() {
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, emis, _recoverySnapshot } = state
+  const { transactions, savingsGoal, budgets, recurring, tags, security, debts, goals, templates, emis, accounts, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
   const overspendTimer = useRef(null)
@@ -132,7 +154,7 @@ export function FinanceProvider({ children }) {
     return () => { if (txPersistTimer.current) clearTimeout(txPersistTimer.current) }
   }, [transactions])
 
-  // Flush + snapshot on app background to prevent Android lifecycle data loss
+  // Flush + snapshot + archive on app background to prevent Android lifecycle data loss
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
@@ -141,8 +163,16 @@ export function FinanceProvider({ children }) {
           txPersistTimer.current = null
         }
         try {
+          const archiveResult = archiveOldTransactions(transactionsRef.current)
+          if (archiveResult.archivedCount > 0) {
+            safeStorage.set(STORAGE_KEYS.TRANSACTIONS, archiveResult.active)
+            return
+          }
           safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactionsRef.current)
           saveSnapshot(transactionsRef.current, savingsGoalRef.current)
+          const accts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
+          const dts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
+          saveNetWorthSnapshot(transactionsRef.current, dts, accts)
         } catch {}
       }
     }
@@ -159,6 +189,7 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveGoals(goals) } catch {} }, [goals])
   useEffect(() => { try { saveTemplates(templates) } catch {} }, [templates])
   useEffect(() => { try { saveEmis(emis) } catch {} }, [emis])
+  useEffect(() => { try { saveAccounts(accounts) } catch {} }, [accounts])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -419,6 +450,7 @@ export function FinanceProvider({ children }) {
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
       emis: [],
+      accounts: [],
     })
   }, [])
 
@@ -426,6 +458,7 @@ export function FinanceProvider({ children }) {
     const txs = data.transactions ? sanitizeTransactions(data.transactions) : undefined
     const dts = data.debts ? sanitizeDebts(data.debts) : undefined
     const svg = data.savings || data.savingsGoal ? sanitizeSavingsGoal(data.savings || data.savingsGoal) : undefined
+    const accts = data.accounts ? (Array.isArray(data.accounts) ? data.accounts : undefined) : undefined
     setState((prev) => ({
       ...prev,
       ...(txs ? { transactions: txs } : {}),
@@ -434,6 +467,7 @@ export function FinanceProvider({ children }) {
       ...(data.recurring ? { recurring: data.recurring } : {}),
       ...(dts ? { debts: dts } : {}),
       ...(data.emis ? { emis: data.emis } : {}),
+      ...(accts ? { accounts: accts } : {}),
     }))
     if (data.emis) {
       rescheduleAllEmiNotifications(data.emis).catch(() => {})
@@ -456,28 +490,39 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const insights = useMemo(() => {
-    try {
-      const score = calculateFinancialScore(transactions)
-      return {
-        score,
-        scoreBreakdown: getScoreBreakdown(transactions),
-        overspend: detectOverspending(transactions),
-        recommendations: getSavingsRecommendations(transactions, savingsGoal),
-        habits: getHabitInsights(transactions),
-        health: getFinancialHealth(transactions),
-        scoreHistory: getMonthlyScoreHistory(transactions, 6),
-        scoreVelocity: getScoreVelocity(transactions),
-        streak: getLoggingStreak(transactions),
-        monthPrediction: predictMonthEndSpend(transactions),
-        trends: getCategoryTrends(transactions, 3),
-      }
-    } catch {
+    const txLen = transactions.length
+    if (txLen < 3) {
       return {
         score: { score: 0, level: 'N/A', factors: [] },
         overspend: null, recommendations: [], habits: [], health: null,
         scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
       }
     }
+    const start = performance.now()
+    const result = (() => {
+      try {
+        return {
+          score: calculateFinancialScore(transactions),
+          scoreBreakdown: getScoreBreakdown(transactions),
+          overspend: detectOverspending(transactions),
+          recommendations: getSavingsRecommendations(transactions, savingsGoal),
+          habits: getHabitInsights(transactions),
+          health: getFinancialHealth(transactions),
+          scoreHistory: getMonthlyScoreHistory(transactions, 6),
+          scoreVelocity: getScoreVelocity(transactions),
+          streak: getLoggingStreak(transactions),
+          monthPrediction: predictMonthEndSpend(transactions),
+          trends: getCategoryTrends(transactions, 3),
+        }
+      } catch {
+        return {
+          score: { score: 0, level: 'N/A', factors: [] },
+          overspend: null, recommendations: [], habits: [], health: null,
+          scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+        }
+      }
+    })()
+    return result
   }, [transactions, savingsGoal])
 
   const transactionIndex = useMemo(() => {
@@ -491,6 +536,10 @@ export function FinanceProvider({ children }) {
   const goalsProjections = useMemo(() => {
     return goals.map((g) => ({ ...g, projection: getGoalProjection(g) }))
   }, [goals])
+
+  const updateAccounts = useCallback((newAccounts) => {
+    setState((prev) => ({ ...prev, accounts: newAccounts }))
+  }, [])
 
   const addGoal = useCallback((data) => {
     const goal = createGoal(data)
@@ -698,6 +747,7 @@ export function FinanceProvider({ children }) {
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
     emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
+    accounts, updateAccounts,
   }), [
     transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
     cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
@@ -713,6 +763,7 @@ export function FinanceProvider({ children }) {
     debts, addDebt, updateDebt, deleteDebt, recordRepayment, debtsSummary,
     addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
     emis, addEmi, updateEmi, closeEmi, pauseEmi, resumeEmi, markEmiPaid, emiSummary,
+    accounts, updateAccounts,
   ])
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

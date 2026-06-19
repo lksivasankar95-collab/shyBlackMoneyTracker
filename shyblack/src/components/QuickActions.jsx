@@ -1,11 +1,11 @@
-import { Plus, TrendingUp, Target, BarChart3, FileText } from 'lucide-react'
+import { Target, FileText, History, Calendar, Landmark } from 'lucide-react'
 
 const actions = [
-  { id: 'add', label: 'Add', icon: Plus },
-  { id: 'insights', label: 'Insights', icon: TrendingUp },
   { id: 'budgets', label: 'Budgets', icon: Target },
   { id: 'reports', label: 'Reports', icon: FileText },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'timeline', label: 'Timeline', icon: History },
+  { id: 'calendar', label: 'Calendar', icon: Calendar },
+  { id: 'emi-center', label: 'EMI Center', icon: Landmark },
 ]
 
 export default function QuickActions({ onNavigate, compact }) {

@@ -19,7 +19,14 @@ export const STORAGE_KEYS = {
   GOALS: `${STORAGE_PREFIX}goals`,
   TEMPLATES: `${STORAGE_PREFIX}templates`,
   REVIEW: `${STORAGE_PREFIX}review`,
-  EMI: `${STORAGE_PREFIX}emi`,
+  NET_WORTH_ACCOUNTS: `${STORAGE_PREFIX}net_worth_accounts`,
+  NET_WORTH_HISTORY: `${STORAGE_PREFIX}net_worth_history`,
+  TRANSFERS: `${STORAGE_PREFIX}transfers`,
+  EMIS: `${STORAGE_PREFIX}emis`,
+  FORECAST_CONFIG: `${STORAGE_PREFIX}forecast_config`,
+  ACHIEVEMENTS: `${STORAGE_PREFIX}achievements`,
+  ARCHIVE: `${STORAGE_PREFIX}archive`,
+  SEARCH_INDEX: `${STORAGE_PREFIX}search_idx`,
 }
 
 function getAdapter() {

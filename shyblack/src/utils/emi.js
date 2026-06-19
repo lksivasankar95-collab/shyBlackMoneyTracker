@@ -1,113 +1,151 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { generateId } from './helpers'
 
-const EMI_STATUS = {
+export const EMI_STATUS = {
   ACTIVE: 'active',
-  PAUSED: 'paused',
+  COMPLETED: 'completed',
+  DEFAULTED: 'defaulted',
   CLOSED: 'closed',
+  PAUSED: 'paused',
 }
 
-export { EMI_STATUS }
-
 export function getEmis() {
-  return safeStorage.get(STORAGE_KEYS.EMI, [])
+  return safeStorage.get(STORAGE_KEYS.EMIS, [])
 }
 
 export function saveEmis(emis) {
-  return safeStorage.set(STORAGE_KEYS.EMI, emis)
+  safeStorage.set(STORAGE_KEYS.EMIS, emis)
 }
 
-export function createEmi(data) {
-  return {
+export function createEmi({ name, totalAmount, amount, totalMonths, startDate, category, notes }) {
+  const emis = getEmis()
+  const emi = {
     id: generateId(),
-    name: data.name.trim(),
-    amount: Math.abs(data.amount) || 0,
-    dueDay: Math.min(31, Math.max(1, parseInt(data.dueDay, 10) || 1)),
-    tenure: Math.abs(parseInt(data.tenure, 10) || 12),
-    remainingMonths: Math.abs(parseInt(data.tenure, 10) || 12),
-    lender: (data.lender || '').trim(),
-    contactName: (data.contactName || '').trim(),
-    phoneNumber: (data.phoneNumber || '').trim(),
-    reminderTimes: Array.isArray(data.reminderTimes) ? data.reminderTimes : ['07:00', '08:00', '09:00'],
-    notes: (data.notes || '').trim(),
+    name: (name || '').trim(),
+    totalAmount: Math.abs(totalAmount || 0),
+    amount: Math.abs(amount || 0),
+    totalMonths: Math.abs(totalMonths || 0),
+    remainingMonths: Math.abs(totalMonths || 0),
+    totalPaidCount: 0,
+    totalPaid: 0,
+    remainingAmount: Math.abs(totalAmount || 0),
+    startDate: startDate || new Date().toISOString().split('T')[0],
+    category: category || 'Other',
+    interestRate: 0,
+    interestPaid: 0,
+    principalPaid: 0,
     status: EMI_STATUS.ACTIVE,
-    closedAt: null,
+    notes: (notes || '').trim(),
+    payments: [],
     createdAt: Date.now(),
     updatedAt: Date.now(),
-    lastPaidDate: null,
-    totalPaidCount: 0,
-    paymentHistory: [],
   }
+  emis.push(emi)
+  saveEmis(emis)
+  return emi
 }
 
-export function getDaysInMonth(year, month) {
-  return new Date(year, month + 1, 0).getDate()
-}
+export function recordEmiPayment(emiId, extraAmount = 0) {
+  const emis = getEmis()
+  const idx = emis.findIndex((e) => e.id === emiId)
+  if (idx === -1) return { success: false, error: 'EMI not found' }
 
-export function getEmiDueDate(dueDay, referenceDate) {
-  const now = referenceDate || new Date()
-  const year = now.getFullYear()
-  const month = now.getMonth()
-  const daysInMonth = getDaysInMonth(year, month)
-  const clampedDay = Math.min(dueDay, daysInMonth)
-  return new Date(year, month, clampedDay)
-}
+  const emi = { ...emis[idx] }
+  if (emi.status === EMI_STATUS.COMPLETED) {
+    return { success: false, error: 'EMI already completed' }
+  }
 
-export function getNextEmiDueDate(dueDay, referenceDate) {
-  const now = referenceDate || new Date()
-  const currentDue = getEmiDueDate(dueDay, now)
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const paymentAmount = emi.amount + extraAmount
+  const now = Date.now()
+  const payment = {
+    id: generateId(),
+    amount: paymentAmount,
+    principal: emi.amount - (emi.interestRate / 100 / 12) * emi.remainingAmount,
+    interest: (emi.interestRate / 100 / 12) * emi.remainingAmount,
+    extraAmount,
+    date: new Date().toISOString().split('T')[0],
+    timestamp: now,
+  }
 
-  if (currentDue >= today) return currentDue
+  emi.totalPaid += paymentAmount
+  emi.totalPaidCount += 1
+  emi.remainingMonths = Math.max(0, emi.totalMonths - emi.totalPaidCount)
+  emi.remainingAmount = Math.max(0, emi.totalAmount - emi.totalPaid)
+  emi.interestPaid += payment.interest
+  emi.principalPaid += payment.principal
+  emi.payments.push(payment)
+  emi.updatedAt = now
 
-  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1)
-  return getEmiDueDate(dueDay, nextMonth)
-}
+  if (emi.remainingAmount <= 0 || emi.remainingMonths <= 0) {
+    emi.status = EMI_STATUS.COMPLETED
+    emi.remainingAmount = 0
+    emi.remainingMonths = 0
+  }
 
-export function isPaidThisMonth(emi, year, month) {
-  if (!emi.paymentHistory || emi.paymentHistory.length === 0) return false
-  const prefix = `${year}-${String(month + 1).padStart(2, '0')}`
-  return emi.paymentHistory.some((p) => p.date.startsWith(prefix))
+  emis[idx] = emi
+  saveEmis(emis)
+  return { success: true, emi: emi, payment }
 }
 
 export function getEmiSummary(emis) {
   const active = emis.filter((e) => e.status === EMI_STATUS.ACTIVE)
-  const now = new Date()
-  const currentYear = now.getFullYear()
-  const currentMonth = now.getMonth()
-  const todayStr = now.toISOString().split('T')[0]
-
-  const upcomingEmis = active
-    .map((emi) => {
-      const dueDate = getNextEmiDueDate(emi.dueDay, now)
-      const paidThisMonth = isPaidThisMonth(emi, currentYear, currentMonth)
-      return { ...emi, dueDate, paidThisMonth }
-    })
-    .filter((e) => !e.paidThisMonth && e.dueDate)
-    .sort((a, b) => {
-      const aTime = a.dueDate instanceof Date ? a.dueDate.getTime() : new Date(a.dueDate).getTime()
-      const bTime = b.dueDate instanceof Date ? b.dueDate.getTime() : new Date(b.dueDate).getTime()
-      return aTime - bTime
-    })
-
-  const paidThisMonth = active.filter((e) => isPaidThisMonth(e, currentYear, currentMonth)).length
-
-  const missedCount = active.filter((e) => {
-    const dueDate = getEmiDueDate(e.dueDay, now)
-    const paid = isPaidThisMonth(e, currentYear, currentMonth)
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    return dueDate < today && !paid
-  }).length
+  const completed = emis.filter((e) => e.status === EMI_STATUS.COMPLETED)
+  const totalMonthly = active.reduce((sum, e) => sum + e.amount, 0)
+  const totalRemaining = active.reduce((sum, e) => sum + e.remainingAmount, 0)
+  const totalPaid = emis.reduce((sum, e) => sum + e.totalPaid, 0)
 
   return {
-    totalMonthly: active.reduce((sum, e) => sum + e.amount, 0),
     totalActive: active.length,
-    highestEmi: active.length ? Math.max(...active.map((e) => e.amount)) : 0,
-    upcomingEmis: upcomingEmis.slice(0, 10),
-    upcomingCount: upcomingEmis.length,
-    paidThisMonth,
-    missedCount,
-    remainingLiability: active.reduce((sum, e) => sum + e.amount * e.remainingMonths, 0),
-    totalRemainingMonths: active.reduce((sum, e) => sum + e.remainingMonths, 0),
+    totalCompleted: completed.length,
+    totalMonthly,
+    totalRemaining,
+    totalPaid,
   }
+}
+
+export function getEmiDueDate(emi) {
+  if (!emi || !emi.startDate) return null
+  const start = new Date(emi.startDate)
+  const paid = emi.totalPaidCount || 0
+  const nextDue = new Date(start.getFullYear(), start.getMonth() + paid, start.getDate())
+  if (nextDue.getDate() !== start.getDate()) {
+    nextDue.setDate(0)
+  }
+  return nextDue.toISOString().split('T')[0]
+}
+
+export function getNextEmiDueDate(dueDay, referenceDate) {
+  const ref = referenceDate ? new Date(referenceDate) : new Date()
+  const year = ref.getFullYear()
+  const month = ref.getMonth()
+  const candidate = new Date(year, month, dueDay)
+  if (candidate <= ref) {
+    candidate.setMonth(candidate.getMonth() + 1)
+  }
+  return candidate.toISOString().split('T')[0]
+}
+
+export function getEmiAmortizationSchedule(emi) {
+  const schedule = []
+  const monthlyRate = emi.interestRate / 100 / 12
+  let balance = emi.totalAmount
+  let month = emi.totalPaidCount + 1
+
+  for (let i = 0; i < emi.remainingMonths; i++) {
+    const interest = monthlyRate > 0 ? balance * monthlyRate : 0
+    const principal = Math.min(emi.amount - interest, balance)
+    balance -= principal
+
+    schedule.push({
+      month: month + i,
+      payment: emi.amount,
+      principal: Math.max(0, principal),
+      interest,
+      balance: Math.max(0, balance),
+    })
+
+    if (balance <= 0) break
+  }
+
+  return schedule
 }

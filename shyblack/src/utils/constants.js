@@ -3,6 +3,7 @@ export const INCOME_CATEGORIES = [
   { id: 'freelance', label: 'Freelance', icon: 'Laptop' },
   { id: 'investment', label: 'Investment', icon: 'PieChart' },
   { id: 'trading_withdrawal', label: 'Trading Withdrawal', icon: 'TrendingUp' },
+  { id: 'other_income', label: 'Other', icon: 'HelpCircle' },
 ]
 
 export const EXPENSE_CATEGORIES = [
@@ -14,6 +15,7 @@ export const EXPENSE_CATEGORIES = [
   { id: 'family', label: 'Family', icon: 'Users' },
   { id: 'trading_deposit', label: 'Trading Deposit', icon: 'TrendingDown' },
   { id: 'emi', label: 'EMI', icon: 'Landmark' },
+  { id: 'other_expense', label: 'Other', icon: 'HelpCircle' },
 ]
 
 export const ALL_CATEGORIES = [...INCOME_CATEGORIES, ...EXPENSE_CATEGORIES]
@@ -22,11 +24,6 @@ export const TRANSACTION_TYPES = {
   INCOME: 'income',
   EXPENSE: 'expense',
 }
-
-export const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-]
 
 export const PAYMENT_METHODS = [
   { id: 'gpay', label: 'GPay', icon: 'Smartphone' },

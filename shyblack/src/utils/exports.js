@@ -2,23 +2,185 @@ import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
 import { getMonthlyData } from './analytics'
 
-export function exportToCSV(transactions) {
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 5000)
+}
+
+// ── CSV ──────────────────────────────────────────────
+
+function toCsvValue(val) {
+  const s = String(val ?? '')
+  if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+    return `"${s.replace(/"/g, '""')}"`
+  }
+  return s
+}
+
+function arrayToCsv(headers, rows) {
+  return [headers.join(','), ...rows.map((r) => r.map(toCsvValue).join(','))].join('\n')
+}
+
+export function transactionsToCsv(transactions) {
   const headers = ['Date', 'Type', 'Category', 'Amount', 'Note', 'Person', 'Payment Method', 'Tags']
   const rows = transactions.map((t) => {
     const cat = ALL_CATEGORIES.find((c) => c.id === t.category)
     const method = t.paymentMethod ? PAYMENT_METHODS.find((m) => m.id === t.paymentMethod) : null
     return [
-      t.date,
-      t.type,
-      cat?.label || t.category,
+      t.date, t.type, cat?.label || t.category,
       t.type === 'income' ? t.amount : -t.amount,
-      t.note || '',
-      t.person?.name || '',
+      t.note || '', t.person?.name || '',
       method?.label || t.paymentMethod || '',
       (t.tags || []).join('; '),
-    ].join(',')
+    ]
   })
-  return [headers.join(','), ...rows].join('\n')
+  return arrayToCsv(headers, rows)
+}
+
+export function debtsToCsv(debts) {
+  const headers = ['Person', 'Type', 'Amount', 'Remaining', 'Status', 'Due Date', 'Note']
+  const rows = debts.map((d) => [d.personName, d.type, d.amount, d.remainingAmount, d.status, d.dueDate || '', d.note || ''])
+  return arrayToCsv(headers, rows)
+}
+
+export function goalsToCsv(goals) {
+  const headers = ['Name', 'Target', 'Saved', 'Remaining', 'Category', 'Target Date', 'Status']
+  const rows = goals.map((g) => [g.name, g.target, g.saved || 0, Math.max(0, g.target - (g.saved || 0)), g.category || '', g.targetDate || '', g.status || 'active'])
+  return arrayToCsv(headers, rows)
+}
+
+export function budgetsToCsv(budgets) {
+  const headers = ['Category', 'Budget Limit', 'Spent', 'Remaining']
+  const rows = Object.entries(budgets || {}).filter(([, b]) => b.limit > 0).map(([cat, b]) => {
+    const label = ALL_CATEGORIES.find((c) => c.id === cat)?.label || cat
+    return [label, b.limit, b.spent || 0, Math.max(0, b.limit - (b.spent || 0))]
+  })
+  return arrayToCsv(headers, rows)
+}
+
+export function emisToCsv(emis) {
+  const headers = ['Name', 'Monthly Amount', 'Total Amount', 'Total Months', 'Remaining Months', 'Total Paid', 'Lender', 'Status', 'Start Date']
+  const rows = emis.map((e) => [e.name, e.amount, e.totalAmount, e.totalMonths, e.remainingMonths, e.totalPaid, e.lender || '', e.status, e.startDate])
+  return arrayToCsv(headers, rows)
+}
+
+export function transfersToCsv(transfers, accounts) {
+  const headers = ['Date', 'From Account', 'To Account', 'Amount', 'Note']
+  const rows = transfers.map((t) => {
+    const from = accounts?.find((a) => a.id === t.fromAccountId)?.name || 'Deleted'
+    const to = accounts?.find((a) => a.id === t.toAccountId)?.name || 'Deleted'
+    return [t.date, from, to, t.amount, t.note || '']
+  })
+  return arrayToCsv(headers, rows)
+}
+
+// ── XLSX via SheetJS-compatible manual XML Spreadsheet ──
+// Pure offline, no dependencies, generates .xlsx-compatible XML
+
+function xlsxCell(type, value) {
+  return `<Cell><Data ss:Type="${type}">${String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</Data></Cell>`
+}
+
+function xlsxRow(cells) {
+  return `<Row>${cells.map((c) => xlsxCell('String', c)).join('')}</Row>`
+}
+
+function xlsxNumberRow(cells) {
+  return `<Row>${cells.map((c) => xlsxCell(typeof c === 'number' ? 'Number' : 'String', c)).join('')}</Row>`
+}
+
+function buildXlsxSheet(name, headers, rows, numberCols) {
+  const headerRow = xlsxRow(headers)
+  const dataRows = rows.map((r) => {
+    if (numberCols) {
+      return xlsxNumberRow(r.map((v, i) => numberCols.includes(i) ? Number(v) : v))
+    }
+    return xlsxRow(r)
+  })
+  return `
+  <Worksheet ss:Name="${name.replace(/[&<>]/g, '')}">
+    <Table>${headerRow}${dataRows.join('')}</Table>
+  </Worksheet>`
+}
+
+export function exportAllToXlsx(data) {
+  const sheets = []
+
+  if (data.transactions?.length > 0) {
+    const headers = ['Date', 'Type', 'Category', 'Amount', 'Note', 'Person', 'Payment Method', 'Tags']
+    const rows = data.transactions.map((t) => {
+      const cat = ALL_CATEGORIES.find((c) => c.id === t.category)
+      const method = t.paymentMethod ? PAYMENT_METHODS.find((m) => m.id === t.paymentMethod) : null
+      return [t.date, t.type, cat?.label || t.category, t.type === 'income' ? t.amount : -t.amount, t.note || '', t.person?.name || '', method?.label || t.paymentMethod || '', (t.tags || []).join('; ')]
+    })
+    sheets.push(buildXlsxSheet('Transactions', headers, rows, [3]))
+  }
+
+  if (data.debts?.length > 0) {
+    const headers = ['Person', 'Type', 'Amount', 'Remaining', 'Status', 'Due Date', 'Note']
+    const rows = data.debts.map((d) => [d.personName, d.type, d.amount, d.remainingAmount, d.status, d.dueDate || '', d.note || ''])
+    sheets.push(buildXlsxSheet('Debts', headers, rows, [2, 3]))
+  }
+
+  if (data.goals?.length > 0) {
+    const headers = ['Name', 'Target', 'Saved', 'Remaining', 'Category', 'Target Date', 'Status']
+    const rows = data.goals.map((g) => [g.name, g.target, g.saved || 0, Math.max(0, g.target - (g.saved || 0)), g.category || '', g.targetDate || '', g.status || 'active'])
+    sheets.push(buildXlsxSheet('Goals', headers, rows, [1, 2, 3]))
+  }
+
+  if (data.emis?.length > 0) {
+    const headers = ['Name', 'Monthly', 'Total', 'Months', 'Remaining', 'Paid', 'Lender', 'Status', 'Start']
+    const rows = data.emis.map((e) => [e.name, e.amount, e.totalAmount, e.totalMonths, e.remainingMonths, e.totalPaid, e.lender || '', e.status, e.startDate])
+    sheets.push(buildXlsxSheet('EMIs', headers, rows, [1, 2, 3, 4, 5]))
+  }
+
+  if (data.transfers?.length > 0) {
+    const headers = ['Date', 'From', 'To', 'Amount', 'Note']
+    const rows = data.transfers.map((t) => {
+      const from = data.accounts?.find((a) => a.id === t.fromAccountId)?.name || 'Deleted'
+      const to = data.accounts?.find((a) => a.id === t.toAccountId)?.name || 'Deleted'
+      return [t.date, from, to, t.amount, t.note || '']
+    })
+    sheets.push(buildXlsxSheet('Transfers', headers, rows, [3]))
+  }
+
+  if (sheets.length === 0) return null
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+  <Styles>
+    <Style ss:ID="Default" ss:Name="Normal"><Font ss:Color="#000000"/></Style>
+  </Styles>
+  ${sheets.join('')}
+</Workbook>`
+
+  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  return blob
+}
+
+export function downloadCsv(csv, filename) {
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+  downloadBlob(blob, filename || `shyblack_export_${new Date().toISOString().split('T')[0]}.csv`)
+}
+
+export function downloadXlsx(blob, filename) {
+  downloadBlob(blob, filename || `shyblack_export_${new Date().toISOString().split('T')[0]}.xlsx`)
+}
+
+// ── Keep existing API compatible ─────────────────────
+
+export function exportToCSV(transactions) {
+  return transactionsToCsv(transactions)
+}
+
+export function downloadCSV(csv, filename) {
+  downloadCsv(csv, filename)
 }
 
 export function generateMonthlyStatement(transactions, year, month) {
@@ -110,22 +272,7 @@ export function generateStatementHTML(statement) {
 </body></html>`
 }
 
-export function downloadCSV(csv, filename) {
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename || `shyblack_export_${new Date().toISOString().split('T')[0]}.csv`
-  a.click()
-  URL.revokeObjectURL(url)
-}
-
 export function downloadHTML(html, filename) {
   const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename || `shyblack_statement_${new Date().toISOString().split('T')[0]}.html`
-  a.click()
-  URL.revokeObjectURL(url)
+  downloadBlob(blob, filename || `shyblack_statement_${new Date().toISOString().split('T')[0]}.html`)
 }

@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
-export const APP_SCHEMA_VERSION = 2
+export const APP_SCHEMA_VERSION = 3
 export const SCHEMA_VERSION_KEY = STORAGE_KEYS.SCHEMA
 
 const SCHEMA_MIGRATIONS = {
@@ -17,6 +17,12 @@ const SCHEMA_MIGRATIONS = {
       return tx
     })
     safeStorage.set(STORAGE_KEYS.TRANSACTIONS, cleaned)
+  },
+  3: () => {
+    const accounts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, null)
+    if (accounts === null) {
+      safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
+    }
   },
 }
 

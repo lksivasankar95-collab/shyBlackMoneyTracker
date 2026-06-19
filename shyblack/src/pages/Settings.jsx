@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
-  Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound,
+  Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
@@ -397,6 +397,17 @@ export default function Settings({ onNavigate }) {
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">Borrow & Lend</p>
               <p className="text-xs text-gray-500">Track money lent or borrowed</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('emi-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Landmark size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">EMI Center</p>
+              <p className="text-xs text-gray-500">Track loan EMIs and payment schedules</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
