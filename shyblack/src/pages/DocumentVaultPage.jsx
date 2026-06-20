@@ -1,7 +1,8 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
   Search, Plus, X, FileText, Image, FolderOpen, Tag, Calendar, ArrowUpDown,
-  ChevronLeft, Trash2, Edit3, Star, ExternalLink, Download, FileType, Share2,
+  ChevronLeft, Trash2, Edit3, Star, Download, FileType, Share2,
+  CheckCircle2, Loader2, ExternalLink, FileDown,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatDate } from '../utils/helpers'
@@ -9,10 +10,11 @@ import {
   DOCUMENT_CATEGORIES, DOCUMENT_SORT_OPTIONS, FILTER_DATE_OPTIONS,
   getDocumentById, getDocumentFileData,
 } from '../utils/documents'
-import { downloadBlob, createPreviewUrl, shareBlob, dataUriToBlob } from '../utils/downloadUtils'
+import { downloadDataUri, shareBlob, dataUriToBlob, downloadDataUriLegacy, openFileNative } from '../utils/downloadUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
+import * as privacy from '../utils/privacy'
 
 const FILE_ICONS = {
   pdf: FileText,
@@ -74,6 +76,13 @@ export default function DocumentVaultPage({ onNavigate }) {
   const [previewUrl, setPreviewUrl] = useState(null)
   const [viewerBlobUrl, setViewerBlobUrl] = useState(null)
   const viewerRef = useRef(null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(null)
+  const [downloadResult, setDownloadResult] = useState(null)
+  const [showDownloadInfo, setShowDownloadInfo] = useState(false)
+  const formDataRef = useRef(formData)
+
+  useEffect(() => { formDataRef.current = formData }, [formData])
 
   useEffect(() => {
     return () => {
@@ -134,8 +143,27 @@ export default function DocumentVaultPage({ onNavigate }) {
   const handleFileChange = useCallback((e) => {
     const file = e.target.files[0]
     if (!file) return
+
+    privacy.suppressLockForTransition(10000)
+
+    setUploading(true)
+    setUploadProgress('Reading file...')
     const ext = file.name.split('.').pop().toLowerCase()
+    const maxSize = 10 * 1024 * 1024
+    if (file.size > maxSize) {
+      setUploading(false)
+      setUploadProgress(null)
+      addToast('File too large. Max 10MB allowed.', 'error')
+      return
+    }
+
     const reader = new FileReader()
+    reader.onprogress = (ev) => {
+      if (ev.lengthComputable) {
+        const pct = Math.round((ev.loaded / ev.total) * 100)
+        setUploadProgress(`Reading... ${pct}%`)
+      }
+    }
     reader.onload = (ev) => {
       setFormData((prev) => ({
         ...prev,
@@ -145,19 +173,32 @@ export default function DocumentVaultPage({ onNavigate }) {
         fileData: ev.target.result,
       }))
       setPreviewUrl(ev.target.result)
+      setUploading(false)
+      setUploadProgress(null)
+    }
+    reader.onerror = () => {
+      setUploading(false)
+      setUploadProgress(null)
+      addToast('Failed to read file.', 'error')
     }
     reader.readAsDataURL(file)
-  }, [])
+  }, [addToast])
 
   const resetForm = useCallback(() => {
     setFormData({ title: '', category: 'other', notes: '', tags: '', relatedEntityType: '', relatedEntityId: '' })
     setPreviewUrl(null)
     setEditingDoc(null)
+    setUploading(false)
+    setUploadProgress(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
   const handleAdd = useCallback(() => {
     if (!formData.title.trim()) return
+    if (!formData.fileData) {
+      addToast('Please select a file to upload.', 'error')
+      return
+    }
     const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
     const data = {
       ...formData,
@@ -167,12 +208,14 @@ export default function DocumentVaultPage({ onNavigate }) {
     }
     if (editingDoc) {
       editDocument(editingDoc.id, data)
+      addToast('Document updated!', 'success')
     } else {
       addDocument(data)
+      addToast('Document uploaded!', 'success')
     }
     setShowAddModal(false)
     resetForm()
-  }, [formData, editingDoc, addDocument, editDocument, resetForm])
+  }, [formData, editingDoc, addDocument, editDocument, resetForm, addToast])
 
   const handleEdit = useCallback((doc) => {
     setEditingDoc(doc)
@@ -196,55 +239,97 @@ export default function DocumentVaultPage({ onNavigate }) {
       removeDocument(id)
       setSelectedDoc(null)
       setShowViewer(false)
+      addToast('Document deleted', 'info')
     }
-  }, [removeDocument])
+  }, [removeDocument, addToast])
 
   const handleView = useCallback((doc) => {
     setSelectedDoc(doc)
-    if (doc.fileDataId) {
-      const fileData = getDocumentFileData(doc.fileDataId)
-      if (fileData && isPdfType(doc.fileType)) {
-        const prev = createPreviewUrl(fileData)
-        if (viewerRef.current) viewerRef.current.revoke()
-        viewerRef.current = prev
-        setViewerBlobUrl(prev.url)
-      } else {
-        setViewerBlobUrl(null)
-        if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null }
-      }
-    } else {
-      setViewerBlobUrl(null)
-      if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null }
-    }
+    setViewerBlobUrl(null)
+    if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null }
     setShowViewer(true)
   }, [])
 
-  const handleDownload = useCallback((doc) => {
-    if (!doc.fileDataId) return
-    const fileData = getDocumentFileData(doc.fileDataId)
-    if (!fileData) return
-    const blob = dataUriToBlob(fileData)
-    if (blob) {
-      downloadBlob(blob, doc.fileName || `${doc.title}.${doc.fileType}`)
-      addToast('File downloaded!', 'success')
-    }
-  }, [addToast])
-
-  const handleShare = useCallback(async (doc) => {
+  const handleOpenPdf = useCallback(async (doc) => {
     if (!doc.fileDataId) return
     const fileData = getDocumentFileData(doc.fileDataId)
     if (!fileData) return
     const blob = dataUriToBlob(fileData)
     if (!blob) return
+    const filename = doc.fileName || `${doc.title}.pdf`
+    await openFileNative(blob, filename)
+  }, [])
+
+  const handleDownload = useCallback(async (doc) => {
+    if (!doc.fileDataId) {
+      addToast('No file attached to this document.', 'error')
+      return
+    }
+    const fileData = getDocumentFileData(doc.fileDataId)
+    if (!fileData) {
+      addToast('File data not found.', 'error')
+      return
+    }
+
+    const filename = doc.fileName || `${doc.title}.${doc.fileType || 'bin'}`
+
+    addToast('Downloading...', 'info')
+
+    try {
+      const result = await downloadDataUri(fileData, filename)
+      if (result.success) {
+        setDownloadResult(result)
+        setShowDownloadInfo(true)
+        addToast(`Saved to ${result.path}`, 'success')
+      } else {
+        const blob = dataUriToBlob(fileData)
+        if (blob) {
+          downloadDataUriLegacy(fileData, filename)
+          addToast('File downloaded (legacy mode)!', 'success')
+        } else {
+          addToast('Download failed: ' + (result.error || 'Unknown error'), 'error')
+        }
+      }
+    } catch (err) {
+      const blob = dataUriToBlob(fileData)
+      if (blob) {
+        downloadDataUriLegacy(fileData, filename)
+        addToast('File downloaded (legacy mode)!', 'success')
+      } else {
+        addToast('Download failed: ' + err.message, 'error')
+      }
+    }
+  }, [addToast])
+
+  const handleShare = useCallback(async (doc) => {
+    if (!doc.fileDataId) {
+      addToast('No file attached.', 'error')
+      return
+    }
+    const fileData = getDocumentFileData(doc.fileDataId)
+    if (!fileData) {
+      addToast('File data not found.', 'error')
+      return
+    }
+    const blob = dataUriToBlob(fileData)
+    if (!blob) {
+      addToast('Could not process file.', 'error')
+      return
+    }
     const filename = doc.fileName || `${doc.title}.${doc.fileType}`
+    addToast('Sharing...', 'info')
+
     const result = await shareBlob(blob, filename, doc.title)
     if (result.shared) {
       addToast('File shared!', 'success')
+    } else if (result.method === 'cancelled') {
+      addToast('Share cancelled', 'info')
     } else if (result.method === 'unsupported') {
-      handleDownload(doc)
-      addToast('Share not supported — file downloaded instead', 'info')
+      addToast('Share not supported on this device.', 'error')
+    } else if (result.error) {
+      addToast('Share failed: ' + result.error, 'error')
     }
-  }, [addToast, handleDownload])
+  }, [addToast])
 
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => prev === 'desc' ? 'asc' : 'desc')
@@ -252,6 +337,12 @@ export default function DocumentVaultPage({ onNavigate }) {
 
   const containerRef = useRef(null)
   const [zoomLevel, setZoomLevel] = useState(1)
+
+  const handleOpenAddModal = useCallback(() => {
+    resetForm()
+    privacy.suppressLockForTransition(10000)
+    setShowAddModal(true)
+  }, [resetForm])
 
   return (
     <div className="p-4 max-w-lg mx-auto pb-24">
@@ -264,7 +355,7 @@ export default function DocumentVaultPage({ onNavigate }) {
           <h1 className="text-lg font-bold text-white">Documents</h1>
         </div>
         <button
-          onClick={() => { resetForm(); setShowAddModal(true) }}
+          onClick={handleOpenAddModal}
           className="p-2.5 rounded-xl bg-neon/10 text-neon border border-neon/20 hover:bg-neon/20 transition-all"
         >
           <Plus size={18} />
@@ -342,7 +433,7 @@ export default function DocumentVaultPage({ onNavigate }) {
           action={
             !searchQuery ? (
               <button
-                onClick={() => { resetForm(); setShowAddModal(true) }}
+                onClick={handleOpenAddModal}
                 className="btn-primary text-xs !px-4 !py-2"
               >
                 Add Document
@@ -463,15 +554,27 @@ export default function DocumentVaultPage({ onNavigate }) {
                   type="file"
                   accept=".jpg,.jpeg,.png,.pdf"
                   onChange={handleFileChange}
-                  className="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-neon/10 file:text-neon hover:file:bg-neon/20"
+                  disabled={uploading}
+                  className="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-neon/10 file:text-neon hover:file:bg-neon/20 disabled:opacity-50"
                 />
-                {previewUrl && (
+                {uploading && (
+                  <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-neon/5 text-neon text-xs">
+                    <Loader2 size={14} className="animate-spin" />
+                    {uploadProgress || 'Processing...'}
+                  </div>
+                )}
+                {!uploading && previewUrl && (
                   <div className="mt-2 relative">
                     {isImageType(formData.fileType) ? (
                       <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
                     ) : (
                       <div className="w-full h-16 rounded-lg bg-matte-200 flex items-center justify-center gap-2 text-xs text-gray-500">
                         <FileText size={16} /> {formData.fileName || 'PDF file selected'}
+                        {formData.fileSize && (
+                          <span className="text-gray-600">
+                            ({(formData.fileSize / 1024 / 1024).toFixed(1)} MB)
+                          </span>
+                        )}
                       </div>
                     )}
                     <button
@@ -538,15 +641,20 @@ export default function DocumentVaultPage({ onNavigate }) {
               <button
                 onClick={() => { setShowAddModal(false); resetForm() }}
                 className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors"
+                disabled={uploading}
               >
                 Cancel
               </button>
               <button
                 onClick={handleAdd}
-                disabled={!formData.title.trim()}
-                className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                disabled={!formData.title.trim() || !formData.fileData || uploading}
+                className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
-                {editingDoc ? 'Update' : 'Add'}
+                {uploading ? (
+                  <><Loader2 size={14} className="animate-spin" /> Uploading...</>
+                ) : (
+                  editingDoc ? 'Update' : 'Upload'
+                )}
               </button>
             </div>
           </div>
@@ -628,12 +736,17 @@ export default function DocumentVaultPage({ onNavigate }) {
                   </div>
                 </div>
               ) : isPdfType(selectedDoc.fileType) ? (
-                <iframe
-                  src={viewerBlobUrl || getDocumentFileData(selectedDoc.fileDataId)}
-                  title={selectedDoc.title}
-                  className="w-full h-full rounded-lg"
-                  style={{ minHeight: '60vh' }}
-                />
+                <div className="flex flex-col items-center justify-center h-full min-h-[40vh] gap-4">
+                  <FileText size={48} className="text-neon opacity-60" />
+                  <p className="text-sm text-gray-400">PDF preview not available on this device</p>
+                  <button
+                    onClick={() => handleOpenPdf(selectedDoc)}
+                    className="py-2.5 px-6 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 transition-all flex items-center gap-2"
+                  >
+                    <ExternalLink size={16} />
+                    Open PDF
+                  </button>
+                </div>
               ) : (
                 <div className="text-center text-gray-500">
                   <FileType size={48} className="mx-auto mb-3 opacity-40" />
@@ -666,10 +779,64 @@ export default function DocumentVaultPage({ onNavigate }) {
               <div className="flex items-center gap-3 text-[10px] text-gray-600 w-full">
                 <span>Added {formatDate(new Date(selectedDoc.createdAt))}</span>
                 {selectedDoc.fileName && <span>{selectedDoc.fileName}</span>}
+                {selectedDoc.fileSize && (
+                  <span>{(selectedDoc.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                )}
                 {selectedDoc.relatedEntityType && (
                   <span className="text-neon/60">Linked to {selectedDoc.relatedEntityType}</span>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Download Info Modal */}
+      {showDownloadInfo && downloadResult && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowDownloadInfo(false)}>
+          <div className="w-[90%] max-w-sm bg-matte rounded-2xl p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-neon/10 flex items-center justify-center">
+                <CheckCircle2 size={20} className="text-neon" />
+              </div>
+              <div>
+                <h2 className="text-sm font-semibold text-white">Download Complete</h2>
+                <p className="text-[10px] text-gray-500">File saved successfully</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 mb-4">
+              <div className="p-3 rounded-xl bg-white/[0.03]">
+                <p className="text-[10px] text-gray-500 mb-0.5">File Name</p>
+                <p className="text-xs text-white font-medium break-all">{downloadResult.filename}</p>
+              </div>
+              <div className="p-3 rounded-xl bg-white/[0.03]">
+                <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                <p className="text-xs text-gray-300 font-mono">{downloadResult.path}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {downloadResult.uri && (
+                <button
+                  onClick={async () => {
+                    try {
+                      const { Share } = await import('@capacitor/share')
+                      await Share.share({ url: downloadResult.uri })
+                    } catch {}
+                  }}
+                  className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors flex items-center justify-center gap-2"
+                >
+                  <ExternalLink size={14} />
+                  Open
+                </button>
+              )}
+              <button
+                onClick={() => setShowDownloadInfo(false)}
+                className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 transition-all"
+              >
+                Done
+              </button>
             </div>
           </div>
         </div>

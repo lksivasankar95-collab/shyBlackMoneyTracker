@@ -26,11 +26,12 @@ export function saveDebts(debts) {
 
 // — Backward compat wrappers —
 
-export function createDebt({ personName, amount, type, dueDate, notes }) {
-  const ledger = createLedger({ personName, amount, type, notes })
+export function createDebt({ personName, amount, type, dueDate, notes, personPhone }) {
+  const ledger = createLedger({ personName, amount, type, notes, personPhone })
   return {
     id: ledger.id,
     personName: ledger.personName,
+    personPhone: ledger.personPhone,
     amount: ledger.originalAmount,
     remainingAmount: ledger.currentBalance,
     type: ledger.type,
@@ -53,11 +54,12 @@ export function applyRepayment(debt, repaymentAmount) {
 
 // — V2 Ledger Engine —
 
-export function createLedger({ personName, amount, type, notes }) {
+export function createLedger({ personName, amount, type, notes, personPhone }) {
   const ledgers = getDebts()
   const ledger = {
     id: generateId(),
     personName: personName.trim(),
+    personPhone: (personPhone || '').trim() || undefined,
     type,
     originalAmount: Math.abs(amount),
     currentBalance: Math.abs(amount),

@@ -1,13 +1,12 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import {
-  ChevronLeft, FileText, Download, Printer, Landmark, Users, BarChart3, Wallet,
-  CreditCard, Share2,
+  ChevronLeft, FileText, Download, Landmark, Users, BarChart3, Wallet,
+  Share2, ExternalLink, CheckCircle2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { generateEmiStatement, generateLedgerStatement, generateMonthlyStatement, generateNetWorthStatement } from '../utils/statementGenerator'
-import { downloadBlob, createPreviewUrl, shareBlob, getSafeWindowOpen } from '../utils/downloadUtils'
-import GlassCard from '../components/GlassCard'
+import { downloadBlob, shareBlob, openFileNative } from '../utils/downloadUtils'
 import { useToast } from '../components/Toast'
 
 const STATEMENT_TYPES = [
@@ -24,9 +23,8 @@ export default function StatementCenterPage({ onNavigate }) {
   const [config, setConfig] = useState({})
   const [generated, setGenerated] = useState(null)
   const [generating, setGenerating] = useState(false)
-  const [previewUrl, setPreviewUrl] = useState(null)
-  const [showPreview, setShowPreview] = useState(false)
-  const previewRef = useRef(null)
+  const [downloadResult, setDownloadResult] = useState(null)
+  const [showDownloadInfo, setShowDownloadInfo] = useState(false)
 
   const now = new Date()
   const months = Array.from({ length: 12 }, (_, i) => {
@@ -40,25 +38,16 @@ export default function StatementCenterPage({ onNavigate }) {
     return allEmis.filter((e) => e.status !== 'closed')
   }, [emis])
 
-  useEffect(() => {
-    return () => {
-      if (previewRef.current) {
-        previewRef.current.revoke()
-        previewRef.current = null
-      }
-    }
-  }, [])
+
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true)
     setGenerated(null)
-    setPreviewUrl(null)
-    if (previewRef.current) {
-      previewRef.current.revoke()
-      previewRef.current = null
-    }
+    setDownloadResult(null)
+    setShowDownloadInfo(false)
     try {
       let result
+      const typeMap = { emi: 'EMI_Statement', ledger: 'Ledger_Statement', monthly: 'Monthly_Statement', networth: 'NetWorth_Statement' }
       if (selectedType === 'emi') {
         const emiId = config.emiId
         const emi = emis.find((e) => e.id === emiId)
@@ -80,10 +69,15 @@ export default function StatementCenterPage({ onNavigate }) {
       }
       if (result) {
         setGenerated(result)
-        const preview = createPreviewUrl(result.dataUri)
-        previewRef.current = preview
-        setPreviewUrl(preview.url)
-        setShowPreview(true)
+        const filename = `${typeMap[selectedType] || 'Statement'}_${new Date().toISOString().split('T')[0]}.pdf`
+        const saveResult = await downloadBlob(result.blob, filename)
+        if (saveResult.success) {
+          setDownloadResult(saveResult)
+          setShowDownloadInfo(true)
+          addToast(`${result.pageCount}-page statement saved!`, 'success')
+        } else {
+          addToast('Statement generated', 'info')
+        }
       }
     } catch (err) {
       console.error('Statement generation failed:', err)
@@ -93,12 +87,23 @@ export default function StatementCenterPage({ onNavigate }) {
     }
   }, [selectedType, config, emis, debts, transactions, accounts, now, addToast])
 
-  const handleDownload = useCallback(() => {
+  const handleOpenPDF = useCallback(async () => {
+    if (!generated?.blob) return
+    const typeMap = { emi: 'EMI_Statement', ledger: 'Ledger_Statement', monthly: 'Monthly_Statement', networth: 'NetWorth_Statement' }
+    const filename = `${typeMap[selectedType] || 'Statement'}_${new Date().toISOString().split('T')[0]}.pdf`
+    await openFileNative(generated.blob, filename)
+  }, [generated, selectedType])
+
+  const handleDownload = useCallback(async () => {
     if (!generated) return
     const typeMap = { emi: 'EMI_Statement', ledger: 'Ledger_Statement', monthly: 'Monthly_Statement', networth: 'NetWorth_Statement' }
     const filename = `${typeMap[selectedType] || 'Statement'}_${new Date().toISOString().split('T')[0]}.pdf`
-    downloadBlob(generated.blob, filename)
-    addToast('Statement downloaded!', 'success')
+    const result = await downloadBlob(generated.blob, filename)
+    if (result.success) {
+      setDownloadResult(result)
+      setShowDownloadInfo(true)
+      addToast('Statement saved!', 'success')
+    }
   }, [generated, selectedType, addToast])
 
   const handleShare = useCallback(async () => {
@@ -108,17 +113,9 @@ export default function StatementCenterPage({ onNavigate }) {
     if (result.shared) {
       addToast('Statement shared!', 'success')
     } else if (result.method === 'unsupported') {
-      handleDownload()
-      addToast('Share not supported — file downloaded instead', 'info')
+      addToast('Share not supported', 'info')
     }
-  }, [generated, handleDownload, addToast])
-
-  const handlePrint = useCallback(() => {
-    if (!generated) return
-    const url = URL.createObjectURL(generated.blob)
-    getSafeWindowOpen(url)
-    setTimeout(() => URL.revokeObjectURL(url), 60000)
-  }, [generated])
+  }, [generated, addToast])
 
   if (!selectedType) {
     return (
@@ -172,7 +169,7 @@ export default function StatementCenterPage({ onNavigate }) {
       </div>
 
       {/* Config */}
-      {!showPreview && (
+      {!showDownloadInfo && (
         <div className="space-y-4">
           {selectedType === 'emi' && (
             <div>
@@ -258,49 +255,60 @@ export default function StatementCenterPage({ onNavigate }) {
         </div>
       )}
 
-      {/* Preview */}
-      {showPreview && previewUrl && (
+      {/* Download Info */}
+      {showDownloadInfo && downloadResult && (
         <div className="space-y-4">
-          <div className="glass p-3 rounded-xl">
-            {generated && (
-              <p className="text-xs text-gray-500 mb-2">
-                {generated.pageCount} page{generated.pageCount !== 1 ? 's' : ''} generated
-              </p>
-            )}
-            <iframe
-              src={previewUrl}
-              title="Statement Preview"
-              className="w-full rounded-lg border border-glass-border"
-              style={{ height: '60vh' }}
-            />
-          </div>
+          <div className="glass p-4 rounded-xl">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+                <CheckCircle2 size={16} className="text-neon" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-white">Statement Saved</p>
+                {generated && (
+                  <p className="text-[10px] text-gray-500">{generated.pageCount} page{generated.pageCount !== 1 ? 's' : ''}</p>
+                )}
+              </div>
+            </div>
 
-          <div className="flex gap-2">
+            <div className="space-y-2 mb-3">
+              <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                <p className="text-[10px] text-gray-500 mb-0.5">File Name</p>
+                <p className="text-xs text-white font-medium break-all">{downloadResult.filename}</p>
+              </div>
+              <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                <p className="text-xs text-gray-300 font-mono">{downloadResult.path}</p>
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleOpenPDF}
+                className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all flex items-center justify-center gap-1.5"
+              >
+                <ExternalLink size={13} />
+                Open
+              </button>
+              <button
+                onClick={handleShare}
+                className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
+              >
+                <Share2 size={13} />
+                Share
+              </button>
+            </div>
             <button
               onClick={handleDownload}
-              className="flex-1 py-3 rounded-xl bg-neon/10 text-neon text-sm font-semibold border border-neon/20 hover:bg-neon/20 transition-all flex items-center justify-center gap-2"
+              className="w-full mt-2 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
             >
-              <Download size={16} />
-              Download PDF
-            </button>
-            <button
-              onClick={handlePrint}
-              className="flex-1 py-3 rounded-xl bg-white/[0.05] text-gray-300 text-sm font-semibold border border-glass-border hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2"
-            >
-              <Printer size={16} />
-              Print
+              <Download size={13} />
+              Save Again
             </button>
           </div>
-          <button
-            onClick={handleShare}
-            className="w-full py-2.5 rounded-xl bg-white/[0.05] text-gray-300 text-xs font-medium border border-glass-border hover:bg-white/[0.08] transition-all flex items-center justify-center gap-2"
-          >
-            <Share2 size={14} />
-            Share
-          </button>
 
           <button
-            onClick={() => { setShowPreview(false); setGenerated(null); setPreviewUrl(null) }}
+            onClick={() => { setShowDownloadInfo(false); setGenerated(null); setDownloadResult(null) }}
             className="w-full py-2.5 text-xs text-gray-500 hover:text-white transition-colors"
           >
             Generate Another Statement

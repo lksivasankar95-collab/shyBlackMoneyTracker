@@ -14,12 +14,14 @@ if (!globalThis.crypto) {
 
 // Node 16 polyfill — Blob not global until Node 18
 // jsPDF v4 requires Blob as a global, so we must set it on globalThis BEFORE jsPDF is loaded.
-if (typeof globalThis.Blob === 'undefined') {
+// We use Object.defineProperty on the global object to ensure it's visible as a free variable
+function _polyfillBlob() {
+  if (typeof Blob !== 'undefined') return
+  let BlobImpl
   try {
-    const { Blob } = require('buffer')
-    globalThis.Blob = Blob
+    BlobImpl = require('buffer').Blob
   } catch {
-    globalThis.Blob = class Blob {
+    BlobImpl = class Blob {
       constructor(parts, opts) {
         this.type = (opts && opts.type) || ''
         this.size = (parts || []).reduce((s, p) => {
@@ -31,5 +33,7 @@ if (typeof globalThis.Blob === 'undefined') {
       }
     }
   }
-  if (typeof Blob === 'undefined') { global.Blob = globalThis.Blob }
+  global.Blob = BlobImpl
+  globalThis.Blob = BlobImpl
 }
+_polyfillBlob()

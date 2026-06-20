@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Trash2, User, Smartphone } from 'lucide-react'
+import { Trash2, Pencil, User, Smartphone } from 'lucide-react'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
@@ -18,7 +18,7 @@ function getSubtitle(tx) {
   return parts.join(' · ')
 }
 
-const TransactionItem = memo(function TransactionItem({ transaction, onDelete, compact }) {
+const TransactionItem = memo(function TransactionItem({ transaction, onDelete, onEdit, compact }) {
   const cat = ALL_CATEGORIES.find((c) => c.id === transaction.category)
   const isIncome = transaction.type === 'income'
   const subtitle = useMemo(() => getSubtitle(transaction), [transaction])
@@ -54,7 +54,7 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, c
           </p>
         )}
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <div className="text-right">
           <p className={`text-sm font-bold tabular-nums leading-tight ${
               isIncome ? 'text-neon glow-neon-sm' : 'text-red-400'
@@ -68,15 +68,26 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, c
             </p>
           )}
         </div>
-        {onDelete && (
-          <button
-            onClick={() => onDelete(transaction.id)}
-            className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-150"
-            aria-label="Delete transaction"
-          >
-            <Trash2 size={14} />
-          </button>
-        )}
+        <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-150">
+          {onEdit && (
+            <button
+              onClick={() => onEdit(transaction.id)}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-neon hover:bg-neon/10 transition-all duration-150"
+              aria-label="Edit transaction"
+            >
+              <Pencil size={13} />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={() => onDelete(transaction.id)}
+              className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
+              aria-label="Delete transaction"
+            >
+              <Trash2 size={13} />
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )

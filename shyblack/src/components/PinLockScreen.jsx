@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Lock, AlertTriangle, Clock } from 'lucide-react'
+import { Lock, AlertTriangle, Clock, Fingerprint } from 'lucide-react'
 import * as privacy from '../utils/privacy'
 import { hapticSuccess } from '../utils/haptics'
+import { tryBiometricUnlock, checkBiometricAvailability, isBiometricEnabled } from '../utils/biometrics'
 
 export default function PinLockScreen({ onUnlock, onResetData }) {
   const [pin, setPin] = useState('')
@@ -10,6 +11,8 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
   const [resetConfirm, setResetConfirm] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [requiresReset, setRequiresReset] = useState(false)
+  const [bioAvailable, setBioAvailable] = useState(false)
+  const [bioAttempted, setBioAttempted] = useState(false)
   const inputRef = useRef(null)
   const cooldownTimer = useRef(null)
 
@@ -23,6 +26,34 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
       startCooldown(cooldownRemaining)
     }
   }, [])
+
+  useEffect(() => {
+    if (isBiometricEnabled()) {
+      checkBiometricAvailability().then((r) => setBioAvailable(r.available))
+    }
+  }, [])
+
+  useEffect(() => {
+    if (bioAvailable && !bioAttempted) {
+      setBioAttempted(true)
+      tryBiometricUnlock().then((result) => {
+        if (result.unlocked) {
+          hapticSuccess()
+          onUnlock()
+        }
+      })
+    }
+  }, [bioAvailable, bioAttempted, onUnlock])
+
+  const handleBiometricUnlock = useCallback(async () => {
+    const result = await tryBiometricUnlock()
+    if (result.unlocked) {
+      hapticSuccess()
+      onUnlock()
+    } else {
+      setError('Biometric unlock failed. Use PIN.')
+    }
+  }, [onUnlock])
 
   function startCooldown(seconds) {
     setCooldown(seconds)
@@ -160,6 +191,16 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         <Lock size={14} />
         Unlock
       </button>
+
+      {bioAvailable && (
+        <button
+          onClick={handleBiometricUnlock}
+          className="mt-4 w-full max-w-[220px] py-2.5 rounded-xl border border-glass-border text-gray-400 text-sm font-medium hover:text-white hover:border-neon/30 transition-all flex items-center justify-center gap-2"
+        >
+          <Fingerprint size={16} />
+          Use Fingerprint
+        </button>
+      )}
 
       {!showForgot ? (
         <button

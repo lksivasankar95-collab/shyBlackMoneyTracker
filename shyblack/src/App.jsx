@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, lazy, Suspense, useEffect } from 'react'
 import { FinanceProvider } from './context/FinanceContext'
 import { ToastProvider } from './components/Toast'
+import { I18nProvider } from './i18n'
 import BrandHeader from './components/BrandHeader'
 import BottomNav from './components/BottomNav'
 import AndroidBackHandler from './components/AndroidBackHandler'
@@ -14,6 +15,7 @@ import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
 import QuickActionCenter from './components/QuickActionCenter'
 import ScrollRestoration from './components/ScrollRestoration'
+import { App as CapApp } from '@capacitor/app'
 
 const DEBUG = true
 const debug = (msg, data) => {
@@ -242,26 +244,43 @@ export default function App() {
 
   useEffect(() => {
     debug('visibility effect mounted, isLocked=', isLocked)
+
     const handleVisibility = () => {
       if (document.hidden) {
-        debug('app backgrounded')
+        debug('app backgrounded (visibilitychange)')
         privacy.onAppBackground()
       } else {
-        debug('app resumed, checking lock state')
+        debug('app resumed (visibilitychange), checking lock state')
         const shouldLock = privacy.shouldLockOnResume()
         debug('shouldLockOnResume result', shouldLock)
         if (shouldLock !== isLocked) {
           debug('updating isLocked from', isLocked, 'to', shouldLock)
           setIsLocked(shouldLock)
-        } else {
-          debug('isLocked unchanged', isLocked)
         }
       }
     }
+
     document.addEventListener('visibilitychange', handleVisibility)
+
+    let capListener = null
+    CapApp.addListener('appStateChange', ({ isActive }) => {
+      if (isActive) {
+        debug('app resumed (Capacitor), checking lock state')
+        const shouldLock = privacy.shouldLockOnResume()
+        debug('shouldLockOnResume result', shouldLock)
+        if (shouldLock !== isLocked) {
+          setIsLocked(shouldLock)
+        }
+      } else {
+        debug('app backgrounded (Capacitor)')
+        privacy.onAppBackground()
+      }
+    }).then(l => { capListener = l }).catch(() => {})
+
     return () => {
       debug('visibility effect cleanup')
       document.removeEventListener('visibilitychange', handleVisibility)
+      if (capListener) capListener.remove()
     }
   }, [isLocked])
 
@@ -271,17 +290,19 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <FinanceProvider>
-        <ToastProvider>
-          <LockGate isLocked={isLocked} onUnlock={handleUnlock} />
-          {!isLocked && (
-            <>
-              <ReminderInit />
-              <AppContent />
-            </>
-          )}
-        </ToastProvider>
-      </FinanceProvider>
+      <I18nProvider>
+        <FinanceProvider>
+          <ToastProvider>
+            <LockGate isLocked={isLocked} onUnlock={handleUnlock} />
+            {!isLocked && (
+              <>
+                <ReminderInit />
+                <AppContent />
+              </>
+            )}
+          </ToastProvider>
+        </FinanceProvider>
+      </I18nProvider>
     </ErrorBoundary>
   )
 }

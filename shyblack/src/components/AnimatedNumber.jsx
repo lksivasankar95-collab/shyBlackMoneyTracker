@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 
 export default function AnimatedNumber({ value, format = (v) => v, duration = 600 }) {
-  const [display, setDisplay] = useState(0)
+  const [display, setDisplay] = useState(value)
+  const rafRef = useRef(null)
   const startTime = useRef(null)
   const startValue = useRef(0)
 
@@ -16,9 +17,14 @@ export default function AnimatedNumber({ value, format = (v) => v, duration = 60
       const eased = 1 - Math.pow(1 - progress, 3)
       const current = startValue.current + (target - startValue.current) * eased
       setDisplay(Math.round(current))
-      if (progress < 1) requestAnimationFrame(animate)
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(animate)
+      }
     }
-    requestAnimationFrame(animate)
+    rafRef.current = requestAnimationFrame(animate)
+    return () => {
+      if (rafRef.current) cancelAnimationFrame(rafRef.current)
+    }
   }, [value, duration])
 
   return <span>{format(display)}</span>

@@ -1,10 +1,10 @@
-import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
-import { Download, FileText, BarChart3, Calendar, Share2, Save, Eye, Loader2 } from 'lucide-react'
+import { useState, useMemo, useCallback } from 'react'
+import { Download, FileText, BarChart3, Calendar, Share2, Save, Loader2, ExternalLink, CheckCircle2 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { exportToCSV, generateMonthlyStatement, generateStatementHTML, downloadCSV, downloadHTML } from '../utils/exports'
 import { generateMonthlyReport, generateCategoryReport, generateDateRangeReport, generateAnnualReport } from '../utils/pdfReport'
-import { downloadBlob, createPreviewUrl, shareBlob } from '../utils/downloadUtils'
+import { downloadBlob, shareBlob, openFileNative } from '../utils/downloadUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
@@ -30,18 +30,8 @@ export default function ReportsPage() {
   const [pdfBlob, setPdfBlob] = useState(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pdfError, setPdfError] = useState(null)
-  const [showPreview, setShowPreview] = useState(false)
-  const [previewBlobUrl, setPreviewBlobUrl] = useState(null)
-  const previewRef = useRef(null)
-
-  useEffect(() => {
-    return () => {
-      if (previewRef.current) {
-        previewRef.current.revoke()
-        previewRef.current = null
-      }
-    }
-  }, [])
+  const [downloadResult, setDownloadResult] = useState(null)
+  const [showDownloadInfo, setShowDownloadInfo] = useState(false)
 
   const statement = useMemo(() => generateMonthlyStatement(transactions, selectedYear, selectedMonth), [transactions, selectedYear, selectedMonth])
 
@@ -64,48 +54,39 @@ export default function ReportsPage() {
     setPdfError(null)
     setPdfDataUri(null)
     setPdfBlob(null)
-    setShowPreview(false)
-    setPreviewBlobUrl(null)
-    if (previewRef.current) {
-      previewRef.current.revoke()
-      previewRef.current = null
-    }
+    setDownloadResult(null)
+    setShowDownloadInfo(false)
     try {
       if (transactions.length === 0) throw new Error('No transactions to generate report from.')
-      const r = await new Promise((resolve, reject) => {
-        setTimeout(() => {
-          try {
-            let result
-            switch (reportType) {
-              case 'monthly':
-                result = generateMonthlyReport(transactions, selectedMonth, selectedYear)
-                break
-              case 'category':
-                result = generateCategoryReport(transactions, selectedMonth, selectedYear)
-                break
-              case 'daterange':
-                if (!dateFrom || !dateTo) throw new Error('Please select both start and end dates.')
-                if (dateFrom > dateTo) throw new Error('Start date must be before end date.')
-                result = generateDateRangeReport(transactions, dateFrom, dateTo)
-                break
-              case 'annual':
-                result = generateAnnualReport(transactions, selectedYear)
-                break
-              default:
-                throw new Error('Unknown report type')
-            }
-            resolve(result)
-          } catch (e) {
-            reject(e)
-          }
-        }, 100)
-      })
-      setPdfDataUri(r.dataUri)
-      setPdfBlob(r.blob)
-      const preview = createPreviewUrl(r.dataUri)
-      previewRef.current = preview
-      setPreviewBlobUrl(preview.url)
-      addToast(`${r.pageCount}-page PDF generated!`, 'success')
+      let result
+      switch (reportType) {
+        case 'monthly':
+          result = generateMonthlyReport(transactions, selectedMonth, selectedYear)
+          break
+        case 'category':
+          result = generateCategoryReport(transactions, selectedMonth, selectedYear)
+          break
+        case 'daterange':
+          if (!dateFrom || !dateTo) throw new Error('Please select both start and end dates.')
+          if (dateFrom > dateTo) throw new Error('Start date must be before end date.')
+          result = generateDateRangeReport(transactions, dateFrom, dateTo)
+          break
+        case 'annual':
+          result = generateAnnualReport(transactions, selectedYear)
+          break
+        default:
+          throw new Error('Unknown report type')
+      }
+      setPdfDataUri(result.dataUri)
+      setPdfBlob(result.blob)
+      const saveResult = await downloadBlob(result.blob, `shyblack_report_${Date.now()}.pdf`)
+      if (saveResult.success) {
+        setDownloadResult(saveResult)
+        setShowDownloadInfo(true)
+        addToast(`${result.pageCount}-page PDF saved!`, 'success')
+      } else {
+        addToast('File saved but location unknown', 'info')
+      }
     } catch (e) {
       setPdfError(e.message || 'Failed to generate PDF')
       addToast(e.message || 'Failed to generate PDF', 'error')
@@ -114,11 +95,11 @@ export default function ReportsPage() {
     }
   }, [transactions, reportType, selectedMonth, selectedYear, dateFrom, dateTo, addToast])
 
-  const handleDownloadPDF = useCallback(() => {
+  const handleOpenPDF = useCallback(async () => {
     if (!pdfBlob) return
-    downloadBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
-    addToast('PDF downloaded!', 'success')
-  }, [pdfBlob, addToast])
+    const result = await openFileNative(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
+    if (result.action === 'cancelled') return
+  }, [pdfBlob])
 
   const handleSharePDF = useCallback(async () => {
     if (!pdfBlob) return
@@ -126,10 +107,21 @@ export default function ReportsPage() {
     if (result.shared) {
       addToast('PDF shared!', 'success')
     } else if (result.method === 'unsupported') {
-      handleDownloadPDF()
-      addToast('Share not supported — file downloaded instead', 'info')
+      addToast('Share not supported', 'info')
     }
-  }, [pdfBlob, handleDownloadPDF, addToast])
+  }, [pdfBlob, addToast])
+
+  const handleDownloadPDF = useCallback(async () => {
+    if (!pdfBlob) return
+    const result = await downloadBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
+    if (result.success) {
+      setDownloadResult(result)
+      setShowDownloadInfo(true)
+      addToast('PDF downloaded!', 'success')
+    } else {
+      addToast('Download failed', 'error')
+    }
+  }, [pdfBlob, addToast])
 
   const handleSavePDF = useCallback(() => {
     handleDownloadPDF()
@@ -245,24 +237,15 @@ export default function ReportsPage() {
             )}
 
             {/* PDF Actions */}
-            {pdfDataUri && !pdfLoading && (
-              <div className="mt-4 space-y-3">
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setShowPreview(!showPreview)}
-                    className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2"
-                  >
-                    <Eye size={13} />
-                    {showPreview ? 'Hide' : 'Preview'}
-                  </button>
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="btn-primary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2"
-                  >
-                    <Download size={13} />
-                    Download
-                  </button>
-                </div>
+            {pdfDataUri && !pdfLoading && !showDownloadInfo && (
+              <div className="mt-4 space-y-2">
+                <button
+                  onClick={handleOpenPDF}
+                  className="btn-primary w-full text-xs flex items-center justify-center gap-1.5 py-2.5"
+                >
+                  <ExternalLink size={14} />
+                  Open Report
+                </button>
                 <div className="flex gap-2">
                   <button
                     onClick={handleSharePDF}
@@ -272,23 +255,56 @@ export default function ReportsPage() {
                     Share
                   </button>
                   <button
-                    onClick={handleSavePDF}
+                    onClick={handleDownloadPDF}
                     className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2"
                   >
-                    <Save size={13} />
-                    Save
+                    <Download size={13} />
+                    Save Again
                   </button>
                 </div>
+              </div>
+            )}
 
-                {showPreview && previewBlobUrl && (
-                  <div className="mt-2 rounded-xl overflow-hidden border border-glass-border">
-                    <iframe
-                      src={previewBlobUrl}
-                      className="w-full h-[400px]"
-                      title="PDF Preview"
-                    />
+            {/* Download Info Modal */}
+            {showDownloadInfo && downloadResult && (
+              <div className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-glass-border">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+                    <CheckCircle2 size={16} className="text-neon" />
                   </div>
-                )}
+                  <div>
+                    <p className="text-xs font-semibold text-white">Report Saved</p>
+                    <p className="text-[10px] text-gray-500">PDF generated and saved to device</p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 mb-3">
+                  <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                    <p className="text-[10px] text-gray-500 mb-0.5">File Name</p>
+                    <p className="text-xs text-white font-medium break-all">{downloadResult.filename}</p>
+                  </div>
+                  <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                    <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                    <p className="text-xs text-gray-300 font-mono">{downloadResult.path}</p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleOpenPDF}
+                    className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <ExternalLink size={13} />
+                    Open Report
+                  </button>
+                  <button
+                    onClick={handleSharePDF}
+                    className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
+                  >
+                    <Share2 size={13} />
+                    Share
+                  </button>
+                </div>
               </div>
             )}
           </GlassCard>

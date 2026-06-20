@@ -5,7 +5,7 @@ const actions = [
   { id: 'reports', label: 'Reports', icon: FileText },
   { id: 'timeline', label: 'Timeline', icon: History },
   { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'emi-center', label: 'EMI Center', icon: Landmark },
+  { id: 'emi-center', label: 'EMIs', icon: Landmark },
 ]
 
 export default function QuickActions({ onNavigate, compact }) {
@@ -19,7 +19,8 @@ export default function QuickActions({ onNavigate, compact }) {
           <button
             key={action.id}
             onClick={() => onNavigate(action.id)}
-            className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl glass hover:border-neon/20 hover:shadow-brand-sm active:scale-95 transition-all duration-200 group"
+            className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl glass hover:border-neon/20 hover:shadow-brand-sm active:scale-95 transition-all duration-200 group min-h-[64px]"
+            aria-label={`Open ${action.label}`}
           >
             <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-matte-200 group-hover:bg-neon/10 transition-colors duration-200">
               <Icon size={18} className="text-gray-400 group-hover:text-neon transition-colors duration-200" />

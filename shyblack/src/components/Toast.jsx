@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react'
-import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react'
+import { createContext, useContext, useState, useCallback, useRef } from 'react'
+import { CheckCircle, XCircle, AlertCircle, RotateCcw, X } from 'lucide-react'
 
 const ToastContext = createContext()
 
@@ -17,23 +17,35 @@ const colors = {
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([])
-
-  const addToast = useCallback((message, type = 'success', duration = 3000) => {
-    const id = Date.now().toString(36)
-    setToasts((prev) => [...prev, { id, message, type }])
-    setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id))
-    }, duration)
-  }, [])
+  const timersRef = useRef({})
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id))
+    if (timersRef.current[id]) {
+      clearTimeout(timersRef.current[id])
+      delete timersRef.current[id]
+    }
   }, [])
+
+  const addToast = useCallback((message, type = 'success', duration = 3000, undoAction = null) => {
+    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 5)
+    setToasts((prev) => [...prev, { id, message, type, undoAction }])
+    if (duration > 0) {
+      timersRef.current[id] = setTimeout(() => {
+        removeToast(id)
+      }, duration)
+    }
+  }, [removeToast])
+
+  const handleUndo = useCallback((id, undoAction) => {
+    if (undoAction) undoAction()
+    removeToast(id)
+  }, [removeToast])
 
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
+      <div className="fixed top-4 right-4 z-[100] flex flex-col gap-2 max-w-sm w-full pointer-events-none" role="status" aria-live="polite">
         {toasts.map((toast) => {
           const Icon = icons[toast.type]
           return (
@@ -43,9 +55,19 @@ export function ToastProvider({ children }) {
             >
               <Icon size={16} className="shrink-0" />
               <span className="text-sm font-medium flex-1">{toast.message}</span>
+              {toast.undoAction && (
+                <button
+                  onClick={() => handleUndo(toast.id, toast.undoAction)}
+                  className="shrink-0 p-1 rounded-lg hover:bg-white/5 transition-colors"
+                  aria-label="Undo"
+                >
+                  <RotateCcw size={14} />
+                </button>
+              )}
               <button
                 onClick={() => removeToast(toast.id)}
-                className="opacity-50 hover:opacity-100 transition-opacity"
+                className="shrink-0 p-1 rounded-lg hover:bg-white/5 transition-colors opacity-50 hover:opacity-100"
+                aria-label="Dismiss"
               >
                 <X size={14} />
               </button>

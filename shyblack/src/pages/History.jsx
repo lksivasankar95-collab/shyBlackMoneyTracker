@@ -4,6 +4,7 @@ import {
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate, groupBy, extractPeopleFromTransactions } from '../utils/helpers'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import TransactionItem from '../components/TransactionItem'
@@ -12,21 +13,6 @@ import GlassCard from '../components/GlassCard'
 import ConfirmationModal from '../components/ConfirmationModal'
 
 const PAGE_SIZE = 50
-
-const SORT_OPTIONS = [
-  { id: 'newest', label: 'Newest First' },
-  { id: 'oldest', label: 'Oldest First' },
-  { id: 'highest', label: 'Highest Amount' },
-  { id: 'lowest', label: 'Lowest Amount' },
-]
-
-const DATE_PRESETS = [
-  { id: 'today', label: 'Today' },
-  { id: 'week', label: 'This Week' },
-  { id: 'month', label: 'This Month' },
-  { id: 'lastMonth', label: 'Last Month' },
-  { id: 'custom', label: 'Custom' },
-]
 
 function getDateRange(preset) {
   const now = new Date()
@@ -53,7 +39,23 @@ function getDateRange(preset) {
 }
 
 export default function History() {
+  const { t } = useTranslation()
   const { transactions, deleteTransaction } = useFinance()
+
+  const SORT_OPTIONS = [
+    { id: 'newest', label: t('transactions.sort_newest') },
+    { id: 'oldest', label: t('transactions.sort_oldest') },
+    { id: 'highest', label: t('transactions.sort_highest') },
+    { id: 'lowest', label: t('transactions.sort_lowest') },
+  ]
+
+  const DATE_PRESETS = [
+    { id: 'today', label: t('transactions.today') },
+    { id: 'week', label: t('transactions.this_week') },
+    { id: 'month', label: t('transactions.this_month') },
+    { id: 'lastMonth', label: t('transactions.last_month') },
+    { id: 'custom', label: t('transactions.custom_range') },
+  ]
   const [search, setSearch] = useState('')
   const [filterType, setFilterType] = useState('all')
   const [filterCategory, setFilterCategory] = useState('')
@@ -183,10 +185,10 @@ export default function History() {
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-bold">Transaction History</h1>
+        <h1 className="text-xl font-bold">{t('transactions.history_title')}</h1>
         {filtered.length > 0 && (
           <span className="text-[10px] text-gray-600 bg-matte-200 px-2 py-1 rounded-lg">
-            {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+            {t('transactions.results_count', { count: filtered.length })}
           </span>
         )}
       </div>
@@ -196,7 +198,7 @@ export default function History() {
         <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
         <input
           type="text"
-          placeholder="Search notes, category, person, amount..."
+          placeholder={t('transactions.search_placeholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="w-full bg-matte-200 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder-gray-600 border border-white/[0.06] focus:border-neon/30 focus:outline-none transition-all"
@@ -222,7 +224,7 @@ export default function History() {
           }`}
         >
           <SlidersHorizontal size={12} />
-          Filters
+          {t('transactions.filters')}
           {activeFilterCount > 0 && (
             <span className="ml-0.5 w-4 h-4 rounded-full bg-neon text-black text-[9px] font-bold flex items-center justify-center">
               {activeFilterCount}
@@ -235,7 +237,7 @@ export default function History() {
             className="flex items-center gap-1 text-[10px] text-gray-500 hover:text-white transition-colors"
           >
             <X size={10} />
-            Clear all
+            {t('transactions.clear_filters')}
           </button>
         )}
       </div>
@@ -247,7 +249,7 @@ export default function History() {
           <div className="mb-3">
             <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
               <Calendar size={11} />
-              Date Range
+              {t('transactions.date_range')}
             </label>
             <div className="flex gap-1.5 flex-wrap mb-2">
               {DATE_PRESETS.map((p) => (
@@ -271,14 +273,14 @@ export default function History() {
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
                   className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
-                  placeholder="From"
+                  placeholder={t('transactions.date_from')}
                 />
                 <input
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
                   className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
-                  placeholder="To"
+                  placeholder={t('transactions.date_to')}
                 />
               </div>
             )}
@@ -288,13 +290,13 @@ export default function History() {
           <div className="mb-3">
             <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
               <Filter size={11} />
-              Transaction Type
+              {t('transactions.transaction_type')}
             </label>
             <div className="flex gap-1.5 mb-2">
               {[
-                { id: 'all', label: 'All' },
-                { id: 'income', label: 'Income' },
-                { id: 'expense', label: 'Expense' },
+                { id: 'all', label: t('transactions.all') },
+                { id: 'income', label: t('transactions.income') },
+                { id: 'expense', label: t('transactions.expense') },
               ].map((t) => (
                 <button
                   key={t.id}
@@ -318,7 +320,7 @@ export default function History() {
               onChange={(e) => setFilterCategory(e.target.value)}
               className="w-full bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none text-gray-400"
             >
-              <option value="">{filterType === 'all' ? 'All Categories' : filterType === 'income' ? 'All Income' : 'All Expenses'}</option>
+              <option value="">{filterType === 'all' ? t('transactions.all_categories') : filterType === 'income' ? t('transactions.all_income') : t('transactions.all_expenses')}</option>
               {categoriesForType.map((cat) => (
                 <option key={cat.id} value={cat.id}>{cat.label}</option>
               ))}
@@ -329,24 +331,24 @@ export default function History() {
           <div className="mb-3">
             <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
               <span className="text-[11px]">₹</span>
-              Amount Range
+              {t('transactions.amount_range')}
             </label>
             <div className="flex gap-2">
               <input
                 type="number"
-                placeholder="Min"
-                value={minAmount}
-                onChange={(e) => setMinAmount(e.target.value)}
-                className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
-                min="0"
-              />
-              <input
-                type="number"
-                placeholder="Max"
-                value={maxAmount}
-                onChange={(e) => setMaxAmount(e.target.value)}
-                className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
-                min="0"
+                placeholder={t('transactions.min')}
+                 value={minAmount}
+                 onChange={(e) => setMinAmount(e.target.value)}
+                 className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
+                 min="0"
+               />
+               <input
+                 type="number"
+                 placeholder={t('transactions.max')}
+                 value={maxAmount}
+                 onChange={(e) => setMaxAmount(e.target.value)}
+                 className="flex-1 bg-matte-200 rounded-lg px-2.5 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
+                 min="0"
               />
             </div>
           </div>
@@ -355,7 +357,7 @@ export default function History() {
           <div>
             <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
               <ArrowUpDown size={11} />
-              Sort By
+              {t('transactions.sort_by')}
             </label>
             <div className="flex gap-1.5 flex-wrap">
               {SORT_OPTIONS.map((opt) => (
@@ -380,25 +382,25 @@ export default function History() {
         open={!!pendingDelete}
         onClose={() => setPendingDelete(null)}
         onConfirm={confirmDelete}
-        title="Delete Transaction?"
-        description="This will permanently remove this transaction from your records."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('transactions.delete_confirm_title')}
+        description={t('transactions.delete_confirm_desc')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         danger
       />
 
       {filtered.length === 0 ? (
         <GlassCard>
           <EmptyState
-            title={activeFilterCount > 0 ? 'No matches found' : 'No transactions'}
-            description={activeFilterCount > 0 ? 'Try adjusting your search or filters' : 'Add your first transaction to see it here'}
+            title={activeFilterCount > 0 ? t('transactions.no_matches') : t('transactions.no_transactions')}
+            description={activeFilterCount > 0 ? t('transactions.no_matches_desc') : t('transactions.no_transactions_desc')}
           />
         </GlassCard>
       ) : (
         <>
           {filtered.length > PAGE_SIZE && (
             <p className="text-[10px] text-gray-600 mb-3 px-1">
-              Showing {Math.min(visibleCount, filtered.length)} of {filtered.length} transactions
+              {t('transactions.showing_count', { shown: Math.min(visibleCount, filtered.length), total: filtered.length })}
             </p>
           )}
           <div className="space-y-4">
@@ -406,7 +408,7 @@ export default function History() {
               <div key={date}>
                 <div className="flex items-center justify-between mb-2 px-1">
                   <p className="text-xs font-semibold text-gray-500">{formatDate(date)}</p>
-                  <p className="text-[10px] text-gray-600">{txs.length} {txs.length === 1 ? 'transaction' : 'transactions'}</p>
+                  <p className="text-[10px] text-gray-600">{t('transactions.transactions_count', { count: txs.length })}</p>
                 </div>
                 <GlassCard>
                   {txs.map((tx) => (
@@ -421,7 +423,7 @@ export default function History() {
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
               className="w-full mt-4 py-3 rounded-xl text-xs font-medium text-gray-400 border border-glass-border hover:text-white hover:border-neon/30 hover:bg-white/[0.02] transition-all"
             >
-              Load {Math.min(PAGE_SIZE, filtered.length - visibleCount)} more
+              {t('transactions.load_more', { count: Math.min(PAGE_SIZE, filtered.length - visibleCount) })}
             </button>
           )}
         </>

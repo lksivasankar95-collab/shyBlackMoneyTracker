@@ -1,23 +1,49 @@
-import { useState } from 'react'
-import { ArrowUpRight, ArrowDownLeft, AlertTriangle } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { ArrowUpRight, ArrowDownLeft, AlertTriangle, Contact, Loader2 } from 'lucide-react'
 import Modal from './Modal'
+import { pickContact } from '../utils/contacts'
+import { useToast } from './Toast'
 
 export default function AddDebtModal({ open, onClose, onSave }) {
+  const { addToast } = useToast()
   const [personName, setPersonName] = useState('')
+  const [personPhone, setPersonPhone] = useState('')
   const [amount, setAmount] = useState('')
   const [type, setType] = useState('lent')
   const [dueDate, setDueDate] = useState('')
   const [notes, setNotes] = useState('')
   const [error, setError] = useState('')
+  const [importingContact, setImportingContact] = useState(false)
 
   const reset = () => {
     setPersonName('')
+    setPersonPhone('')
     setAmount('')
     setType('lent')
     setDueDate('')
     setNotes('')
     setError('')
+    setImportingContact(false)
   }
+
+  const handleImportContact = useCallback(async () => {
+    setImportingContact(true)
+    setError('')
+    try {
+      const result = await pickContact()
+      if (result.success && result.contact) {
+        setPersonName(result.contact.name)
+        setPersonPhone(result.contact.primaryPhone)
+        addToast(`Imported ${result.contact.name}`, 'success')
+      } else if (result.error) {
+        setError(result.error)
+      }
+    } catch {
+      setError('Failed to import contact')
+    } finally {
+      setImportingContact(false)
+    }
+  }, [addToast])
 
   const handleClose = () => {
     reset()
@@ -38,7 +64,14 @@ export default function AddDebtModal({ open, onClose, onSave }) {
       return
     }
 
-    onSave({ personName: personName.trim(), amount: numAmount, type, dueDate, notes: notes.trim() })
+    onSave({
+      personName: personName.trim(),
+      amount: numAmount,
+      type,
+      dueDate,
+      notes: notes.trim(),
+      personPhone: personPhone.trim() || undefined,
+    })
     reset()
   }
 
@@ -80,7 +113,21 @@ export default function AddDebtModal({ open, onClose, onSave }) {
           </button>
         </div>
 
-        <div>
+        {/* Import from Contacts */}
+        <button
+          type="button"
+          onClick={handleImportContact}
+          disabled={importingContact}
+          className="w-full py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20 hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+        >
+          {importingContact ? (
+            <><Loader2 size={14} className="animate-spin" /> Importing...</>
+          ) : (
+            <><Contact size={14} /> Import from Contacts</>
+          )}
+        </button>
+
+        <div className="relative">
           <label className="text-xs text-gray-500 font-medium mb-1.5 block">Person Name</label>
           <input
             type="text"
@@ -90,6 +137,20 @@ export default function AddDebtModal({ open, onClose, onSave }) {
             className="input-field"
             maxLength={50}
             autoFocus
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 font-medium mb-1.5 block">
+            Phone <span className="text-gray-600 font-normal">(optional)</span>
+          </label>
+          <input
+            type="tel"
+            value={personPhone}
+            onChange={(e) => setPersonPhone(e.target.value)}
+            placeholder="+91 98765 43210"
+            className="input-field"
+            maxLength={20}
           />
         </div>
 

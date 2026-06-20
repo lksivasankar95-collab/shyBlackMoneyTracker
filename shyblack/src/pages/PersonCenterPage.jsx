@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   ChevronLeft, Users, DollarSign, FileText, TrendingUp, TrendingDown,
-  Calendar, ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Search,
+  Calendar, ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Search, Phone,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
@@ -40,6 +40,9 @@ export default function PersonCenterPage({ onNavigate }) {
         if (!p.debtBalance) p.debtBalance = 0
         p.debtBalance = (p.debtBalance || 0) + (d.currentBalance ?? d.remainingAmount ?? 0)
         p.debtTotal = (p.debtTotal || 0) + (d.originalAmount || d.amount || 0)
+        if (d.personPhone && !p.phone) {
+          p.phone = d.personPhone
+        }
       }
     })
     return Array.from(map.values()).sort((a, b) => (b.txCount || 0) - (a.txCount || 0))
@@ -71,7 +74,15 @@ export default function PersonCenterPage({ onNavigate }) {
           <button onClick={() => setSelectedPerson(null)} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05]">
             <ChevronLeft size={20} className="text-gray-400" />
           </button>
-          <h1 className="text-lg font-bold text-white">{selectedPerson.name}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-bold text-white">{selectedPerson.name}</h1>
+            {selectedPerson.phone && (
+              <p className="text-[11px] text-gray-500 flex items-center gap-1 mt-0.5">
+                <Phone size={10} />
+                {selectedPerson.phone}
+              </p>
+            )}
+          </div>
         </div>
 
         {personDetail && (
@@ -171,6 +182,11 @@ export default function PersonCenterPage({ onNavigate }) {
                     )}
                     {person.debtTotal > 0 && (
                       <span className="text-[10px] text-gray-500">Ledger: {formatCurrency(person.debtBalance || 0)}</span>
+                    )}
+                    {person.phone && (
+                      <span className="text-[10px] text-gray-600 flex items-center gap-1">
+                        <Phone size={9} /> {person.phone}
+                      </span>
                     )}
                   </div>
                 </div>

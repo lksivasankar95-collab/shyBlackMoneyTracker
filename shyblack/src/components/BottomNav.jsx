@@ -1,14 +1,17 @@
 import { LayoutDashboard, PlusCircle, History, BarChart3, Settings } from 'lucide-react'
-
-const navItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { id: 'add', label: 'Add', icon: PlusCircle },
-  { id: 'history', label: 'History', icon: History },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { id: 'settings', label: 'Settings', icon: Settings },
-]
+import { useTranslation } from '../i18n'
 
 export default function BottomNav({ active, onNavigate }) {
+  const { t } = useTranslation()
+
+  const navItems = [
+    { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { id: 'add', label: t('nav.add'), icon: PlusCircle },
+    { id: 'history', label: t('nav.history'), icon: History },
+    { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
+    { id: 'settings', label: t('nav.settings'), icon: Settings },
+  ]
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50">
       <div className="bg-glass backdrop-blur-xl border-t border-glass-border rounded-t-2xl shadow-lg">

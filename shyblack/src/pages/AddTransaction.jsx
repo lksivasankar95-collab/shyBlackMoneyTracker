@@ -1,12 +1,14 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, getTransactionDescription } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
+import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import CategoryIcon from '../components/CategoryIcon'
 import ConfirmationModal from '../components/ConfirmationModal'
+import { useTranslation } from '../i18n'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
 const MAX_AMOUNT = 99999999
@@ -17,12 +19,44 @@ const TYPE_ICONS = {
   [TRANSACTION_TYPES.EXPENSE]: ArrowDownCircle,
 }
 
-// Session memory: remember last category per type during this app session
+const PAYMENT_ICONS = {
+  gpay: Smartphone,
+  phonepay: Smartphone,
+  paytm: Smartphone,
+  upi: Smartphone,
+  cash: Banknote,
+  bank_transfer: Building2,
+  card: CreditCard,
+}
+
 const lastCategoryByType = { income: '', expense: '' }
 
+function getCurrencySymbol() {
+  try {
+    const data = safeStorage.getRaw(STORAGE_KEYS.ONBOARDING)
+    if (data) {
+      const parsed = JSON.parse(data)
+      if (parsed.currency) {
+        const symbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£', SGD: 'S$', AED: 'د.إ' }
+        return symbols[parsed.currency] || '₹'
+      }
+    }
+  } catch {}
+  return '₹'
+}
+
+function formatAmountShort(amount, symbol) {
+  if (amount >= 100000) return `${symbol}${(amount / 100000).toFixed(1)}L`
+  if (amount >= 1000) return `${symbol}${(amount / 1000).toFixed(0)}k`
+  return `${symbol}${amount}`
+}
+
 export default function AddTransaction({ onNavigate }) {
+  const { t } = useTranslation()
   const { addTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate } = useFinance()
   const amountInputRef = useRef(null)
+  const currencySymbol = useMemo(() => getCurrencySymbol(), [])
+
   const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
   const [category, setCategory] = useState(() => lastCategoryByType[TRANSACTION_TYPES.EXPENSE] || '')
@@ -40,6 +74,7 @@ export default function AddTransaction({ onNavigate }) {
   const [personName, setPersonName] = useState('')
   const [paymentMethod, setPaymentMethod] = useState('')
   const [showPersonSuggestions, setShowPersonSuggestions] = useState(false)
+  const [showMore, setShowMore] = useState(false)
 
   const personSuggestions = useMemo(() => {
     if (!personName.trim()) return []
@@ -49,10 +84,8 @@ export default function AddTransaction({ onNavigate }) {
 
   const transactionType = purpose
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-
   const suggestedTags = getSuggestedTags()
 
-  // Autofocus amount on mount for fast entry
   useEffect(() => {
     const timer = setTimeout(() => amountInputRef.current?.focus(), 150)
     return () => clearTimeout(timer)
@@ -60,8 +93,8 @@ export default function AddTransaction({ onNavigate }) {
 
   const handleAmountChange = (e) => {
     const val = e.target.value
-    if (val === '' || /^\d+$/.test(val)) {
-      const num = parseInt(val, 10)
+    if (val === '' || /^\d+(\.\d{0,2})?$/.test(val)) {
+      const num = parseFloat(val)
       if (val === '' || num <= MAX_AMOUNT) {
         setAmount(val)
         setError('')
@@ -72,7 +105,7 @@ export default function AddTransaction({ onNavigate }) {
           }
         }
       } else {
-        setError('Amount too large')
+        setError(t('transactions.amount_too_large'))
       }
     }
   }
@@ -127,6 +160,7 @@ export default function AddTransaction({ onNavigate }) {
     setSource('')
     setPersonName('')
     setPaymentMethod('')
+    setShowMore(false)
     setSuccess(true)
     setError('')
     setPendingSubmit(null)
@@ -140,25 +174,21 @@ export default function AddTransaction({ onNavigate }) {
     const numAmount = parseFloat(amount)
 
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount')
+      setError(t('transactions.enter_valid_amount'))
       return
     }
     if (numAmount > MAX_AMOUNT) {
-      setError('Amount exceeds maximum limit')
+      setError(t('transactions.amount_exceeds_limit'))
       return
     }
     if (!category) {
-      setError('Please select a category')
+      setError(t('transactions.select_category'))
       return
     }
 
-    const selectedDate = new Date(date)
+    const selectedDate = new Date(date + 'T00:00:00')
     if (isNaN(selectedDate.getTime())) {
-      setError('Invalid date selected')
-      return
-    }
-    if (selectedDate > new Date()) {
-      setError('Future dates are not allowed')
+      setError(t('transactions.invalid_date'))
       return
     }
 
@@ -191,10 +221,8 @@ export default function AddTransaction({ onNavigate }) {
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
-      <h1 className="text-xl font-bold mb-6">Add Transaction</h1>
-
       {/* Type Selector */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-5">
         {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((t) => {
           const Icon = TYPE_ICONS[t]
           const isActive = purpose === t
@@ -211,7 +239,7 @@ export default function AddTransaction({ onNavigate }) {
               }`}
             >
               <Icon size={20} />
-              {t === TRANSACTION_TYPES.INCOME ? 'Income' : 'Expense'}
+              {t === TRANSACTION_TYPES.INCOME ? t('transactions.income') : t('transactions.expense')}
             </button>
           )
         })}
@@ -221,7 +249,7 @@ export default function AddTransaction({ onNavigate }) {
         <div className="mb-4">
           <div className="flex items-center gap-1.5 mb-2">
             <Zap size={12} className="text-yellow-400" />
-            <span className="text-[10px] font-medium text-gray-500">Quick Templates</span>
+            <span className="text-[10px] font-medium text-gray-500">{t('transactions.quick_templates')}</span>
           </div>
           <div className="flex gap-1.5 flex-wrap">
             {recentTemplates.filter((t) => t.type === purpose).slice(0, 4).map((tmpl) => (
@@ -253,19 +281,19 @@ export default function AddTransaction({ onNavigate }) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
-        {/* Amount */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Amount - Core field */}
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Amount</label>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.amount')}</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">₹</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">{currencySymbol}</span>
             <input
               ref={amountInputRef}
               type="text"
-              inputMode="numeric"
+              inputMode="decimal"
               value={amount}
               onChange={handleAmountChange}
-              placeholder="0"
+              placeholder="0.00"
               className="input-field text-2xl font-bold pl-10 py-4 tabular-nums"
             />
           </div>
@@ -281,7 +309,7 @@ export default function AddTransaction({ onNavigate }) {
                     : 'border-glass-border text-gray-500 hover:border-gray-500'
                 }`}
               >
-                ₹{q >= 1000 ? `${(q / 1000).toFixed(0)}k` : q}
+                {formatAmountShort(q, currencySymbol)}
               </button>
             ))}
           </div>
@@ -289,7 +317,7 @@ export default function AddTransaction({ onNavigate }) {
 
         {/* Category */}
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Category</label>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.category')}</label>
           <div className="grid grid-cols-4 gap-2">
             {categories.map((cat) => (
               <button
@@ -305,9 +333,7 @@ export default function AddTransaction({ onNavigate }) {
                 }`}
               >
                 <CategoryIcon icon={cat.icon} size={20} />
-                <span className="text-[10px] font-medium text-center leading-tight">
-                  {cat.label}
-                </span>
+                <span className="text-[10px] font-medium text-center leading-tight">{cat.label}</span>
               </button>
             ))}
           </div>
@@ -315,185 +341,203 @@ export default function AddTransaction({ onNavigate }) {
 
         {/* Note */}
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Note <span className="text-gray-600 font-normal">(optional)</span></label>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.note')} <span className="text-gray-600 font-normal">({t('common.optional')})</span></label>
           <input
             type="text"
             value={note}
             onChange={handleNoteChange}
-            placeholder="e.g. Swiggy order, Salary, Amazon..."
+            placeholder={t('transactions.note_placeholder')}
             className="input-field"
             maxLength={100}
           />
         </div>
 
-        {/* Person */}
-        <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">
-            {purpose === TRANSACTION_TYPES.INCOME ? 'Received From' : 'Paid To'} <span className="text-gray-600 font-normal">(optional)</span>
-          </label>
-          <div className="relative">
-            <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-            <input
-              type="text"
-              value={personName}
-              onChange={(e) => { setPersonName(e.target.value); setShowPersonSuggestions(true) }}
-              onFocus={() => setShowPersonSuggestions(true)}
-              onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 200)}
-              placeholder={purpose === TRANSACTION_TYPES.INCOME ? 'e.g. Rahul, Priya...' : 'e.g. Rahul, Priya...'}
-              className="input-field pl-9"
-              maxLength={50}
-              autoComplete="off"
-            />
-            {showPersonSuggestions && personSuggestions.length > 0 && (
-              <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-matte-200 border border-glass-border rounded-xl overflow-hidden shadow-lg animate-fade-in">
-                {personSuggestions.map((name) => (
-                  <button
-                    key={name}
-                    type="button"
-                    onMouseDown={() => { setPersonName(name); setShowPersonSuggestions(false) }}
-                    className="w-full text-left px-3.5 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
-                  >
-                    <User size={12} className="text-gray-500 shrink-0" />
-                    {name}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-          {recentPeople.length > 0 && !personName && (
-            <div className="flex gap-1.5 mt-2 flex-wrap">
-              {recentPeople.slice(0, 5).map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => setPersonName(name)}
-                  className="px-2.5 py-1 rounded-lg text-[10px] font-medium border border-glass-border text-gray-400 hover:text-white hover:border-gray-500 transition-all"
-                >
-                  {name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Payment Method */}
-        <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Payment Method <span className="text-gray-600 font-normal">(optional)</span></label>
-          <div className="grid grid-cols-4 gap-2">
-            {PAYMENT_METHODS.map((pm) => (
-              <button
-                key={pm.id}
-                type="button"
-                onClick={() => setPaymentMethod(paymentMethod === pm.id ? '' : pm.id)}
-                className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all duration-150 ${
-                  paymentMethod === pm.id
-                    ? 'border-neon/50 bg-neon/10 text-neon'
-                    : 'border-glass-border text-gray-400 hover:border-gray-500 hover:text-white'
-                }`}
-              >
-                <Smartphone size={16} />
-                <span className="text-[9px] font-medium leading-tight text-center">{pm.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Source / Tag */}
-        <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Source / Tag <span className="text-gray-600 font-normal">(optional)</span></label>
-          <input
-            type="text"
-            value={source}
-            onChange={(e) => setSource(e.target.value)}
-            placeholder="e.g. Investment, Loan Given, Salary..."
-            className="input-field"
-            maxLength={50}
-          />
-        </div>
-
-        {/* Tags */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <label className="text-xs text-gray-500 font-medium">Tags <span className="text-gray-600 font-normal">(optional)</span></label>
-            <button
-              type="button"
-              onClick={() => setShowTagPicker(!showTagPicker)}
-              className="flex items-center gap-1 text-xs text-neon/70 hover:text-neon transition-colors"
-            >
-              <Tag size={12} />
-              {showTagPicker ? 'Done' : 'Add tags'}
-            </button>
-          </div>
-          {selectedTags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {selectedTags.map((t) => (
-                <span key={t} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 text-[10px] font-medium border border-purple-500/20">
-                  #{t}
-                  <button type="button" onClick={() => toggleTag(t)} className="hover:text-white">
-                    <X size={10} />
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
-          {showTagPicker && (
-            <div className="flex flex-wrap gap-1.5">
-              {(tags.length > 0 ? tags.map((t) => t.name) : suggestedTags).map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => toggleTag(t)}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all duration-150 ${
-                    selectedTags.includes(t)
-                      ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
-                      : 'border-glass-border text-gray-500 hover:border-gray-400'
-                  }`}
-                >
-                  #{t}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
         {/* Date */}
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">Date</label>
+          <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.date')}</label>
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="input-field"
+            max={new Date().toISOString().split('T')[0]}
           />
         </div>
 
-        {/* Recurring */}
-        <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03]">
-          <button
-            type="button"
-            onClick={() => setIsRecurring(!isRecurring)}
-            className={`p-2 rounded-lg transition-all duration-150 ${
-              isRecurring ? 'bg-neon/10 text-neon' : 'bg-matte-100 text-gray-500'
-            }`}
-          >
-            <Repeat2 size={16} />
-          </button>
-          <div className="flex-1">
-            <p className="text-xs font-medium">Recurring Transaction</p>
-            <p className="text-[11px] text-gray-500">Set up automatic recurring entries</p>
+        {/* More Options Toggle */}
+        <button
+          type="button"
+          onClick={() => setShowMore(!showMore)}
+          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-neon transition-colors"
+        >
+          {showMore ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          {showMore ? t('transactions.less_options') : t('transactions.more_options')}
+        </button>
+
+        {showMore && (
+          <div className="space-y-4 animate-slide-up">
+            {/* Person */}
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-2 block">
+                {purpose === TRANSACTION_TYPES.INCOME ? t('transactions.received_from') : t('transactions.paid_to')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
+              </label>
+              <div className="relative">
+                <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
+                <input
+                  type="text"
+                  value={personName}
+                  onChange={(e) => { setPersonName(e.target.value); setShowPersonSuggestions(true) }}
+                  onFocus={() => setShowPersonSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowPersonSuggestions(false), 200)}
+                  placeholder={t('transactions.person_placeholder')}
+                  className="input-field pl-9"
+                  maxLength={50}
+                  autoComplete="off"
+                />
+                {showPersonSuggestions && personSuggestions.length > 0 && (
+                  <div className="absolute z-10 top-full mt-1 left-0 right-0 bg-matte-200 border border-glass-border rounded-xl overflow-hidden shadow-lg animate-fade-in">
+                    {personSuggestions.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onMouseDown={() => { setPersonName(name); setShowPersonSuggestions(false) }}
+                        className="w-full text-left px-3.5 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"
+                      >
+                        <User size={12} className="text-gray-500 shrink-0" />
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {recentPeople.length > 0 && !personName && (
+                <div className="flex gap-1.5 mt-2 flex-wrap">
+                  {recentPeople.slice(0, 5).map((name) => (
+                    <button
+                      key={name}
+                      type="button"
+                      onClick={() => setPersonName(name)}
+                      className="px-2.5 py-1 rounded-lg text-[10px] font-medium border border-glass-border text-gray-400 hover:text-white hover:border-gray-500 transition-all"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Payment Method */}
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.payment_method')} <span className="text-gray-600 font-normal">({t('common.optional')})</span></label>
+              <div className="grid grid-cols-4 gap-2">
+                {PAYMENT_METHODS.map((pm) => {
+                  const PIcon = PAYMENT_ICONS[pm.id] || Smartphone
+                  return (
+                    <button
+                      key={pm.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(paymentMethod === pm.id ? '' : pm.id)}
+                      className={`flex flex-col items-center gap-1 p-2.5 rounded-xl border transition-all duration-150 ${
+                        paymentMethod === pm.id
+                          ? 'border-neon/50 bg-neon/10 text-neon'
+                          : 'border-glass-border text-gray-400 hover:border-gray-500 hover:text-white'
+                      }`}
+                    >
+                      <PIcon size={16} />
+                      <span className="text-[9px] font-medium leading-tight text-center">{pm.label}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Source */}
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.source')} <span className="text-gray-600 font-normal">({t('common.optional')})</span></label>
+              <input
+                type="text"
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+                placeholder={t('transactions.source_placeholder')}
+                className="input-field"
+                maxLength={50}
+              />
+            </div>
+
+            {/* Tags */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs text-gray-500 font-medium">{t('transactions.tags')} <span className="text-gray-600 font-normal">({t('common.optional')})</span></label>
+                <button
+                  type="button"
+                  onClick={() => setShowTagPicker(!showTagPicker)}
+                  className="flex items-center gap-1 text-xs text-neon/70 hover:text-neon transition-colors"
+                >
+                  <Tag size={12} />
+                  {showTagPicker ? t('common.done') : t('transactions.add_tags')}
+                </button>
+              </div>
+              {selectedTags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  {selectedTags.map((t) => (
+                    <span key={t} className="flex items-center gap-1 px-2 py-1 rounded-lg bg-purple-500/10 text-purple-400 text-[10px] font-medium border border-purple-500/20">
+                      #{t}
+                      <button type="button" onClick={() => toggleTag(t)} className="hover:text-white">
+                        <X size={10} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              {showTagPicker && (
+                <div className="flex flex-wrap gap-1.5">
+                  {(tags.length > 0 ? tags.map((t) => t.name) : suggestedTags).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => toggleTag(t)}
+                      className={`px-2.5 py-1 rounded-lg text-[10px] font-medium border transition-all duration-150 ${
+                        selectedTags.includes(t)
+                          ? 'border-purple-500/30 text-purple-400 bg-purple-500/10'
+                          : 'border-glass-border text-gray-500 hover:border-gray-400'
+                      }`}
+                    >
+                      #{t}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Recurring */}
+            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03]">
+              <button
+                type="button"
+                onClick={() => setIsRecurring(!isRecurring)}
+                className={`p-2 rounded-lg transition-all duration-150 ${
+                  isRecurring ? 'bg-neon/10 text-neon' : 'bg-matte-100 text-gray-500'
+                }`}
+              >
+                <Repeat2 size={16} />
+              </button>
+              <div className="flex-1">
+                <p className="text-xs font-medium">{t('transactions.recurring')}</p>
+                <p className="text-[11px] text-gray-500">{t('transactions.recurring_desc')}</p>
+              </div>
+              {isRecurring && (
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="input-field text-xs !py-1.5 w-24"
+                >
+                  <option value="weekly">{t('budgets.weekly')}</option>
+                  <option value="monthly">{t('budgets.monthly')}</option>
+                  <option value="yearly">{t('budgets.yearly')}</option>
+                </select>
+              )}
+            </div>
           </div>
-          {isRecurring && (
-            <select
-              value={frequency}
-              onChange={(e) => setFrequency(e.target.value)}
-              className="input-field text-xs !py-1.5 w-24"
-            >
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-              <option value="yearly">Yearly</option>
-            </select>
-          )}
-        </div>
+        )}
 
         {/* Error */}
         {error && (
@@ -514,10 +558,10 @@ export default function AddTransaction({ onNavigate }) {
           {success ? (
             <>
               <Check size={18} />
-              Added!
+              {t('transactions.added')}
             </>
           ) : (
-            purpose === TRANSACTION_TYPES.INCOME ? 'Add Income' : 'Add Expense'
+            purpose === TRANSACTION_TYPES.INCOME ? t('transactions.add_income') : t('transactions.add_expense')
           )}
         </button>
       </form>
@@ -526,10 +570,10 @@ export default function AddTransaction({ onNavigate }) {
         open={showLargeConfirm}
         onClose={() => { setShowLargeConfirm(false); setPendingSubmit(null) }}
         onConfirm={confirmLargeTransaction}
-        title="Confirm Large Transaction"
-        description={`This transaction is for ${formatCurrency(pendingSubmit?.amount || 0)}. Are you sure you want to proceed?`}
-        confirmLabel="Confirm"
-        cancelLabel="Cancel"
+        title={t('transactions.confirm_large')}
+        description={t('transactions.confirm_large_desc', { amount: formatCurrency(pendingSubmit?.amount || 0) })}
+        confirmLabel={t('common.confirm')}
+        cancelLabel={t('common.cancel')}
       />
     </div>
   )

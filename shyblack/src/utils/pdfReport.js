@@ -438,7 +438,8 @@ function generatePDF(type, data) {
     doc.rect(0, 0, PW, PH, 'F')
     addPageNumber(doc, i, totalPages)
   }
-  const blob = doc.output('blob')
+  let blob
+  try { blob = doc.output('blob') } catch { blob = null }
   const dataUri = doc.output('datauristring')
   return { blob, dataUri, doc, pageCount: totalPages }
 }
