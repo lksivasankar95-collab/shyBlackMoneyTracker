@@ -316,15 +316,15 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
             <Lock size={16} className="text-neon" />
           </div>
-          <h2 className="text-sm font-semibold">Security & Privacy</h2>
+          <h2 className="text-sm font-semibold">{t('settings.security')}</h2>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
             <div className="flex items-center gap-3">
               <Fingerprint size={16} className="text-gray-400" />
               <div>
-                <p className="text-xs font-medium">Hide Balance</p>
-                <p className="text-[10px] text-gray-500">Hide amounts on dashboard</p>
+                <p className="text-xs font-medium">{t('settings.hide_balance')}</p>
+                <p className="text-[10px] text-gray-500">{t('settings.hide_balance_dashboard_desc')}</p>
               </div>
             </div>
             <button
@@ -339,8 +339,8 @@ export default function Settings({ onNavigate }) {
             <div className="flex items-center gap-3">
               <Shield size={16} className="text-gray-400" />
               <div>
-                <p className="text-xs font-medium">Privacy Mode</p>
-                <p className="text-[10px] text-gray-500">Blur screen in app switcher</p>
+                <p className="text-xs font-medium">{t('settings.privacy_mode')}</p>
+                <p className="text-[10px] text-gray-500">{t('settings.privacy_mode_blur_desc')}</p>
               </div>
             </div>
             <button
@@ -356,8 +356,8 @@ export default function Settings({ onNavigate }) {
             <div className="flex items-center gap-3">
               <Lock size={16} className={privacyEnabled ? 'text-neon' : 'text-gray-400'} />
               <div>
-                <p className="text-xs font-medium">Privacy Lock</p>
-                <p className="text-[10px] text-gray-500">{privacyEnabled ? 'Lock app on resume' : 'Protect your data'}</p>
+                <p className="text-xs font-medium">{t('settings.privacy_lock')}</p>
+                <p className="text-[10px] text-gray-500">{privacyEnabled ? t('settings.privacy_lock_on_desc') : t('settings.privacy_lock_off_desc')}</p>
               </div>
             </div>
             <button
@@ -393,8 +393,8 @@ export default function Settings({ onNavigate }) {
                 <div className="flex items-center gap-3">
                   <Lock size={16} className="text-gray-400" />
                   <div>
-                    <p className="text-xs font-medium">Auto-Lock</p>
-                    <p className="text-[10px] text-gray-500">Lock after being away</p>
+                    <p className="text-xs font-medium">{t('settings.auto_lock')}</p>
+                    <p className="text-[10px] text-gray-500">{t('settings.auto_lock_away_desc')}</p>
                   </div>
                 </div>
                 <div className="flex gap-1">
@@ -424,7 +424,7 @@ export default function Settings({ onNavigate }) {
                 className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
               >
                 <Lock size={16} />
-                Change PIN
+                {t('settings.change_pin')}
               </button>
             </>
           )}
@@ -437,7 +437,7 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
             <Fingerprint size={16} className="text-neon" />
           </div>
-          <h2 className="text-sm font-semibold">Biometric Unlock</h2>
+          <h2 className="text-sm font-semibold">{t('settings.biometric')}</h2>
         </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
@@ -445,10 +445,10 @@ export default function Settings({ onNavigate }) {
               <Smartphone size={16} className={biometricState.enabled ? 'text-neon' : 'text-gray-500'} />
               <div>
                 <p className="text-xs font-medium">
-                  {biometricState.checking ? 'Checking...' : biometricState.enabled ? `${getBiometricTypeLabel()} Enabled` : 'Enable Biometric Unlock'}
+                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? `${getBiometricTypeLabel()} Enabled` : t('settings.biometric_enable')}
                 </p>
                 <p className="text-[10px] text-gray-500">
-                  {biometricState.checking ? 'Checking device support...' : biometricState.enabled ? `Use ${getBiometricTypeLabel().toLowerCase()} to unlock` : biometricState.available ? `Set up ${getBiometricTypeLabel().toLowerCase()} unlock` : 'Biometric not available'}
+                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? `Use ${getBiometricTypeLabel().toLowerCase()} to unlock` : biometricState.available ? `Set up ${getBiometricTypeLabel().toLowerCase()} unlock` : t('settings.biometric_unavailable')}
                 </p>
               </div>
             </div>
@@ -469,7 +469,7 @@ export default function Settings({ onNavigate }) {
             )}
           </div>
           {biometricState.enabled && (
-            <p className="text-[10px] text-gray-600 px-1">Biometric unlock works alongside your PIN. You can use either method to unlock.</p>
+            <p className="text-[10px] text-gray-600 px-1">{t('settings.biometric_tip')}</p>
           )}
         </div>
       </GlassCard>
@@ -480,14 +480,14 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
             <Bell size={16} className="text-neon" />
           </div>
-          <h2 className="text-sm font-semibold">Notifications</h2>
+          <h2 className="text-sm font-semibold">{t('settings.notifications')}</h2>
         </div>
         <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
           <div className="flex items-center gap-3">
             <Bell size={16} className={reminderEnabled ? 'text-neon' : 'text-gray-500'} />
             <div>
-              <p className="text-xs font-medium">Daily Reminder</p>
-              <p className="text-[10px] text-gray-500">Get reminded at 7:00 PM if no activity logged</p>
+              <p className="text-xs font-medium">{t('settings.daily_reminder')}</p>
+              <p className="text-[10px] text-gray-500">{t('settings.daily_reminder_desc')}</p>
             </div>
           </div>
           <button
@@ -511,8 +511,8 @@ export default function Settings({ onNavigate }) {
             <Smartphone size={14} className="text-gray-400" />
           </div>
           <div className="flex-1 text-left">
-            <p className="text-xs font-medium text-white">Notification Diagnostics</p>
-            <p className="text-[10px] text-gray-500">Check notification permission status</p>
+            <p className="text-xs font-medium text-white">{t('settings.notification_diag')}</p>
+            <p className="text-[10px] text-gray-500">{t('settings.notification_diag_desc')}</p>
           </div>
           <ChevronRight size={14} className="text-gray-500" />
         </button>
@@ -523,7 +523,7 @@ export default function Settings({ onNavigate }) {
               <span className="text-[10px] text-gray-500">Permission</span>
               <span className={`text-[10px] font-medium flex items-center gap-1 ${notifDiag.permissionGranted ? 'text-neon' : 'text-red-400'}`}>
                 {notifDiag.permissionGranted ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
-                {notifDiag.permissionGranted ? 'Granted' : 'Denied'}
+                {notifDiag.permissionGranted ? t('settings.permission_granted') : t('settings.permission_denied')}
               </span>
             </div>
             <div className="flex items-center justify-between">
@@ -551,7 +551,7 @@ export default function Settings({ onNavigate }) {
                 }}
                 className="w-full py-2 rounded-lg bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all mt-1"
               >
-                Request Permission
+                {t('settings.request_permission')}
               </button>
             )}
           </div>
@@ -566,8 +566,8 @@ export default function Settings({ onNavigate }) {
               <Target size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Budget Management</p>
-              <p className="text-xs text-gray-500">Set spending limits per category</p>
+              <p className="text-sm font-medium">{t('settings.budget_management')}</p>
+              <p className="text-xs text-gray-500">{t('settings.budget_management_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -577,8 +577,8 @@ export default function Settings({ onNavigate }) {
               <Handshake size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Borrow & Lend</p>
-              <p className="text-xs text-gray-500">Track money lent or borrowed</p>
+              <p className="text-sm font-medium">{t('nav.debts')}</p>
+              <p className="text-xs text-gray-500">{t('settings.borrow_lend_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -588,8 +588,8 @@ export default function Settings({ onNavigate }) {
               <Landmark size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">EMI Center</p>
-              <p className="text-xs text-gray-500">Track loan EMIs and payment schedules</p>
+              <p className="text-sm font-medium">{t('nav.emis')}</p>
+              <p className="text-xs text-gray-500">{t('settings.emi_center_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -599,8 +599,8 @@ export default function Settings({ onNavigate }) {
               <History size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Smart Money Timeline</p>
-              <p className="text-xs text-gray-500">All transactions and debts in one view</p>
+              <p className="text-sm font-medium">{t('settings.timeline_title')}</p>
+              <p className="text-xs text-gray-500">{t('settings.timeline_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -610,8 +610,8 @@ export default function Settings({ onNavigate }) {
               <FileText size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Financial Insights</p>
-              <p className="text-xs text-gray-500">Score, trends & recommendations</p>
+              <p className="text-sm font-medium">{t('insights.title')}</p>
+              <p className="text-xs text-gray-500">{t('settings.insights_page_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -621,8 +621,8 @@ export default function Settings({ onNavigate }) {
               <Download size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Reports & Export</p>
-              <p className="text-xs text-gray-500">CSV exports and monthly statements</p>
+              <p className="text-sm font-medium">{t('nav.reports')}</p>
+              <p className="text-xs text-gray-500">{t('settings.reports_page_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -637,8 +637,8 @@ export default function Settings({ onNavigate }) {
               <Target size={16} className="text-gray-400 group-hover:text-purple-400 transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Financial Goals</p>
-              <p className="text-xs text-gray-500">Track multiple savings goals with projections</p>
+              <p className="text-sm font-medium">{t('dashboard.financial_goals')}</p>
+              <p className="text-xs text-gray-500">{t('settings.goals_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -648,8 +648,8 @@ export default function Settings({ onNavigate }) {
               <Repeat2 size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Subscriptions</p>
-              <p className="text-xs text-gray-500">Manage Netflix, Spotify, and other recurring bills</p>
+              <p className="text-sm font-medium">{t('nav.subscriptions')}</p>
+              <p className="text-xs text-gray-500">{t('settings.subscriptions_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -659,8 +659,8 @@ export default function Settings({ onNavigate }) {
               <Calendar size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Financial Calendar</p>
-              <p className="text-xs text-gray-500">Upcoming payments, renewals, and due dates</p>
+              <p className="text-sm font-medium">{t('settings.calendar_title')}</p>
+              <p className="text-xs text-gray-500">{t('settings.calendar_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -670,8 +670,8 @@ export default function Settings({ onNavigate }) {
               <Sparkles size={16} className="text-gray-400 group-hover:text-yellow-400 transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Monthly Review</p>
-              <p className="text-xs text-gray-500">Automated insights on your monthly finances</p>
+              <p className="text-sm font-medium">{t('settings.monthly_review')}</p>
+              <p className="text-xs text-gray-500">{t('settings.monthly_review_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
@@ -683,15 +683,15 @@ export default function Settings({ onNavigate }) {
         <GlassCard className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <Repeat2 size={16} className="text-neon" />
-            <h2 className="text-sm font-semibold">Subscriptions</h2>
+            <h2 className="text-sm font-semibold">{t('nav.subscriptions')}</h2>
           </div>
           <div className="flex gap-3">
             <div className="flex-1 p-3 rounded-xl bg-white/[0.03]">
-              <p className="text-[10px] text-gray-500 mb-1">Active</p>
+              <p className="text-[10px] text-gray-500 mb-1">{t('common.active')}</p>
               <p className="text-lg font-extrabold tabular-nums">{subCount}</p>
             </div>
             <div className="flex-1 p-3 rounded-xl bg-white/[0.03]">
-              <p className="text-[10px] text-gray-500 mb-1">Monthly</p>
+              <p className="text-[10px] text-gray-500 mb-1">{t('budgets.monthly')}</p>
               <p className="text-lg font-extrabold text-neon tabular-nums">{formatCurrency(Math.round(subMonthly))}</p>
             </div>
           </div>
@@ -704,7 +704,7 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
             <Target size={16} className="text-neon" />
           </div>
-          <h2 className="text-sm font-semibold">Savings Goal</h2>
+          <h2 className="text-sm font-semibold">{t('settings.savings_goal')}</h2>
         </div>
 
         {savingsGoal.target > 0 && (
@@ -715,7 +715,7 @@ export default function Settings({ onNavigate }) {
 
         <div className="space-y-3.5">
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Target Amount</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('goals.target')}</label>
             <input
               type="number"
               value={target}
@@ -725,7 +725,7 @@ export default function Settings({ onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Saved Amount</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('goals.saved')}</label>
             <input
               type="number"
               value={saved}
@@ -736,7 +736,7 @@ export default function Settings({ onNavigate }) {
           </div>
           <button onClick={handleSavingsSave} className="btn-primary w-full text-sm flex items-center justify-center gap-2">
             <DollarSign size={16} />
-            Update Savings
+            {t('settings.update_savings')}
           </button>
         </div>
       </GlassCard>
@@ -747,7 +747,7 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
             <Database size={16} className="text-neon" />
           </div>
-          <h2 className="text-sm font-semibold">Data Management</h2>
+          <h2 className="text-sm font-semibold">{t('settings.data_management')}</h2>
         </div>
         <div className="flex items-center gap-2 mb-3 px-1">
           <span className="text-[10px] text-gray-600 font-medium">Schema</span>
@@ -759,11 +759,11 @@ export default function Settings({ onNavigate }) {
         <div className="space-y-2">
           <button onClick={handleExport} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
             <Download size={16} />
-            Export Backup
+            {t('settings.export_backup')}
           </button>
           <button onClick={() => fileInputRef.current?.click()} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
             <Upload size={16} />
-            Import Backup
+            {t('settings.import_backup')}
           </button>
           <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
 
@@ -774,14 +774,14 @@ export default function Settings({ onNavigate }) {
             className="btn-secondary w-full text-sm flex items-center justify-center gap-2"
           >
             <KeyRound size={16} />
-            Export Encrypted Backup
+            {t('settings.encrypted_export')}
           </button>
           <button onClick={() => encFileInputRef.current?.click()} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
             <KeyRound size={16} />
-            Import Encrypted Backup
+            {t('settings.encrypted_import')}
           </button>
           <input ref={encFileInputRef} type="file" accept=".json" onChange={handleEncImportFile} className="hidden" />
-          <p className="text-[10px] text-gray-600 text-center px-2">Encrypted backups require a password to restore</p>
+          <p className="text-[10px] text-gray-600 text-center px-2">{t('settings.enc_backup_tip')}</p>
         </div>
       </GlassCard>
 
@@ -791,14 +791,14 @@ export default function Settings({ onNavigate }) {
           <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center">
             <Trash2 size={16} className="text-red-400" />
           </div>
-          <h2 className="text-sm font-semibold text-red-400">Danger Zone</h2>
+          <h2 className="text-sm font-semibold text-red-400">{t('settings.danger_zone')}</h2>
         </div>
         <button
           onClick={() => setShowResetConfirm(true)}
           className="btn-secondary w-full text-sm flex items-center justify-center gap-2 text-red-400 border-red-500/30 hover:bg-red-500/10"
         >
           <Trash2 size={16} />
-          Reset All Local Data
+          {t('settings.reset_data')}
         </button>
       </GlassCard>
 
@@ -806,12 +806,12 @@ export default function Settings({ onNavigate }) {
       <Modal
         open={pinModal === 'setup'}
         onClose={() => { setPinModal(null); setModalPin(''); setModalPin2(''); setPinError('') }}
-        title="Set Privacy PIN"
+        title={t('settings.set_privacy_pin')}
       >
         <div className="space-y-3.5">
-          <p className="text-xs text-gray-400">Set a 4-digit PIN to lock the app.</p>
+          <p className="text-xs text-gray-400">{t('settings.set_pin_desc')}</p>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Enter PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.enter_pin')}</label>
             <input
               type="password"
               value={modalPin}
@@ -823,7 +823,7 @@ export default function Settings({ onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.confirm_pin')}</label>
             <input
               type="password"
               value={modalPin2}
@@ -848,7 +848,7 @@ export default function Settings({ onNavigate }) {
             disabled={!modalPin || !modalPin2}
             className="btn-primary w-full text-sm"
           >
-            Enable Privacy Lock
+            {t('settings.enable_privacy_lock')}
           </button>
         </div>
       </Modal>
@@ -856,11 +856,11 @@ export default function Settings({ onNavigate }) {
       <Modal
         open={pinModal === 'change'}
         onClose={() => { setPinModal(null); setModalPin(''); setModalPin2(''); setModalPin3(''); setPinError('') }}
-        title="Change PIN"
+        title={t('settings.change_pin')}
       >
         <div className="space-y-3.5">
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Current PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.current_pin')}</label>
             <input
               type="password"
               value={modalPin}
@@ -872,7 +872,7 @@ export default function Settings({ onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">New PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.new_pin')}</label>
             <input
               type="password"
               value={modalPin2}
@@ -883,7 +883,7 @@ export default function Settings({ onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm New PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.confirm_new_pin')}</label>
             <input
               type="password"
               value={modalPin3}
@@ -910,7 +910,7 @@ export default function Settings({ onNavigate }) {
             disabled={!modalPin || !modalPin2 || !modalPin3}
             className="btn-primary w-full text-sm"
           >
-            Change PIN
+            {t('settings.change_pin')}
           </button>
         </div>
       </Modal>
@@ -918,12 +918,12 @@ export default function Settings({ onNavigate }) {
       <Modal
         open={pinModal === 'disable'}
         onClose={() => { setPinModal(null); setModalPin(''); setPinError('') }}
-        title="Disable Privacy Lock"
+        title={t('settings.disable_privacy_lock')}
       >
         <div className="space-y-3.5">
-          <p className="text-xs text-gray-400">Enter your current PIN to disable privacy lock.</p>
+          <p className="text-xs text-gray-400">{t('settings.disable_privacy_lock_desc')}</p>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Current PIN</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.current_pin')}</label>
             <input
               type="password"
               value={modalPin}
@@ -948,7 +948,7 @@ export default function Settings({ onNavigate }) {
             disabled={!modalPin}
             className="btn-primary w-full text-sm"
           >
-            Disable Privacy Lock
+            {t('settings.disable_privacy_lock')}
           </button>
         </div>
       </Modal>
@@ -957,12 +957,12 @@ export default function Settings({ onNavigate }) {
       <Modal
         open={encModal === 'export'}
         onClose={() => { setEncModal(null); setEncPassword(''); setEncPassword2(''); setEncError('') }}
-        title="Export Encrypted Backup"
+        title={t('settings.encrypted_export')}
       >
         <div className="space-y-3.5">
-          <p className="text-xs text-gray-400">Set a password to protect your backup. You'll need it to restore.</p>
+          <p className="text-xs text-gray-400">{t('settings.enc_export_desc')}</p>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Password</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.enter_pin')}</label>
             <input
               type="password"
               value={encPassword}
@@ -973,7 +973,7 @@ export default function Settings({ onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Confirm Password</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.confirm_pin')}</label>
             <input
               type="password"
               value={encPassword2}
@@ -989,7 +989,7 @@ export default function Settings({ onNavigate }) {
             className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40"
           >
             <KeyRound size={16} />
-            {encWorking ? 'Encrypting...' : 'Export Encrypted Backup'}
+            {encWorking ? t('settings.biometric_checking') : t('settings.encrypted_export')}
           </button>
         </div>
       </Modal>
@@ -998,12 +998,12 @@ export default function Settings({ onNavigate }) {
       <Modal
         open={encModal === 'import'}
         onClose={() => { setEncModal(null); setEncPassword(''); setEncError(''); setPendingRestore(null) }}
-        title="Enter Backup Password"
+        title={t('settings.enc_import_title')}
       >
         <div className="space-y-3.5">
-          <p className="text-xs text-gray-400">Enter the password used when this backup was created.</p>
+          <p className="text-xs text-gray-400">{t('settings.enc_export_desc')}</p>
           <div>
-            <label className="text-xs text-gray-500 mb-1.5 block font-medium">Password</label>
+            <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.enter_pin')}</label>
             <input
               type="password"
               value={encPassword}
@@ -1019,7 +1019,7 @@ export default function Settings({ onNavigate }) {
             disabled={encWorking || !encPassword}
             className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40"
           >
-            {encWorking ? 'Decrypting...' : 'Decrypt & Restore'}
+            {encWorking ? t('settings.biometric_checking') : t('settings.encrypted_import')}
           </button>
         </div>
       </Modal>
