@@ -1,3 +1,7 @@
+import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { Share as CapShare } from '@capacitor/share'
+import * as privacy from './privacy'
+
 export function dataUriToBlob(dataUri) {
   if (!dataUri || typeof dataUri !== 'string') return null
   try {
@@ -15,7 +19,107 @@ export function dataUriToBlob(dataUri) {
   }
 }
 
-export function downloadBlob(blob, filename) {
+export function dataUriToBase64(dataUri) {
+  if (!dataUri || typeof dataUri !== 'string') return null
+  const parts = dataUri.split(',')
+  return parts.length === 2 ? parts[1] : null
+}
+
+function getMimeTypeFromExtension(ext) {
+  const mimeMap = {
+    pdf: 'application/pdf',
+    jpg: 'image/jpeg', jpeg: 'image/jpeg',
+    png: 'image/png', gif: 'image/gif',
+    webp: 'image/webp',
+    csv: 'text/csv',
+    xlsx: 'application/vnd.ms-excel',
+    html: 'text/html',
+    json: 'application/json',
+    txt: 'text/plain',
+  }
+  return mimeMap[ext?.toLowerCase()] || 'application/octet-stream'
+}
+
+export async function downloadBlob(blob, filename) {
+  if (!blob) return { success: false, error: 'No blob data' }
+
+  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
+  const mimeType = getMimeTypeFromExtension(ext)
+  const base64 = await blobToBase64(blob)
+
+  privacy.suppressLockForTransition(5000)
+
+  try {
+    const savedFile = await Filesystem.writeFile({
+      path: `ShyBlackFinance/${filename}`,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    })
+
+    return {
+      success: true,
+      uri: savedFile.uri,
+      path: `Downloads/ShyBlackFinance/${filename}`,
+      filename,
+      mimeType,
+    }
+  } catch (err) {
+    console.error('[downloadUtils] Filesystem write failed, trying legacy fallback:', err)
+    const ok = downloadBlobLegacy(blob, filename)
+    if (ok) return { success: true, path: filename, filename, mimeType, method: 'legacy' }
+    return { success: false, error: err.message || 'File write failed' }
+  }
+}
+
+async function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      const result = reader.result
+      const base64 = result.split(',')[1] || result
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+export async function downloadDataUri(dataUri, filename) {
+  if (!dataUri || !filename) return { success: false, error: 'Missing data' }
+
+  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
+  const mimeType = getMimeTypeFromExtension(ext)
+  const base64 = dataUriToBase64(dataUri)
+
+  if (!base64) return { success: false, error: 'Invalid data URI' }
+
+  privacy.suppressLockForTransition(5000)
+
+  try {
+    const savedFile = await Filesystem.writeFile({
+      path: `ShyBlackFinance/${filename}`,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    })
+
+    return {
+      success: true,
+      uri: savedFile.uri,
+      path: `Downloads/ShyBlackFinance/${filename}`,
+      filename,
+      mimeType,
+    }
+  } catch (err) {
+    console.error('[downloadUtils] downloadDataUri failed, trying legacy fallback:', err)
+    const ok = downloadDataUriLegacy(dataUri, filename)
+    if (ok) return { success: true, path: filename, filename, mimeType, method: 'legacy' }
+    return { success: false, error: err.message || 'File write failed' }
+  }
+}
+
+export function downloadBlobLegacy(blob, filename) {
   if (!blob) return false
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -31,9 +135,9 @@ export function downloadBlob(blob, filename) {
   return true
 }
 
-export function downloadDataUri(dataUri, filename) {
+export function downloadDataUriLegacy(dataUri, filename) {
   const blob = dataUriToBlob(dataUri)
-  return downloadBlob(blob, filename)
+  return downloadBlobLegacy(blob, filename)
 }
 
 export function createPreviewUrl(dataUri) {
@@ -53,16 +157,75 @@ export function createPreviewUrl(dataUri) {
 }
 
 export async function shareBlob(blob, filename, title) {
+  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
+  const mimeType = getMimeTypeFromExtension(ext)
+
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
-      const file = new File([blob], filename, { type: 'application/pdf' })
+      const file = new File([blob], filename, { type: mimeType })
       await navigator.share({ files: [file], title: title || 'Document' })
       return { shared: true, method: 'share' }
     } catch (err) {
-      return { shared: false, method: 'cancel', error: err.message }
+      if (err.name === 'AbortError') {
+        return { shared: false, method: 'cancelled' }
+      }
     }
   }
+
+  if (typeof CapShare !== 'undefined') {
+    privacy.suppressLockForTransition(5000)
+
+    try {
+      const base64 = await blobToBase64(blob)
+      const savedFile = await Filesystem.writeFile({
+        path: `ShyBlackFinance/_share/${filename}`,
+        data: base64,
+        directory: Directory.Cache,
+        recursive: true,
+      })
+
+      await CapShare.share({
+        title: title || filename,
+        text: title || filename,
+        url: savedFile.uri,
+        dialogTitle: 'Share via',
+      })
+
+      return { shared: true, method: 'capacitor' }
+    } catch (err) {
+      if (err.message?.includes?.('canceled') || err.message?.includes?.('abort') || err.message?.includes?.('AbortError')) {
+        return { shared: false, method: 'cancelled' }
+      }
+      return { shared: false, method: 'error', error: err.message }
+    }
+  }
+
   return { shared: false, method: 'unsupported' }
+}
+
+export async function openFileNative(blob, filename) {
+  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
+  const mimeType = getMimeTypeFromExtension(ext)
+
+  const result = await downloadBlob(blob, filename)
+  if (!result.success) return result
+
+  privacy.suppressLockForTransition(5000)
+
+  try {
+    const { Share } = await import('@capacitor/share')
+    await Share.share({
+      title: filename,
+      url: result.uri,
+      dialogTitle: 'Open with',
+    })
+    return { success: true, action: 'opened', uri: result.uri }
+  } catch (err) {
+    if (err.message?.includes?.('canceled') || err.message?.includes?.('abort')) {
+      return { success: true, action: 'cancelled', uri: result.uri }
+    }
+    return { success: true, action: 'saved', uri: result.uri }
+  }
 }
 
 export function getSafeWindowOpen(url) {
