@@ -672,7 +672,15 @@
     "file_saved": "ಫೈಲ್ ಯಶಸ್ವಿಯಾಗಿ ಉಳಿಸಲಾಗಿದೆ",
     "file_shared": "ಫೈಲ್ ಹಂಚಿಕೊಳ್ಳಲಾಗಿದೆ",
     "file_downloaded": "ಫೈಲ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಲಾಗಿದೆ",
-    "settings_saved": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ"
+    "settings_saved": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ",
+    "app_name": "ShyBlack Finance",
+    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
+    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
+    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
+    "payment_due_tomorrow": "Payment Due Tomorrow",
+    "overdue_payment": "Overdue Payment",
+    "monthly_summary": "Monthly Summary",
+    "emi_due_today": "EMI Due Today"
   },
 
   "time": {

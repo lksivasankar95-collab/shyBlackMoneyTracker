@@ -1,4 +1,5 @@
 import { getNextEmiDueDate, getEmiDueDate, EMI_STATUS } from './emi'
+import { getNotifT } from './notificationI18n'
 
 const EMI_CHANNEL_ID = 'shyblack-emi-reminders'
 const EMI_NOTIF_BASE = 500
@@ -67,6 +68,7 @@ export async function scheduleEmiNotifications(emi, referenceDate) {
 
   await ensureEmiNotificationChannel()
 
+  const t = await getNotifT()
   const dueDate = getNextEmiDueDate(emi.dueDay, referenceDate)
   const ids = getNotificationIds(emi.id)
   const times = emi.reminderTimes && emi.reminderTimes.length > 0
@@ -86,7 +88,7 @@ export async function scheduleEmiNotifications(emi, referenceDate) {
 
     notifications.push({
       id: ids[i],
-      title: 'EMI Due Today',
+      title: t('notifications.emi_due_today'),
       body: `${emi.name}\n₹${emi.amount.toLocaleString()}`,
       schedule: { at: fireDate, allowWhileIdle: true },
       sound: null,

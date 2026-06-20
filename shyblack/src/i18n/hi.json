@@ -672,7 +672,15 @@
     "file_saved": "फ़ाइल सफलतापूर्वक सहेजी गई",
     "file_shared": "फ़ाइल साझा की गई",
     "file_downloaded": "फ़ाइल डाउनलोड की गई",
-    "settings_saved": "सेटिंग्स सहेजी गईं"
+    "settings_saved": "सेटिंग्स सहेजी गईं",
+    "app_name": "ShyBlack Finance",
+    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
+    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
+    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
+    "payment_due_tomorrow": "Payment Due Tomorrow",
+    "overdue_payment": "Overdue Payment",
+    "monthly_summary": "Monthly Summary",
+    "emi_due_today": "EMI Due Today"
   },
 
   "time": {

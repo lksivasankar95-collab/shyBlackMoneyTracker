@@ -672,7 +672,15 @@
     "file_saved": "கோப்பு வெற்றிகரமாக சேமிக்கப்பட்டது",
     "file_shared": "கோப்பு பகிரப்பட்டது",
     "file_downloaded": "கோப்பு பதிவிறக்கப்பட்டது",
-    "settings_saved": "அமைப்புகள் சேமிக்கப்பட்டன"
+    "settings_saved": "அமைப்புகள் சேமிக்கப்பட்டன",
+    "app_name": "ShyBlack Finance",
+    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
+    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
+    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
+    "payment_due_tomorrow": "Payment Due Tomorrow",
+    "overdue_payment": "Overdue Payment",
+    "monthly_summary": "Monthly Summary",
+    "emi_due_today": "EMI Due Today"
   },
 
   "time": {

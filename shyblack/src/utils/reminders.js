@@ -1,14 +1,9 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
+import { getNotifT } from './notificationI18n'
 
 const REMINDER_NOTIFICATION_ID = 1
 const REMINDER_HOUR = 19
 const REMINDER_MINUTE = 0
-
-const MESSAGES = [
-  "You haven't updated today's expenses yet. Tap to log them now.",
-  'Pending debt repayments need your attention. Check your borrow & lend list.',
-  'Your daily financial snapshot is waiting. Open ShyBlack to review today.',
-]
 
 let CapacitorLocalNotifications = null
 
@@ -20,6 +15,26 @@ async function getPlugin() {
     return CapacitorLocalNotifications
   } catch {
     return null
+  }
+}
+
+async function ensureDailyReminderChannel() {
+  const plugin = await getPlugin()
+  if (!plugin) return false
+  try {
+    await plugin.createChannel({
+      id: 'shyblack-daily-reminder',
+      name: 'Daily Reminders',
+      description: 'Daily financial reminders and monthly summaries',
+      importance: 4,
+      visibility: 1,
+      sound: 'default',
+      vibration: true,
+      lightColor: '#39ff14',
+    })
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -43,11 +58,16 @@ function hasActivityToday(transactions, debts) {
   return hasTx || hasDebtToday || hasRepaymentToday
 }
 
-function getContextualMessage(transactions, debts) {
+async function getContextualMessage(transactions, debts) {
+  const t = await getNotifT()
+  const msgs = [
+    t('notifications.daily_body_1'),
+    t('notifications.daily_body_2'),
+    t('notifications.daily_body_3'),
+  ]
   const hasPendingDebts = debts.some((d) => d.status === 'pending' && d.remainingAmount > 0)
-  if (hasPendingDebts) return MESSAGES[2]
-
-  return MESSAGES[Math.floor(Math.random() * MESSAGES.length)]
+  if (hasPendingDebts) return msgs[1]
+  return msgs[Math.floor(Math.random() * msgs.length)]
 }
 
 function getTomorrowAt(hour, minute) {
@@ -106,16 +126,18 @@ export async function scheduleDailyReminder(message, transactions, debts) {
   if (hasActivityToday(transactions, debts)) return { scheduled: false, reason: 'activity-exists' }
 
   try {
+    await ensureDailyReminderChannel()
     await cancelAllReminders()
 
     const fireDate = getTomorrowAt(REMINDER_HOUR, REMINDER_MINUTE)
-    const contextualMessage = message || getContextualMessage(transactions, debts)
+    const t = await getNotifT()
+    const contextualMessage = message || await getContextualMessage(transactions, debts)
 
     await plugin.schedule({
       notifications: [
         {
           id: REMINDER_NOTIFICATION_ID,
-          title: 'ShyBlack Finance',
+          title: t('notifications.app_name'),
           body: contextualMessage,
           schedule: { at: fireDate, allowWhileIdle: true },
           sound: null,
@@ -211,6 +233,9 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
     const perm = await lp.checkPermissions()
     if (perm.display !== 'granted') return { skipped: true, reason: 'no-permission' }
 
+    await ensureDailyReminderChannel()
+
+    const t = await getNotifT()
     const saved = income - expense
     const parts = [`Spent ₹${formatAmount(expense)}`]
     if (income > 0) parts.unshift(`Earned ₹${formatAmount(income)}`)
@@ -219,7 +244,7 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
     await lp.schedule({
       notifications: [{
         id: 50,
-        title: 'Monthly Summary',
+        title: t('notifications.monthly_summary'),
         body: parts.join(' · '),
         schedule: { at: new Date(Date.now() + 2000), allowWhileIdle: true },
         smallIcon: 'ic_stat_shyblack',
@@ -268,6 +293,7 @@ export async function checkDebtReminders(debts) {
   const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
   const reminders = []
+  const t = await getNotifT()
 
   debts.forEach((d) => {
     if (d.status === 'paid' || !d.dueDate || d.remainingAmount <= 0) return
@@ -278,7 +304,7 @@ export async function checkDebtReminders(debts) {
     if (due === tomorrowStr) {
       reminders.push({
         id: 300 + reminders.length,
-        title: 'Payment Due Tomorrow',
+        title: t('notifications.payment_due_tomorrow'),
         body: d.type === 'lent'
           ? `${amt} due from ${name} tomorrow`
           : `${amt} owed to ${name} due tomorrow`,
@@ -286,7 +312,7 @@ export async function checkDebtReminders(debts) {
     } else if (due < todayStr) {
       reminders.push({
         id: 350 + reminders.length,
-        title: 'Overdue Payment',
+        title: t('notifications.overdue_payment'),
         body: d.type === 'lent'
           ? `${amt} from ${name} is overdue`
           : `${amt} owed to ${name} is overdue`,
@@ -297,6 +323,7 @@ export async function checkDebtReminders(debts) {
   if (reminders.length === 0) return
 
   try {
+    await ensureDailyReminderChannel()
     const lp2 = await getPlugin()
     if (!lp2) return
     await lp2.schedule({
