@@ -117,11 +117,12 @@ class LocalStorageAdapter {
   }
 
   _handleQuotaError(skipKey, serialized) {
+    // Only purge fully-rebuildable cache data. Never purge user-created data
+    // (tags, templates) or critical backup data.
     const purgeOrder = [
+      `${this._prefix}search_idx`,
       `${this._prefix}budget_notif`,
-      `${this._prefix}reminder`,
-      `${this._prefix}tags`,
-      `${this._prefix}templates`,
+      `${this._prefix}snapshot_chain`,
     ]
     const targetKey = this._prefixKey(skipKey)
     for (const purgeKey of purgeOrder) {
