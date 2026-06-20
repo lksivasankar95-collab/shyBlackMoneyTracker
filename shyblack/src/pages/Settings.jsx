@@ -3,10 +3,11 @@ import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
-  Calendar, Zap, Sparkles,
+  Calendar, Zap, Sparkles, Smartphone,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
+import { useTranslation } from '../i18n'
 import GlassCard from '../components/GlassCard'
 import Modal from '../components/Modal'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -21,8 +22,18 @@ import {
   refreshReminderSchedule, cancelAllReminders,
 } from '../utils/reminders'
 import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } from '../utils/privacy'
+import { checkBiometricAvailability, isBiometricEnabled, setBiometricEnabled, authenticateWithBiometric, getBiometricTypeLabel } from '../utils/biometrics'
+
+const LANGUAGES = [
+  { code: 'en', label: 'English', nativeLabel: 'English' },
+  { code: 'ta', label: 'Tamil', nativeLabel: 'தமிழ்' },
+  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
+  { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు' },
+  { code: 'kn', label: 'Kannada', nativeLabel: 'ಕನ್ನಡ' },
+]
 
 export default function Settings({ onNavigate }) {
+  const { t, lang, setLang } = useTranslation()
   const {
     savingsGoal, updateSavings, clearAllData, transactions, importData,
     security, updateSecurity, recurring, debts, reloadFromStorage,
@@ -52,11 +63,53 @@ export default function Settings({ onNavigate }) {
   const [isRestoring, setIsRestoring] = useState(false)
   const schemaVersion = getSchemaVersion()
   const [reminderEnabled, setReminderEnabled] = useState(getReminderPreference())
+  const [biometricState, setBiometricState] = useState({ available: false, enabled: isBiometricEnabled(), type: null, checking: true })
+  const [notifDiag, setNotifDiag] = useState(null)
 
   useEffect(() => {
     setTarget(String(savingsGoal.target || ''))
     setSaved(String(savingsGoal.saved || ''))
   }, [savingsGoal])
+
+  useEffect(() => {
+    checkBiometricAvailability().then((result) => {
+      setBiometricState((prev) => ({ ...prev, available: result.available, type: result.type, checking: false }))
+    })
+  }, [])
+
+  const handleCheckNotifications = useCallback(async () => {
+    const perm = await checkNotificationPermission()
+    setNotifDiag({
+      permissionGranted: perm.granted,
+      permissionReason: perm.reason,
+      checkTime: new Date().toLocaleTimeString(),
+      platform: typeof Capacitor !== 'undefined' ? 'Capacitor' : 'Web',
+    })
+  }, [])
+
+  const handleToggleBiometric = useCallback(async () => {
+    if (biometricState.enabled) {
+      setBiometricEnabled(false)
+      setBiometricState((prev) => ({ ...prev, enabled: false }))
+      addToast('Biometric unlock disabled', 'info')
+      return
+    }
+
+    const result = await checkBiometricAvailability()
+    if (!result.available) {
+      addToast('Biometric not available on this device', 'error')
+      return
+    }
+
+    const verified = await authenticateWithBiometric('Enable biometric unlock')
+    if (verified) {
+      setBiometricEnabled(true)
+      setBiometricState((prev) => ({ ...prev, enabled: true }))
+      addToast(`${getBiometricTypeLabel()} unlock enabled`, 'success')
+    } else {
+      addToast('Biometric verification failed', 'error')
+    }
+  }, [biometricState.enabled, addToast])
 
   const handleSavingsSave = () => {
     const t = parseFloat(target) || 0
@@ -65,10 +118,14 @@ export default function Settings({ onNavigate }) {
     addToast('Savings goal updated!', 'success')
   }
 
-  const handleExport = () => {
+  const handleExport = async () => {
     try {
-      exportBackup()
-      addToast('Backup exported successfully!', 'success')
+      const result = await exportBackup()
+      if (result.success) {
+        addToast('Backup exported successfully!', 'success')
+      } else {
+        addToast('Export failed. Please try again.', 'error')
+      }
     } catch {
       addToast('Failed to export backup. Please try again.', 'error')
     }
@@ -224,7 +281,33 @@ export default function Settings({ onNavigate }) {
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
-      <h1 className="text-xl font-bold mb-6">Settings</h1>
+      <h1 className="text-xl font-bold mb-6">{t('settings.title')}</h1>
+
+      {/* Language */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+            <Zap size={16} className="text-neon" />
+          </div>
+          <h2 className="text-sm font-semibold">{t('settings.language')}</h2>
+        </div>
+        <p className="text-[10px] text-gray-500 mb-3">{t('settings.language_desc')}</p>
+        <div className="flex flex-wrap gap-1.5">
+          {LANGUAGES.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => setLang(l.code)}
+              className={`px-3 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                lang === l.code
+                  ? 'bg-neon/10 text-neon border border-neon/30'
+                  : 'text-gray-500 border border-white/[0.06] hover:text-white'
+              }`}
+            >
+              {l.nativeLabel}
+            </button>
+          ))}
+        </div>
+      </GlassCard>
 
       {/* Security */}
       <GlassCard className="mb-4">
@@ -347,6 +430,49 @@ export default function Settings({ onNavigate }) {
         </div>
       </GlassCard>
 
+      {/* Biometric Authentication */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+            <Fingerprint size={16} className="text-neon" />
+          </div>
+          <h2 className="text-sm font-semibold">Biometric Unlock</h2>
+        </div>
+        <div className="space-y-3">
+          <div className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03]">
+            <div className="flex items-center gap-3">
+              <Smartphone size={16} className={biometricState.enabled ? 'text-neon' : 'text-gray-500'} />
+              <div>
+                <p className="text-xs font-medium">
+                  {biometricState.checking ? 'Checking...' : biometricState.enabled ? `${getBiometricTypeLabel()} Enabled` : 'Enable Biometric Unlock'}
+                </p>
+                <p className="text-[10px] text-gray-500">
+                  {biometricState.checking ? 'Checking device support...' : biometricState.enabled ? `Use ${getBiometricTypeLabel().toLowerCase()} to unlock` : biometricState.available ? `Set up ${getBiometricTypeLabel().toLowerCase()} unlock` : 'Biometric not available'}
+                </p>
+              </div>
+            </div>
+            {biometricState.available && !biometricState.checking && (
+              <button
+                onClick={handleToggleBiometric}
+                className={`relative w-10 h-6 rounded-full transition-all duration-200 ${
+                  biometricState.enabled ? 'bg-neon/30' : 'bg-matte-200'
+                }`}
+              >
+                <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${
+                  biometricState.enabled ? 'bg-neon left-[18px]' : 'bg-gray-500 left-0.5'
+                }`} />
+              </button>
+            )}
+            {!biometricState.available && !biometricState.checking && (
+              <span className="text-[10px] text-gray-600">N/A</span>
+            )}
+          </div>
+          {biometricState.enabled && (
+            <p className="text-[10px] text-gray-600 px-1">Biometric unlock works alongside your PIN. You can use either method to unlock.</p>
+          )}
+        </div>
+      </GlassCard>
+
       {/* Notifications */}
       <GlassCard className="mb-4">
         <div className="flex items-center gap-2 mb-3">
@@ -374,6 +500,61 @@ export default function Settings({ onNavigate }) {
             }`} />
           </button>
         </div>
+
+        {/* Notification Diagnostics */}
+        <button
+          onClick={handleCheckNotifications}
+          className="w-full p-3 rounded-xl bg-white/[0.03] hover:bg-white/[0.05] transition-colors flex items-center gap-3 mt-2"
+        >
+          <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center">
+            <Smartphone size={14} className="text-gray-400" />
+          </div>
+          <div className="flex-1 text-left">
+            <p className="text-xs font-medium text-white">Notification Diagnostics</p>
+            <p className="text-[10px] text-gray-500">Check notification permission status</p>
+          </div>
+          <ChevronRight size={14} className="text-gray-500" />
+        </button>
+
+        {notifDiag && (
+          <div className="mt-2 p-3 rounded-xl bg-white/[0.03] space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Permission</span>
+              <span className={`text-[10px] font-medium flex items-center gap-1 ${notifDiag.permissionGranted ? 'text-neon' : 'text-red-400'}`}>
+                {notifDiag.permissionGranted ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
+                {notifDiag.permissionGranted ? 'Granted' : 'Denied'}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Status</span>
+              <span className="text-[10px] text-gray-400">{notifDiag.permissionReason}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Platform</span>
+              <span className="text-[10px] text-gray-400">{notifDiag.platform}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Checked</span>
+              <span className="text-[10px] text-gray-400">{notifDiag.checkTime}</span>
+            </div>
+            {!notifDiag.permissionGranted && (
+              <button
+                onClick={async () => {
+                  const result = await requestNotificationPermission()
+                  setNotifDiag((prev) => ({ ...prev, permissionGranted: result.granted, permissionReason: result.reason }))
+                  if (result.granted) {
+                    addToast('Notification permission granted!', 'success')
+                  } else {
+                    addToast('Permission denied. Enable in Android Settings.', 'error')
+                  }
+                }}
+                className="w-full py-2 rounded-lg bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all mt-1"
+              >
+                Request Permission
+              </button>
+            )}
+          </div>
+        )}
       </GlassCard>
 
       {/* Navigation Links */}

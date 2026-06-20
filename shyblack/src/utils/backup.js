@@ -82,15 +82,27 @@ export async function exportEncryptedBackup(password) {
   const backup = collectBackupData()
   const encryptedObj = await encryptBackup(backup, password)
   const json = JSON.stringify(encryptedObj)
-  const blob = new Blob([json], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `shyblack_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 5000)
+  const filename = `shyblack_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
+
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+    await Filesystem.writeFile({
+      path: `ShyBlackFinance/${filename}`,
+      data: btoa(unescape(encodeURIComponent(json))),
+      directory: Directory.Documents,
+      recursive: true,
+    })
+  } catch {
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    setTimeout(() => URL.revokeObjectURL(url), 5000)
+  }
   recordBackupEvent('encrypted_export', true)
 }
 
@@ -180,20 +192,43 @@ export function collectBackupData() {
   }
 }
 
-export function exportBackup() {
+export async function exportBackup() {
   const backup = collectBackupData()
   const json = JSON.stringify(backup, null, 2)
-  const blob = new Blob([json], { type: 'application/json' })
+  const filename = `shyblack_backup_${new Date().toISOString().split('T')[0]}.json`
+
+  try {
+    const { Filesystem, Directory } = await import('@capacitor/filesystem')
+    await Filesystem.writeFile({
+      path: `ShyBlackFinance/${filename}`,
+      data: btoa(unescape(encodeURIComponent(json))),
+      directory: Directory.Documents,
+      recursive: true,
+    })
+    recordBackupEvent('export', true)
+    return { success: true, method: 'filesystem', filename }
+  } catch {
+    try {
+      fallbackDownload(json, filename)
+      recordBackupEvent('export', true)
+      return { success: true, method: 'download', filename }
+    } catch {
+      recordBackupEvent('export', false)
+      return { success: false, filename }
+    }
+  }
+}
+
+function fallbackDownload(content, filename) {
+  const blob = new Blob([content], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `shyblack_backup_${new Date().toISOString().split('T')[0]}.json`
+  a.download = filename
   document.body.appendChild(a)
   a.click()
   document.body.removeChild(a)
   setTimeout(() => URL.revokeObjectURL(url), 5000)
-  recordBackupEvent('export', true)
-  return backup
 }
 
 export function validateBackupData(data) {
