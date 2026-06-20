@@ -8,6 +8,8 @@ const COOLDOWN_MS = 30_000
 
 let locked = false
 let lastActiveTime = Date.now()
+let suppressLock = false
+let suppressLockTimer = null
 
 function getData() {
   const raw = safeStorage.getRaw(PRIVACY_KEY)
@@ -16,14 +18,18 @@ function getData() {
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       if (parsed.pinHash && (typeof parsed.pinHash !== 'string' || parsed.pinHash.length !== 64)) {
-        saveData({})
-        return {}
+        // pinHash is present but malformed — could be storage corruption or tampering.
+        // Do NOT clear the data: clearing would allow a bypass by writing a bad hash.
+        // Instead force requiresReset so the lock screen demands a full data reset.
+        return { ...parsed, requiresReset: true }
       }
       return parsed
     }
+    // No recognisable object structure and no pinHash — safe to treat as unset.
     saveData({})
     return {}
   } catch {
+    // Unparseable JSON with no detectable pinHash — safe to treat as unset.
     saveData({})
     return {}
   }
@@ -47,6 +53,9 @@ async function computeHash(pin, salt = '') {
 
 export function isPinSet() {
   const data = getData()
+  // A corrupted pinHash (requiresReset forced by getData) counts as PIN being set —
+  // the lock screen will require a data reset instead of accepting a PIN.
+  if (data.requiresReset && data.pinHash) return true
   return !!(data.pinHash && typeof data.pinHash === 'string' && data.pinHash.length === 64)
 }
 
@@ -69,7 +78,6 @@ export async function verifyPin(pin) {
   if (data.pinSalt) {
     ok = (await computeHash(pin, data.pinSalt)) === data.pinHash
   } else {
-    // Legacy: unsalted hash — verify then transparently upgrade
     ok = (await computeHash(pin, '')) === data.pinHash
     if (ok) {
       const salt = generateSalt()
@@ -141,8 +149,18 @@ export function onAppBackground() {
   lastActiveTime = Date.now()
 }
 
+export function suppressLockForTransition(timeoutMs = 5000) {
+  suppressLock = true
+  if (suppressLockTimer) clearTimeout(suppressLockTimer)
+  suppressLockTimer = setTimeout(() => {
+    suppressLock = false
+    suppressLockTimer = null
+  }, timeoutMs)
+}
+
 export function shouldLockOnResume() {
   if (!isPinSet()) return false
+  if (suppressLock) return false
   const timeout = getTimeout()
   if (timeout === 0) {
     locked = true
