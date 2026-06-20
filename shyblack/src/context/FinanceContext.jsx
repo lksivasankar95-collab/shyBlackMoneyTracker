@@ -98,7 +98,6 @@ function loadInitialState() {
     const goals = getGoals()
     if (goals.length === 0) migrateLegacySavingsGoal()
     const docs = getDocuments()
-    const docFiles = getDocumentFileData
     return {
       transactions,
       savingsGoal: sanitizeSavingsGoal(safeStorage.get(STORAGE_KEYS.SAVINGS, { target: 0, saved: 0 })),
@@ -889,6 +888,7 @@ export function FinanceProvider({ children }) {
     accounts, updateAccounts,
     documents, addDocument, editDocument, removeDocument, documentStats,
   }), [
+    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
     documents, documentStats,
     cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
     templates, recentTemplates,
