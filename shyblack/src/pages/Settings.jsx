@@ -207,10 +207,11 @@ export default function Settings({ onNavigate }) {
   const handleConfirmRestore = useCallback(() => {
     if (!pendingRestore) return
     setIsRestoring(true)
+    const hadPin = isPinSet()
     try {
       const results = restoreFromBackup(pendingRestore)
       reloadFromStorage()
-      setRestoreSummary(results)
+      setRestoreSummary({ ...results, pinWarning: hadPin })
       setPendingRestore(null)
       setShowRestoreConfirm(false)
       addToast(
@@ -1029,7 +1030,7 @@ export default function Settings({ onNavigate }) {
         onClose={() => { setShowRestoreConfirm(false); setPendingRestore(null); setBackupSchemaWarning(null) }}
         onConfirm={handleConfirmRestore}
         title="Restore Backup?"
-        description={`${backupSchemaWarning ? backupSchemaWarning + ' ' : ''}This will replace your current data with the backup. Make sure you have exported your current data first.`}
+        description={`${backupSchemaWarning ? backupSchemaWarning + ' ' : ''}This will replace your current data with the backup. PIN lock and security settings are not included in backups. Make sure you have exported your current data first.`}
         confirmLabel={isRestoring ? 'Restoring...' : 'Restore'}
         cancelLabel="Cancel"
         loading={isRestoring}
@@ -1038,6 +1039,14 @@ export default function Settings({ onNavigate }) {
       {/* Restore Summary Modal */}
       <Modal open={!!restoreSummary} onClose={() => setRestoreSummary(null)} title="Restore Complete">
         <div className="space-y-3">
+          {restoreSummary?.pinWarning && (
+            <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2.5">
+              <AlertTriangle size={14} className="text-yellow-400 mt-0.5 shrink-0" />
+              <p className="text-[11px] text-yellow-300 leading-relaxed">
+                PIN lock is not included in backups. Your existing PIN remains active. If restoring to a new device, set up PIN lock again in Security settings.
+              </p>
+            </div>
+          )}
           {restoreSummary?.restored?.length > 0 && (
             <div>
               <p className="text-xs text-neon font-medium mb-1.5 flex items-center gap-1.5">
