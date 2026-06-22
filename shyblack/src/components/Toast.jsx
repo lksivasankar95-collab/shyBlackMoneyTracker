@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useCallback, useRef } from 'react'
 import { CheckCircle, XCircle, AlertCircle, RotateCcw, X } from 'lucide-react'
+import { useTranslation } from '../i18n'
 
 const ToastContext = createContext()
 
@@ -16,6 +17,7 @@ const colors = {
 }
 
 export function ToastProvider({ children }) {
+  const { t } = useTranslation()
   const [toasts, setToasts] = useState([])
   const timersRef = useRef({})
 
@@ -59,7 +61,7 @@ export function ToastProvider({ children }) {
                 <button
                   onClick={() => handleUndo(toast.id, toast.undoAction)}
                   className="shrink-0 p-1 rounded-lg hover:bg-white/5 transition-colors"
-                  aria-label="Undo"
+                  aria-label={t('common.undo')}
                 >
                   <RotateCcw size={14} />
                 </button>
@@ -67,7 +69,7 @@ export function ToastProvider({ children }) {
               <button
                 onClick={() => removeToast(toast.id)}
                 className="shrink-0 p-1 rounded-lg hover:bg-white/5 transition-colors opacity-50 hover:opacity-100"
-                aria-label="Dismiss"
+                aria-label={t('common.close')}
               >
                 <X size={14} />
               </button>

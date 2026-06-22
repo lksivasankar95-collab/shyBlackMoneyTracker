@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AlertTriangle } from 'lucide-react'
+import { useTranslation } from '../i18n'
 
 export default function ConfirmationModal({
   open,
@@ -14,6 +15,7 @@ export default function ConfirmationModal({
   typedConfirmWord = 'DELETE',
   loading = false,
 }) {
+  const { t } = useTranslation()
   const [typedValue, setTypedValue] = useState('')
   const inputRef = useRef()
   const dialogRef = useRef()
@@ -98,20 +100,20 @@ export default function ConfirmationModal({
         {typedConfirm && (
           <div className="mb-4">
             <p className="text-[11px] text-gray-500 mb-2 text-center">
-              Type <span className="text-red-400 font-bold">{typedConfirmWord}</span> to confirm
+              {t('common.type_label')} <span className="text-red-400 font-bold">{typedConfirmWord}</span> {t('common.to_confirm')}
             </p>
             <input
               ref={inputRef}
               type="text"
               value={typedValue}
               onChange={(e) => setTypedValue(e.target.value)}
-              placeholder={`Type "${typedConfirmWord}"`}
+              placeholder={`${t('common.type_label')} "${typedConfirmWord}"`}
               className={`input-field text-center text-sm tracking-widest uppercase ${
                 typedValue && !isTypedValid ? 'border-red-500/30 text-red-400' : ''
               } ${isTypedValid ? 'border-neon/30 text-neon' : ''}`}
               autoComplete="off"
               spellCheck={false}
-              aria-label={`Type ${typedConfirmWord} to confirm`}
+              aria-label={t('common.type_to_confirm', { word: typedConfirmWord })}
             />
           </div>
         )}
@@ -126,7 +128,7 @@ export default function ConfirmationModal({
                 : 'bg-neon/10 text-neon border border-neon/30 hover:bg-neon/20 disabled:opacity-40'
             }`}
           >
-            {loading ? 'Processing...' : confirmLabel}
+            {loading ? t('common.processing') : confirmLabel}
           </button>
           <button
             onClick={onClose}

@@ -1,14 +1,15 @@
 import { Target, FileText, History, Calendar, Landmark } from 'lucide-react'
-
-const actions = [
-  { id: 'budgets', label: 'Budgets', icon: Target },
-  { id: 'reports', label: 'Reports', icon: FileText },
-  { id: 'timeline', label: 'Timeline', icon: History },
-  { id: 'calendar', label: 'Calendar', icon: Calendar },
-  { id: 'emi-center', label: 'EMIs', icon: Landmark },
-]
+import { useTranslation } from '../i18n'
 
 export default function QuickActions({ onNavigate, compact }) {
+  const { t } = useTranslation()
+  const actions = [
+    { id: 'budgets', label: t('quick_actions.budgets'), icon: Target },
+    { id: 'reports', label: t('quick_actions.reports'), icon: FileText },
+    { id: 'timeline', label: t('quick_actions.timeline'), icon: History },
+    { id: 'calendar', label: t('quick_actions.calendar'), icon: Calendar },
+    { id: 'emi-center', label: t('quick_actions.emis'), icon: Landmark },
+  ]
   const items = compact ? actions.slice(0, 4) : actions
 
   return (

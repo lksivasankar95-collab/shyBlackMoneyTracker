@@ -4,6 +4,7 @@ import {
   Target, Search, Plus, X, Edit3, Trash2, DollarSign,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
 import { getAccounts, saveAccounts } from '../utils/networth'
 import { getEmis } from '../utils/emi'
@@ -14,6 +15,7 @@ import EmptyState from '../components/EmptyState'
 import RelatedItemsPanel from '../components/RelatedItemsPanel'
 
 export default function AccountCenterPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, updateAccounts } = useFinance()
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -87,7 +89,7 @@ export default function AccountCenterPage({ onNavigate }) {
             <GlassCard>
               <h3 className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
                 <Landmark size={12} className="text-purple-400" />
-                Linked EMIs
+                {t('account_center.linked_emis')}
               </h3>
               {accountDetail.emis.map((e) => (
                 <div key={e.id} className="flex items-center justify-between py-1.5 border-b border-glass-border last:border-0">
@@ -106,7 +108,7 @@ export default function AccountCenterPage({ onNavigate }) {
             <GlassCard>
               <h3 className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1.5">
                 <ArrowLeftRight size={12} className="text-cyan-400" />
-                Recent Transfers
+                {t('account_center.recent_transfers')}
               </h3>
               {accountDetail.transfers.slice(0, 10).map((t) => (
                 <div key={t.id} className="flex items-center justify-between py-1.5 border-b border-glass-border last:border-0">
@@ -122,9 +124,9 @@ export default function AccountCenterPage({ onNavigate }) {
 
           {/* Transactions */}
           <GlassCard>
-            <h3 className="text-xs font-semibold text-gray-400 mb-2">Transactions ({accountDetail.transactions.length})</h3>
+            <h3 className="text-xs font-semibold text-gray-400 mb-2">{t('account_center.transactions_count', { count: accountDetail.transactions.length })}</h3>
             {accountDetail.transactions.length === 0 ? (
-              <p className="text-xs text-gray-600 text-center py-4">No transactions for this account</p>
+              <p className="text-xs text-gray-600 text-center py-4">{t('account_center.no_transactions')}</p>
             ) : (
               <div className="space-y-1.5">
                 {accountDetail.transactions.slice(0, 20).map((tx) => (
@@ -163,7 +165,7 @@ export default function AccountCenterPage({ onNavigate }) {
           <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05]">
             <ChevronLeft size={20} className="text-gray-400" />
           </button>
-          <h1 className="text-lg font-bold text-white">Accounts</h1>
+          <h1 className="text-lg font-bold text-white">{t('account_center.title')}</h1>
         </div>
         <button
           onClick={() => setShowAddForm(true)}
@@ -177,7 +179,7 @@ export default function AccountCenterPage({ onNavigate }) {
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           type="text"
-          placeholder="Search accounts..."
+          placeholder={t('account_center.search_placeholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
@@ -192,7 +194,7 @@ export default function AccountCenterPage({ onNavigate }) {
               type="text"
               value={formData.name}
               onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-              placeholder="Account name"
+              placeholder={t('account_center.name_placeholder')}
               className="w-full px-3 py-2 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
             />
             <select
@@ -200,29 +202,29 @@ export default function AccountCenterPage({ onNavigate }) {
               onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value }))}
               className="w-full px-3 py-2 rounded-xl bg-matte-200 border border-glass-border text-sm text-white focus:outline-none focus:border-neon/30"
             >
-              <option value="bank">Bank</option>
-              <option value="cash">Cash</option>
-              <option value="investment">Investment</option>
-              <option value="wallet">Wallet</option>
-              <option value="other">Other</option>
+              <option value="bank">{t('account_center.type_bank')}</option>
+              <option value="cash">{t('networth.types.cash')}</option>
+              <option value="investment">{t('networth.types.investment')}</option>
+              <option value="wallet">{t('account_center.type_wallet')}</option>
+              <option value="other">{t('networth.types.other')}</option>
             </select>
             <input
               type="number"
               value={formData.balance}
               onChange={(e) => setFormData((prev) => ({ ...prev, balance: e.target.value }))}
-              placeholder="Current balance"
+              placeholder={t('account_center.balance_placeholder')}
               className="w-full px-3 py-2 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
             />
             <div className="flex gap-2">
               <button onClick={() => { setShowAddForm(false); setFormData({ name: '', type: 'bank', balance: '' }) }}
                 className="flex-1 py-2 rounded-xl text-xs text-gray-500 hover:text-white bg-white/[0.03] transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button onClick={handleAddAccount} disabled={!formData.name.trim()}
                 className="flex-1 py-2 rounded-xl text-xs text-neon bg-neon/10 border border-neon/20 hover:bg-neon/20 disabled:opacity-40 transition-all"
               >
-                Add
+                {t('account_center.add')}
               </button>
             </div>
           </div>
@@ -230,7 +232,7 @@ export default function AccountCenterPage({ onNavigate }) {
       )}
 
       {filteredAccounts.length === 0 ? (
-        <EmptyState icon={Wallet} title="No accounts" description={searchQuery ? 'No matching accounts' : 'Add your first account to track balances'} />
+        <EmptyState icon={Wallet} title={t('account_center.no_accounts')} description={searchQuery ? t('account_center.no_matching') : t('account_center.add_first')} />
       ) : (
         <div className="space-y-2">
           {filteredAccounts.map((acct) => (

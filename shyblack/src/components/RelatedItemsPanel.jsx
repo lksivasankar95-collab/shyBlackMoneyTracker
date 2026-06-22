@@ -6,6 +6,7 @@ import {
 import { getRelationshipsForEntity, getRelatedEntities, getEntityLabel, getAllEntitiesByType, createRelationship, deleteRelationship, ENTITY_TYPES } from '../utils/relationships'
 import { formatCurrency } from '../utils/helpers'
 import GlassCard from './GlassCard'
+import { useTranslation } from '../i18n'
 
 const TYPE_ICONS = {
   emi: Landmark,
@@ -26,6 +27,7 @@ const TYPE_COLORS = {
 }
 
 export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) {
+  const { t } = useTranslation()
   const [showLinker, setShowLinker] = useState(false)
   const [linkTargetType, setLinkTargetType] = useState('document')
   const [linkTargetId, setLinkTargetId] = useState('')
@@ -69,7 +71,7 @@ export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) 
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-semibold text-gray-400 flex items-center gap-1.5">
           <Link2 size={12} className="text-neon" />
-          Linked Items
+          {t('related_items.title')}
           <span className="text-[10px] text-gray-600 font-normal">({related.length})</span>
         </h3>
         <button
@@ -77,7 +79,7 @@ export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) 
           className="flex items-center gap-1 text-[10px] text-neon/70 hover:text-neon transition-colors"
         >
           <Plus size={11} />
-          Link
+          {t('related_items.link')}
         </button>
       </div>
 
@@ -110,7 +112,7 @@ export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) 
               type="text"
               value={linkLabel}
               onChange={(e) => setLinkLabel(e.target.value)}
-              placeholder="Label (optional)"
+              placeholder={t('related_items.label_placeholder')}
               className="w-full px-2.5 py-1.5 rounded-lg bg-matte-200 border border-glass-border text-xs text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
             />
 
@@ -119,14 +121,14 @@ export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) 
                 onClick={() => setShowLinker(false)}
                 className="flex-1 py-1.5 rounded-lg text-[10px] text-gray-500 hover:text-white bg-white/[0.03] transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleLink}
                 disabled={!linkTargetId}
                 className="flex-1 py-1.5 rounded-lg text-[10px] text-neon bg-neon/10 border border-neon/20 hover:bg-neon/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
               >
-                Link
+                {t('related_items.link')}
               </button>
             </div>
           </div>
@@ -135,7 +137,7 @@ export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) 
 
       {/* Related Items List */}
       {relatedWithLabels.length === 0 && !showLinker ? (
-        <p className="text-[11px] text-gray-600 text-center py-2">No linked items yet. Tap "Link" to connect records.</p>
+        <p className="text-[11px] text-gray-600 text-center py-2">{t('related_items.no_links')}</p>
       ) : (
         <div className="space-y-1.5">
           {relatedWithLabels.map((item) => {

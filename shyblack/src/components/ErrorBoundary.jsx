@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AlertTriangle, RefreshCw, Trash2, Shield } from 'lucide-react'
+import i18n from 'i18next'
 
 const BRAND_GRADIENT = 'bg-gradient-to-br from-[#39ff14]/5 via-transparent to-[#39ff14]/5'
 
@@ -67,9 +68,9 @@ export default class ErrorBoundary extends Component {
                 <AlertTriangle size={24} className="text-red-400" />
               </div>
 
-              <h1 className="text-lg font-bold text-white mb-1">Something went wrong</h1>
+              <h1 className="text-lg font-bold text-white mb-1">{i18n.t('error_page.app_error_title')}</h1>
               <p className="text-xs text-gray-500 mb-6 leading-relaxed max-w-[260px] mx-auto">
-                ShyBlack encountered an unexpected error. Your data is safe and no information has been lost.
+                {i18n.t('error_page.app_error_desc')}
               </p>
 
               <div className="space-y-2.5">
@@ -79,7 +80,7 @@ export default class ErrorBoundary extends Component {
                   className="btn-primary w-full text-sm flex items-center justify-center gap-2"
                 >
                   <RefreshCw size={15} className={this.state.isResetting ? 'animate-spin' : ''} />
-                  Reload App
+                  {i18n.t('error_page.reload_app')}
                 </button>
 
                 <button
@@ -90,17 +91,17 @@ export default class ErrorBoundary extends Component {
                     hover:bg-red-500/20 transition-all disabled:opacity-50"
                 >
                   <Trash2 size={15} />
-                  Reset Local Data
+                  {i18n.t('error_page.reset_local_data')}
                 </button>
               </div>
 
               <div className="mt-5 pt-4 border-t border-glass-border">
                 <div className="flex items-center justify-center gap-1.5 mb-2">
                   <Shield size={12} className="text-neon" />
-                  <span className="text-[10px] text-neon font-medium">Encrypted Offline Storage</span>
+                  <span className="text-[10px] text-neon font-medium">{i18n.t('error_page.encrypted_storage')}</span>
                 </div>
                 <p className="text-[9px] text-gray-600">
-                  Error code: {this.state.error?.name || 'UNKNOWN'} · Auto-recovery active
+                  {i18n.t('error_page.error_code', { code: this.state.error?.name || 'UNKNOWN' })}
                 </p>
               </div>
             </div>

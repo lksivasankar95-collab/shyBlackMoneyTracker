@@ -3,15 +3,18 @@ import { Trash2, Pencil, User, Smartphone } from 'lucide-react'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
+import { useTranslation } from '../i18n'
 
-function getSubtitle(tx) {
+function getSubtitle(tx, t) {
   const parts = []
   if (tx.person?.name) {
-    parts.push(tx.type === 'income' ? `from ${tx.person.name}` : `to ${tx.person.name}`)
+    parts.push(tx.type === 'income'
+      ? `${t('transactions.from_label')} ${tx.person.name}`
+      : `${t('transactions.to_label')} ${tx.person.name}`)
   }
   if (tx.paymentMethod) {
     const method = PAYMENT_METHODS.find((m) => m.id === tx.paymentMethod)
-    parts.push(`via ${method?.label || tx.paymentMethod}`)
+    parts.push(`${t('transactions.via_label')} ${method?.label || tx.paymentMethod}`)
   }
   if (tx.note) parts.push(tx.note)
   parts.push(formatDate(tx.date))
@@ -19,9 +22,10 @@ function getSubtitle(tx) {
 }
 
 const TransactionItem = memo(function TransactionItem({ transaction, onDelete, onEdit, compact }) {
+  const { t } = useTranslation()
   const cat = ALL_CATEGORIES.find((c) => c.id === transaction.category)
   const isIncome = transaction.type === 'income'
-  const subtitle = useMemo(() => getSubtitle(transaction), [transaction])
+  const subtitle = useMemo(() => getSubtitle(transaction, t), [transaction, t])
 
   return (
     <div className="flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2">
@@ -33,7 +37,7 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, o
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate leading-tight">
-          {cat?.label || 'Unknown'}
+          {cat?.label || t('transactions.unknown_category')}
         </p>
         {!compact && (
           <p className="text-xs text-gray-600 mt-0.5 truncate">

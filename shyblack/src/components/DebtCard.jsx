@@ -1,8 +1,10 @@
 import { memo, useState } from 'react'
 import { User, ArrowUpRight, ArrowDownLeft, Clock, CheckCircle2, AlertTriangle, ChevronRight } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 
 const DebtCard = memo(function DebtCard({ debt, onRepay, onDelete }) {
+  const { t } = useTranslation()
   const [showActions, setShowActions] = useState(false)
   const isLent = debt.type === 'lent'
   const isOverdue = debt.status === 'pending' && debt.dueDate && new Date(debt.dueDate) < new Date()
@@ -29,11 +31,11 @@ const DebtCard = memo(function DebtCard({ debt, onRepay, onDelete }) {
                   : 'bg-yellow-500/10 text-yellow-400'
             }`}>
               {debt.status === 'paid' ? (
-                <><CheckCircle2 size={10} /> Paid</>
+                <><CheckCircle2 size={10} /> {t('emis.paid')}</>
               ) : isOverdue ? (
-                <><AlertTriangle size={10} /> Overdue</>
+                <><AlertTriangle size={10} /> {t('emis.overdue')}</>
               ) : (
-                <><Clock size={10} /> Pending</>
+                <><Clock size={10} /> {t('debt_card.status_pending')}</>
               )}
             </div>
           </div>
@@ -45,13 +47,13 @@ const DebtCard = memo(function DebtCard({ debt, onRepay, onDelete }) {
 
           {isPartial && (
             <p className="text-[10px] text-gray-500 mt-0.5">
-              of {formatCurrency(debt.amount)} · <span className="text-neon">{Math.round(progress)}%</span> repaid
+              {t('common.of')} {formatCurrency(debt.amount)} · <span className="text-neon">{Math.round(progress)}%</span> {t('debt_card.repaid_suffix')}
             </p>
           )}
 
           {debt.dueDate && (
             <p className={`text-[11px] mt-1.5 ${isOverdue ? 'text-red-400' : 'text-gray-500'}`}>
-              Due {formatDate(debt.dueDate)}
+              {t('debt_card.due_prefix')} {formatDate(debt.dueDate)}
             </p>
           )}
 
@@ -75,14 +77,14 @@ const DebtCard = memo(function DebtCard({ debt, onRepay, onDelete }) {
               onClick={() => onRepay(debt)}
               className="flex-1 px-3 py-2 rounded-lg text-xs font-medium bg-neon/10 text-neon hover:bg-neon/20 transition-all"
             >
-              {isLent ? 'Record Repayment' : 'Make Payment'}
+              {isLent ? t('debt_card.record_repayment') : t('debt_card.make_payment')}
             </button>
           )}
           <button
             onClick={() => onDelete(debt.id)}
             className="px-3 py-2 rounded-lg text-xs font-medium bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all"
           >
-            Delete
+            {t('common.delete')}
           </button>
         </div>
       )}

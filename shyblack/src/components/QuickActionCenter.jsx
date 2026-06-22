@@ -3,17 +3,18 @@ import {
   Plus, X, TrendingUp, Landmark, Users, Target, FolderOpen, ArrowLeftRight,
   FileText,
 } from 'lucide-react'
-
-const actions = [
-  { id: 'add', label: 'Transaction', icon: TrendingUp, color: 'text-neon bg-neon/10' },
-  { id: 'emi-center', label: 'EMI', icon: Landmark, color: 'text-purple-400 bg-purple-500/10' },
-  { id: 'debts', label: 'Ledger', icon: Users, color: 'text-blue-400 bg-blue-500/10' },
-  { id: 'goals', label: 'Goal', icon: Target, color: 'text-amber-400 bg-amber-500/10' },
-  { id: 'documents', label: 'Document', icon: FolderOpen, color: 'text-neon bg-neon/10' },
-  { id: 'transfers', label: 'Transfer', icon: ArrowLeftRight, color: 'text-cyan-400 bg-cyan-500/10' },
-]
+import { useTranslation } from '../i18n'
 
 export default function QuickActionCenter({ onNavigate }) {
+  const { t } = useTranslation()
+  const actions = [
+    { id: 'add', label: t('quick_actions.transaction'), icon: TrendingUp, color: 'text-neon bg-neon/10' },
+    { id: 'emi-center', label: t('quick_actions.emi'), icon: Landmark, color: 'text-purple-400 bg-purple-500/10' },
+    { id: 'debts', label: t('quick_actions.ledger'), icon: Users, color: 'text-blue-400 bg-blue-500/10' },
+    { id: 'goals', label: t('quick_actions.goal'), icon: Target, color: 'text-amber-400 bg-amber-500/10' },
+    { id: 'documents', label: t('quick_actions.document'), icon: FolderOpen, color: 'text-neon bg-neon/10' },
+    { id: 'transfers', label: t('quick_actions.transfer'), icon: ArrowLeftRight, color: 'text-cyan-400 bg-cyan-500/10' },
+  ]
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)
 

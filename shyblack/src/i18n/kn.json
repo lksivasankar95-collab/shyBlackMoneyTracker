@@ -87,7 +87,23 @@
     "confirm_action": "ನಿಮಗೆ ಖಚಿತವೇ?",
     "copied": "ನಕಲಿಸಲಾಗಿದೆ!",
     "generating": "ರಚಿಸಲಾಗುತ್ತಿದೆ...",
-    "na": "N/A"
+    "na": "N/A",
+    "yes": "ಹೌದು",
+    "no": "ಇಲ್ಲ",
+    "on": "ಆನ್",
+    "off": "ಆಫ್",
+    "none": "ಏನೂ ಇಲ್ಲ",
+    "days": "ದಿನಗಳು",
+    "seconds_short": "ಸೆ",
+    "kilobytes": "KB",
+    "transaction": "ವ್ಯವಹಾರ",
+    "of": "ದ",
+    "in_progress": "ಪ್ರಗತಿಯಲ್ಲಿದೆ",
+    "undo": "ರದ್ದುಗೊಳಿಸಿ",
+    "processing": "ಪ್ರಕ್ರಿಯೆಯಾಗುತ್ತಿದೆ...",
+    "type_label": "ಟೈಪ್ ಮಾಡಿ",
+    "to_confirm": "ದೃಢೀಕರಿಸಲು",
+    "type_to_confirm": "ದೃಢೀಕರಿಸಲು {{word}} ಟೈಪ್ ಮಾಡಿ"
   },
 
   "dashboard": {
@@ -205,7 +221,11 @@
     "enter_valid_amount": "Please enter a valid amount",
     "amount_exceeds_limit": "Amount exceeds maximum limit",
     "select_category": "Please select a category",
-    "invalid_date": "Invalid date selected"
+    "invalid_date": "Invalid date selected",
+    "from_label": "ನಿಂದ",
+    "to_label": "ಗೆ",
+    "via_label": "ಮೂಲಕ",
+    "unknown_category": "ತಿಳಿಯದು"
   },
 
   "settings": {
@@ -284,7 +304,64 @@
     "disable_privacy_lock": "Disable Privacy Lock",
     "disable_privacy_lock_desc": "Enter your current PIN to disable privacy lock.",
     "enc_export_desc": "Set a password to protect your backup. You'll need it to restore.",
-    "enc_import_title": "Enter Backup Password"
+    "enc_import_title": "Enter Backup Password",
+    "reload_app": "ಅಪ್ ಮರುಲೋಡ್ ಮಾಡಿ",
+    "restore_backup_title": "ಬ್ಯಾಕಪ್ ಮರುಸ್ಥಾಪಿಸಬೇಕೇ?",
+    "restore_backup_desc": "ಇದು ನಿಮ್ಮ ಪ್ರಸ್ತುತ ಡೇಟಾವನ್ನು ಬ್ಯಾಕಪ್‌ನೊಂದಿಗೆ ಬದಲಾಯಿಸುತ್ತದೆ. PIN ಮತ್ತು ಭದ್ರತಾ ಸೆಟ್ಟಿಂಗ್‌ಗಳು ಬ್ಯಾಕಪ್‌ನಲ್ಲಿ ಸೇರಿಲ್ಲ.",
+    "restoring": "ಮರುಸ್ಥಾಪಿಸಲಾಗುತ್ತಿದೆ...",
+    "restore": "ಮರುಸ್ಥಾಪಿಸಿ",
+    "restore_complete": "ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ",
+    "pin_not_in_backup_warning": "PIN ಲಾಕ್ ಬ್ಯಾಕಪ್‌ನಲ್ಲಿ ಸೇರಿಲ್ಲ. ನಿಮ್ಮ ಅಸ್ತಿತ್ವದ PIN ಸಕ್ರಿಯವಾಗಿ ಉಳಿಯುತ್ತದೆ.",
+    "restored_label": "ಮರುಸ್ಥಾಪಿಸಲಾಗಿದೆ",
+    "failed_label": "ವಿಫಲವಾಗಿದೆ",
+    "reset_data_title": "ಎಲ್ಲಾ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಬೇಕೇ?",
+    "reset_data_desc": "ಇದು ನಿಮ್ಮ ಎಲ್ಲಾ ವ್ಯವಹಾರಗಳು, ಸಾಲಗಳು, ಬಜೆಟ್‌ಗಳು, ಉಳಿತಾಯ ಮತ್ತು ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.",
+    "reset_everything": "ಎಲ್ಲಾ ರೀಸೆಟ್ ಮಾಡಿ",
+    "backup_exported": "ಬ್ಯಾಕಪ್ ಯಶಸ್ವಿಯಾಗಿ ರಫ್ತಾಗಿದೆ!",
+    "backup_export_failed": "ರಫ್ತು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "backup_export_error": "ಬ್ಯಾಕಪ್ ರಫ್ತು ವಿಫಲವಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "restore_result": "{count} ವಿಭಾಗಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಲಾಗಿದೆ",
+    "restore_result_with_failed": "{count} ವಿಭಾಗಗಳನ್ನು ಮರುಸ್ಥಾಪಿಸಲಾಗಿದೆ, {failCount} ವಿಫಲ",
+    "restore_failed": "ಮರುಸ್ಥಾಪನೆ ವಿಫಲ. ಡೇಟಾ ದೋಷಪೂರಿತವಾಗಿರಬಹುದು.",
+    "data_reset": "ಎಲ್ಲಾ ಸ್ಥಳೀಯ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಲಾಗಿದೆ",
+    "balance_visible": "ಬ್ಯಾಲೆನ್ಸ್ ಕಾಣಿಸುತ್ತಿದೆ",
+    "balance_hidden": "ಬ್ಯಾಲೆನ್ಸ್ ಮರೆಮಾಡಲಾಗಿದೆ",
+    "privacy_off": "ಗೌಪ್ಯತೆ ಮೋಡ್ ಆಫ್",
+    "privacy_on": "ಗೌಪ್ಯತೆ ಮೋಡ್ ಆನ್",
+    "reminder_on": "ದೈನಂದಿನ ಜ್ಞಾಪನೆ ಸಂಜೆ 7:00 ಕ್ಕೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ",
+    "reminder_delayed": "ಇಂದು ಈಗಾಗಲೇ ಟ್ರ್ಯಾಕ್ ಮಾಡಲಾಗಿದೆ — ಜ್ಞಾಪನೆ ನಾಳೆ ಸಕ್ರಿಯವಾಗುತ್ತದೆ",
+    "reminder_enabled": "ಜ್ಞಾಪನೆ ಸಕ್ರಿಯಗೊಂಡಿದೆ",
+    "notif_permission_denied_msg": "ಅಧಿಸೂಚನೆ ಅನುಮತಿ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ. ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+    "reminder_pref_saved": "ಜ್ಞಾಪನೆ ಆದ್ಯತೆ ಉಳಿಸಲಾಗಿದೆ",
+    "reminder_disabled": "ದೈನಂದಿನ ಜ್ಞಾಪನೆ ನಿಷ್ಕ್ರಿಯಗೊಂಡಿದೆ",
+    "biometric_disabled": "ಬಯೋಮೆಟ್ರಿಕ್ ಅನ್‌ಲಾಕ್ ನಿಷ್ಕ್ರಿಯಗೊಂಡಿದೆ",
+    "biometric_unavailable_device": "ಈ ಸಾಧನದಲ್ಲಿ ಬಯೋಮೆಟ್ರಿಕ್ ಲಭ್ಯವಿಲ್ಲ",
+    "biometric_failed_toast": "ಬಯೋಮೆಟ್ರಿಕ್ ಪರಿಶೀಲನೆ ವಿಫಲ",
+    "biometric_enabled_toast": "{type} ಅನ್‌ಲಾಕ್ ಸಕ್ರಿಯಗೊಂಡಿದೆ",
+    "pin_set_toast": "ಗೌಪ್ಯತೆ PIN ಹೊಂದಿಸಲಾಗಿದೆ",
+    "pin_changed_toast": "PIN ಬದಲಾಯಿಸಲಾಗಿದೆ",
+    "privacy_lock_disabled_toast": "ಗೌಪ್ಯತೆ ಲಾಕ್ ನಿಷ್ಕ್ರಿಯಗೊಂಡಿದೆ",
+    "notif_permission_granted_toast": "ಅಧಿಸೂಚನೆ ಅನುಮತಿ ನೀಡಲಾಗಿದೆ!",
+    "notif_permission_denied_android": "ಅನುಮತಿ ತಿರಸ್ಕರಿಸಲಾಗಿದೆ. Android ಸೆಟ್ಟಿಂಗ್‌ಗಳಲ್ಲಿ ಸಕ್ರಿಯಗೊಳಿಸಿ.",
+    "pin_min_4": "PIN ಕನಿಷ್ಟ 4 ಅಂಕಿಗಳಿರಬೇಕು",
+    "pins_mismatch": "PINಗಳು ಹೊಂದಾಣಿಕೆಯಾಗಲಿಲ್ಲ",
+    "enter_current_pin_error": "ಪ್ರಸ್ತುತ PIN ನಮೂದಿಸಿ",
+    "current_pin_wrong": "ಪ್ರಸ್ತುತ PIN ತಪ್ಪು",
+    "new_pin_min_4": "ಹೊಸ PIN ಕನಿಷ್ಟ 4 ಅಂಕಿಗಳಿರಬೇಕು",
+    "new_pins_mismatch": "ಹೊಸ PINಗಳು ಹೊಂದಾಣಿಕೆಯಾಗಲಿಲ್ಲ",
+    "enter_your_pin_error": "ನಿಮ್ಮ PIN ನಮೂದಿಸಿ",
+    "pin_wrong": "PIN ತಪ್ಪು",
+    "permission_label": "ಅನುಮತಿ",
+    "status_label": "ಸ್ಥಿತಿ",
+    "platform_label": "ಪ್ಲಾಟ್‌ಫಾರ್ಮ್",
+    "checked_label": "ಪರಿಶೀಲಿಸಲಾಗಿದೆ",
+    "lock_now": "ಈಗ",
+    "schema_label": "ಸ್ಕೀಮಾ",
+    "target_label": "ಗುರಿ",
+    "biometric_type_enabled": "{{type}} ಸಕ್ರಿಯಗೊಂಡಿದೆ",
+    "biometric_use_to_unlock": "ಅನ್‌ಲಾಕ್ ಮಾಡಲು {{type}} ಬಳಸಿ",
+    "biometric_setup_unlock": "{{type}} ಅನ್‌ಲಾಕ್ ಸೆಟಪ್ ಮಾಡಿ",
+    "backup_schema_warning": "ಬ್ಯಾಕಪ್ ಸ್ಕೀಮಾ v{{backup}} ಪ್ರಸ್ತುತ v{{current}} ನಿಂದ ಭಿನ್ನವಾಗಿದೆ. ಡೇಟಾ ಯಥಾಸ್ಥಿತಿಯಲ್ಲಿ ಆಮದಾಗುತ್ತದೆ."
   },
 
   "debts": {
@@ -372,7 +449,13 @@
     "payment_updated": "Payment updated",
     "payment_deleted": "Payment deleted",
     "ledger_settled": "Ledger settled",
-    "statement_ready": "Statement ready for {name}"
+    "statement_ready": "Statement ready for {name}",
+    "add_lent": "ಸಾಲ ಕೊಟ್ಟ ದಾಖಲೆ ಸೇರಿಸಿ",
+    "add_borrowed": "ಸಾಲ ತೆಗೆದ ದಾಖಲೆ ಸೇರಿಸಿ",
+    "error_import_contact": "ಸಂಪರ್ಕ ಆಮದು ವಿಫಲವಾಗಿದೆ",
+    "error_name_required": "ದಯವಿಟ್ಟು ಹೆಸರು ನಮೂದಿಸಿ",
+    "error_invalid_amount": "ದಯವಿಟ್ಟು ಮಾನ್ಯ ಮೊತ್ತ ನಮೂದಿಸಿ",
+    "contact_imported": "{{name}} ಆಮದು ಮಾಡಲಾಗಿದೆ"
   },
 
   "goals": {
@@ -637,7 +720,22 @@
     "emi_desc": "ಸಾಲ ವಿವರಗಳು, ಪಾವತಿ ಇತಿಹಾಸ ಮತ್ತು ಉಳಿದ ವೇಳಾಪಟ್ಟಿ",
     "ledger_desc": "ವ್ಯಕ್ತಿವಾರು ಲೆಡ್ಜರ್ ಬ್ಯಾಲೆನ್ಸ್ ಮತ್ತು ಪಾವತಿಗಳೊಂದಿಗೆ",
     "monthly_desc": "ಆದಾಯ, ವೆಚ್ಚಗಳು, ಉಳಿತಾಯ ಮತ್ತು ವರ್ಗ ವಿಭಜನೆ",
-    "networth_desc": "ಸ್ವತ್ತುಗಳು, ಖಾತೆಗಳು, ಸಾಲಗಳು ಮತ್ತು ಒಟ್ಟು ನಿವ್ವಳ ಮೌಲ್ಯ"
+    "networth_desc": "ಸ್ವತ್ತುಗಳು, ಖಾತೆಗಳು, ಸಾಲಗಳು ಮತ್ತು ಒಟ್ಟು ನಿವ್ವಳ ಮೌಲ್ಯ",
+    "select_emi_label": "EMI ಆಯ್ಕೆಮಾಡಿ",
+    "select_emi_placeholder": "ಒಂದು EMI ಆಯ್ಕೆಮಾಡಿ...",
+    "select_person_label": "ವ್ಯಕ್ತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+    "select_person_placeholder": "ಒಬ್ಬ ವ್ಯಕ್ತಿಯನ್ನು ಆಯ್ಕೆಮಾಡಿ...",
+    "year_label": "ವರ್ಷ",
+    "month_label": "ತಿಂಗಳು",
+    "main_desc": "PDF ಸ್ವರೂಪದಲ್ಲಿ ಆರ್ಥಿಕ ಹೇಳಿಕೆಗಳನ್ನು ರಚಿಸಿ ರಫ್ತು ಮಾಡಿ",
+    "networth_snap_desc": "ಎಲ್ಲಾ ಖಾತೆಗಳು, ಸಾಲಗಳು ಮತ್ತು ನಗದು ಶಿಲ್ಕು ಸೇರಿದಂತೆ ನಿಮ್ಮ ಪ್ರಸ್ತುತ ನಿವ್ವಳ ಮೌಲ್ಯದ ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ರಚಿಸುತ್ತದೆ.",
+    "generating_btn": "ರಚಿಸಲಾಗುತ್ತಿದೆ...",
+    "generate_btn": "ಹೇಳಿಕೆ ರಚಿಸಿ",
+    "saved_toast": "{count} ಪುಟಗಳ ಹೇಳಿಕೆ ಉಳಿಸಲಾಗಿದೆ!",
+    "generated_toast": "ಹೇಳಿಕೆ ರಚಿಸಲಾಗಿದೆ",
+    "saved_again_toast": "ಹೇಳಿಕೆ ಉಳಿಸಲಾಗಿದೆ!",
+    "failed_toast": "ಹೇಳಿಕೆ ರಚಿಸಲು ವಿಫಲ",
+    "share_unsupported_toast": "ಹಂಚಿಕೆ ಬೆಂಬಲಿಸಲಾಗುತ್ತಿಲ್ಲ"
   },
 
   "people": {
@@ -735,7 +833,14 @@
       "future_date": "ಭವಿಷ್ಯದ ದಿನಾಂಕ",
       "large_amount": "ದೊಡ್ಡ ಮೊತ್ತ",
       "duplicate": "ನಕಲಿ ಆಗಿರಬಹುದು"
-    }
+    },
+    "total_issues": "ಒಟ್ಟು ಸಮಸ್ಯೆಗಳು",
+    "medium": "ಮಧ್ಯಮ",
+    "low": "ಕಡಿಮೆ",
+    "all_clear": "ಎಲ್ಲಾ ಸರಿ",
+    "all_clear_desc": "ಡೇಟಾ ಗುಣಮಟ್ಟದ ಸಮಸ್ಯೆಗಳಿಲ್ಲ. ನಿಮ್ಮ ಡೇಟಾ ಉತ್ತಮ ಸ್ಥಿತಿಯಲ್ಲಿದೆ!",
+    "issues_count": "{count} ಸಮಸ್ಯೆ",
+    "issues_count_plural": "{count} ಸಮಸ್ಯೆಗಳು"
   },
 
   "diagnostics": {
@@ -781,7 +886,15 @@
     "payment_due_tomorrow": "Payment Due Tomorrow",
     "overdue_payment": "Overdue Payment",
     "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today"
+    "emi_due_today": "EMI Due Today",
+    "csv_exported": "CSV ರಫ್ತಾಗಿದೆ!",
+    "statement_generated": "ಹೇಳಿಕೆ ರಚಿಸಲಾಗಿದೆ!",
+    "pdf_saved": "{pageCount} ಪುಟಗಳ PDF ಉಳಿಸಲಾಗಿದೆ!",
+    "file_saved_unknown": "ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ ಆದರೆ ಸ್ಥಳ ತಿಳಿಯದು",
+    "share_unsupported": "ಹಂಚಿಕೆ ಬೆಂಬಲಿಸಲಾಗುತ್ತಿಲ್ಲ",
+    "download_failed": "ಡೌನ್‌ಲೋಡ್ ವಿಫಲ",
+    "pdf_generate_failed": "PDF ರಚಿಸಲು ವಿಫಲ",
+    "savings_goal_updated": "ಉಳಿತಾಯ ಗುರಿ ನವೀಕರಿಸಲಾಗಿದೆ"
   },
 
   "time": {
@@ -831,5 +944,174 @@
   },
 
   "months_short": ["ಜನ", "ಫೆಬ್ರ", "ಮಾರ್ಚ್", "ಏಪ್ರಿ", "ಮೇ", "ಜೂನ್", "ಜುಲೈ", "ಆಗ", "ಸೆಪ್ಟೆಂ", "ಅಕ್ಟೋ", "ನವೆಂ", "ಡಿಸೆಂ"],
-  "months_full": ["ಜನವರಿ", "ಫೆಬ್ರವರಿ", "ಮಾರ್ಚ್", "ಏಪ್ರಿಲ್", "ಮೇ", "ಜೂನ್", "ಜುಲೈ", "ಆಗಸ್ಟ್", "ಸೆಪ್ಟೆಂಬರ್", "ಅಕ್ಟೋಬರ್", "ನವೆಂಬರ್", "ಡಿಸೆಂಬರ್"]
+  "months_full": ["ಜನವರಿ", "ಫೆಬ್ರವರಿ", "ಮಾರ್ಚ್", "ಏಪ್ರಿಲ್", "ಮೇ", "ಜೂನ್", "ಜುಲೈ", "ಆಗಸ್ಟ್", "ಸೆಪ್ಟೆಂಬರ್", "ಅಕ್ಟೋಬರ್", "ನವೆಂಬರ್", "ಡಿಸೆಂಬರ್"],
+
+  "account_center": {
+    "title": "ಖಾತೆಗಳು",
+    "search_placeholder": "ಖಾತೆಗಳನ್ನು ಹುಡುಕಿ...",
+    "linked_emis": "ಲಿಂಕ್ ಮಾಡಿದ EMIಗಳು",
+    "recent_transfers": "ಇತ್ತೀಚಿನ ವರ್ಗಾವಣೆಗಳು",
+    "transactions_count": "ವ್ಯವಹಾರಗಳು ({count})",
+    "no_transactions": "ಈ ಖಾತೆಗೆ ವ್ಯವಹಾರಗಳಿಲ್ಲ",
+    "no_accounts": "ಖಾತೆಗಳಿಲ್ಲ",
+    "no_matching": "ಹೊಂದಾಣಿಕೆಯ ಖಾತೆಗಳಿಲ್ಲ",
+    "add_first": "ಶಿಲ್ಕುಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ನಿಮ್ಮ ಮೊದಲ ಖಾತೆ ಸೇರಿಸಿ",
+    "name_placeholder": "ಖಾತೆ ಹೆಸರು",
+    "balance_placeholder": "ಪ್ರಸ್ತುತ ಶಿಲ್ಕು",
+    "type_bank": "ಬ್ಯಾಂಕ್",
+    "type_wallet": "ವಾಲೆಟ್",
+    "add": "ಸೇರಿಸಿ"
+  },
+
+  "review_center": {
+    "title": "ಆರ್ಥಿಕ ಪರಾಮರ್ಶೆ",
+    "no_data_title": "ಡೇಟಾ ಇಲ್ಲ",
+    "no_data_desc": "ಆರ್ಥಿಕ ಪರಾಮರ್ಶೆಗಳನ್ನು ರಚಿಸಲು ವ್ಯವಹಾರಗಳನ್ನು ಸೇರಿಸಿ",
+    "tab_monthly": "ಮಾಸಿಕ",
+    "tab_quarterly": "ತ್ರೈಮಾಸಿಕ",
+    "tab_yearly": "ವಾರ್ಷಿಕ",
+    "savings": "ಉಳಿತಾಯ",
+    "tx_rate_summary": "{count} ವ್ಯವಹಾರಗಳು · {rate}% ಉಳಿತಾಯ ದರ",
+    "top_spending": "ಹೆಚ್ಚು ಖರ್ಚು",
+    "debts_owed": "ಪಾವತಿಸಬೇಕಾದ ಸಾಲಗಳು",
+    "debts_borrowed": "ತೆಗೆದುಕೊಂಡ ಸಾಲಗಳು",
+    "active_emis": "ಸಕ್ರಿಯ EMIಗಳು",
+    "goal_savings": "ಗುರಿ ಉಳಿತಾಯ",
+    "active_count": "{count} ಸಕ್ರಿಯ",
+    "monthly_total": "{amount}/ತಿಂ"
+  },
+
+  "trends_page": {
+    "title": "ಟ್ರೆಂಡ್‌ಗಳು",
+    "no_data_title": "ಡೇಟಾ ಇಲ್ಲ",
+    "no_data_desc": "ಟ್ರೆಂಡ್‌ಗಳನ್ನು ನೋಡಲು ವ್ಯವಹಾರಗಳನ್ನು ಸೇರಿಸಿ",
+    "monthly_income_expense": "ಮಾಸಿಕ ಆದಾಯ vs ವ್ಯಯ",
+    "savings_trend": "ಉಳಿತಾಯ ಟ್ರೆಂಡ್",
+    "category_spending": "ವರ್ಗ ವ್ಯಯ",
+    "debt_reduction": "ಸಾಲ ಕಡಿತ ಪ್ರಗತಿ",
+    "emi_progress": "EMI ಪ್ರಗತಿ",
+    "goal_achievement": "ಗುರಿ ಸಾಧನೆ",
+    "txns_count": "{count} ವ್ಯವಹಾರಗಳು",
+    "they_owe": "ಅವರು ಪಾವತಿಸಬೇಕು",
+    "you_owe": "ನೀವು ಪಾವತಿಸಬೇಕು",
+    "no_data_for_tab": "{tab} ಗಾಗಿ ಡೇಟಾ ಇಲ್ಲ",
+    "tab_monthly": "ಮಾಸಿಕ",
+    "tab_savings": "ಉಳಿತಾಯ",
+    "tab_category": "ವರ್ಗಗಳು",
+    "tab_debts": "ಸಾಲಗಳು",
+    "tab_emis": "EMIಗಳು",
+    "tab_goals": "ಗುರಿಗಳು",
+    "months_remaining": "{count}ತಿ ಉಳಿದಿದೆ"
+  },
+
+  "emi_widget": {
+    "title": "EMI ಸಾರಾಂಶ",
+    "active": "ಸಕ್ರಿಯ",
+    "today": "ಇಂದು",
+    "overdue": "ಗಡುವು ಮೀರಿದೆ",
+    "seven_days": "7 ದಿನಗಳು",
+    "due_today": "ಇಂದು ಗಡುವು",
+    "due_tomorrow": "ನಾಳೆ ಗಡುವು",
+    "due_in_days": "{count} ದಿನಗಳಲ್ಲಿ ಗಡುವು",
+    "view_all": "ಎಲ್ಲಾ EMIಗಳನ್ನು ನೋಡಿ"
+  },
+
+  "pin_lock": {
+    "enter_pin_prompt": "ಅನ್‌ಲಾಕ್ ಮಾಡಲು PIN ನಮೂದಿಸಿ",
+    "try_again_cooldown": "{count} ಸೆಕೆಂಡ್‌ಗಳಲ್ಲಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
+    "unlock": "ಅನ್‌ಲಾಕ್",
+    "use_fingerprint": "ಬೆರಳಚ್ಚು ಬಳಸಿ",
+    "forgot_pin": "PIN ಮರೆತಿದ್ದೀರಾ?",
+    "forgot_pin_desc": "ShyBlack ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಸಂಗ್ರಹಿಸುತ್ತದೆ. ರೀಸೆಟ್ ಮಾಡದೆ ಮರೆತ PIN ಮರಳಿ ಪಡೆಯಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "reset_all_data": "ಎಲ್ಲಾ ಅಪ್ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಿ",
+    "confirm_reset": "ರೀಸೆಟ್ ದೃಢೀಕರಿಸಿ",
+    "confirm_reset_warning": "ಇದು ನಿಮ್ಮ ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.",
+    "too_many_attempts": "ಹೆಚ್ಚಿನ ವಿಫಲ ಪ್ರಯತ್ನಗಳು. ರೀಸೆಟ್ ಅಗತ್ಯ.",
+    "wait_cooldown": "ಹೆಚ್ಚಿನ ಪ್ರಯತ್ನಗಳು. {count} ಸೆಕೆಂಡ್ ನಿರೀಕ್ಷಿಸಿ.",
+    "wrong_pin_with_count": "ತಪ್ಪು PIN ({count} ಪ್ರಯತ್ನಗಳು ಉಳಿದಿವೆ)",
+    "wrong_pin": "ತಪ್ಪು PIN",
+    "unlock_failed": "ಅನ್‌ಲಾಕ್ ವಿಫಲ. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+    "biometric_failed": "ಬಯೋಮೆಟ್ರಿಕ್ ಅನ್‌ಲಾಕ್ ವಿಫಲ. PIN ಬಳಸಿ.",
+    "del": "ಅಳಿಸು"
+  },
+
+  "financial_score": {
+    "subtitle": "ಆರ್ಥಿಕ ಆರೋಗ್ಯ ಸ್ಕೋರ್",
+    "factors_one": "1 ಅಂಶ",
+    "factors": "{count} ಅಂಶಗಳು"
+  },
+
+  "error_page": {
+    "section_crashed": "ಈ ವಿಭಾಗ ಕ್ರ್ಯಾಶ್ ಆಗಿದೆ",
+    "go_to_dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹೋಗಿ",
+    "app_error_title": "ಏನೋ ತಪ್ಪಾಯಿತು",
+    "app_error_desc": "ShyBlack ಅನಿರೀಕ್ಷಿತ ದೋಷವನ್ನು ಎದುರಿಸಿದೆ. ನಿಮ್ಮ ಡೇಟಾ ಸುರಕ್ಷಿತವಾಗಿದೆ.",
+    "reload_app": "ಅಪ್ ಮರುಲೋಡ್ ಮಾಡಿ",
+    "reset_local_data": "ಸ್ಥಳೀಯ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಿ",
+    "encrypted_storage": "ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್ ಆಫ್‌ಲೈನ್ ಸಂಗ್ರಹಣೆ",
+    "error_code": "ದೋಷ ಕೋಡ್: {code} · ಸ್ವಯಂಚಾಲಿತ ಚೇತರಿಕೆ ಸಕ್ರಿಯ"
+  },
+
+  "related_items": {
+    "title": "ಲಿಂಕ್ ಮಾಡಿದ ಐಟಂಗಳು",
+    "link": "ಲಿಂಕ್",
+    "no_links": "ಇನ್ನೂ ಲಿಂಕ್ ಮಾಡಿದ ಐಟಂಗಳಿಲ್ಲ. ದಾಖಲೆಗಳನ್ನು ಸಂಪರ್ಕಿಸಲು \"ಲಿಂಕ್\" ಟ್ಯಾಪ್ ಮಾಡಿ.",
+    "label_placeholder": "ಲೇಬಲ್ (ಐಚ್ಛಿಕ)"
+  },
+
+  "savings_progress": {
+    "remaining": "{amount} ಉಳಿದಿದೆ",
+    "completed": "ಗುರಿ ಸಾಧಿಸಲಾಗಿದೆ! ತುಂಬಾ ಒಳ್ಳೆಯದು!"
+  },
+
+  "debt_card": {
+    "status_pending": "ಬಾಕಿ",
+    "due": "ಗಡುವು {date}",
+    "repaid_suffix": "ಮರುಪಾವತಿ ಮಾಡಲಾಗಿದೆ",
+    "record_repayment": "ಮರುಪಾವತಿ ದಾಖಲಿಸಿ",
+    "make_payment": "ಪಾವತಿ ಮಾಡಿ",
+    "due_prefix": "ಗಡುವು"
+  },
+
+  "quick_actions": {
+    "transaction": "ವ್ಯವಹಾರ",
+    "emi": "EMI",
+    "ledger": "ಲೆಡ್ಜರ್",
+    "goal": "ಗುರಿ",
+    "document": "ದಾಖಲೆ",
+    "transfer": "ವರ್ಗಾವಣೆ",
+    "budgets": "ಬಜೆಟ್‌ಗಳು",
+    "reports": "ವರದಿಗಳು",
+    "timeline": "ಟೈಮ್‌ಲೈನ್",
+    "calendar": "ಕ್ಯಾಲೆಂಡರ್",
+    "emis": "EMIಗಳು"
+  },
+
+  "empty_states": {
+    "transactions_title": "ಇನ್ನೂ ವ್ಯವಹಾರಗಳಿಲ್ಲ",
+    "transactions_desc": "ನಿಮ್ಮ ಮೊದಲ ಆದಾಯ ಅಥವಾ ವ್ಯಯವನ್ನು ಸೇರಿಸಿ ನಿಮ್ಮ ಹಣಕಾಸನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಪ್ರಾರಂಭಿಸಿ.",
+    "transactions_hint": "ವ್ಯವಹಾರ ಸೇರಿಸಲು ಕೆಳಗಿನ + ಬಟನ್ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+    "emi_title": "EMIಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲಾಗಿಲ್ಲ",
+    "emi_desc": "ಸಾಲಗಳು ಮತ್ತು ಕಂತು ಪಾವತಿಗಳನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.",
+    "emi_hint": "ಪಾವತಿ ವೇಳಾಪಟ್ಟಿಗಳು, ಉಳಿದ ಶಿಲ್ಕುಗಳು ಮತ್ತು ಗಡುವು ದಿನಾಂಕಗಳನ್ನು ನೋಡಲು EMI ಸೇರಿಸಿ.",
+    "documents_title": "ಇನ್ನೂ ದಾಖಲೆಗಳಿಲ್ಲ",
+    "documents_desc": "ಬಿಲ್‌ಗಳು, ಒಪ್ಪಂದಗಳು, ರಶೀದಿಗಳು ಮತ್ತು ಆರ್ಥಿಕ ಹೇಳಿಕೆಗಳನ್ನು ಸುರಕ್ಷಿತವಾಗಿ ಸಂಗ್ರಹಿಸಿ.",
+    "documents_hint": "ನಿಮ್ಮ ಎಲ್ಲಾ ಮುಖ್ಯ ದಾಖಲೆಗಳನ್ನು ಒಂದೇ ಸ್ಥಳದಲ್ಲಿ ಇಡಲು PDFಗಳು ಅಥವಾ ಚಿತ್ರಗಳನ್ನು ಅಪ್‌ಲೋಡ್ ಮಾಡಿ.",
+    "budgets_title": "ಬಜೆಟ್‌ಗಳು ಹೊಂದಿಸಲಾಗಿಲ್ಲ",
+    "budgets_desc": "ವಿವಿಧ ವರ್ಗಗಳಲ್ಲಿ ವ್ಯಯವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಲು ಬಜೆಟ್‌ಗಳನ್ನು ರಚಿಸಿ.",
+    "budgets_hint": "ಆಹಾರ, ಇಂಧನ ಮತ್ತು ಶಾಪಿಂಗ್‌ನಂಥ ವರ್ಗಗಳಿಗೆ ಮಾಸಿಕ ಮಿತಿಗಳನ್ನು ಹೊಂದಿಸಿ.",
+    "goals_title": "ಆರ್ಥಿಕ ಗುರಿಗಳಿಲ್ಲ",
+    "goals_desc": "ಉಳಿತಾಯ ಗುರಿಗಳನ್ನು ಹೊಂದಿಸಿ ಕಾಲಾನಂತರದಲ್ಲಿ ನಿಮ್ಮ ಪ್ರಗತಿಯನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.",
+    "goals_hint": "ಗುರಿಗಳು ನಿಮ್ಮನ್ನು ಪ್ರೇರಿತ ಮತ್ತು ಕೇಂದ್ರೀಕೃತವಾಗಿ ಇಡಲು ಸಹಾಯ ಮಾಡುತ್ತದೆ.",
+    "debts_title": "ಸಾಲ ಅಥವಾ ಕೊಟ್ಟ ನಮೂದುಗಳಿಲ್ಲ",
+    "debts_desc": "ಸ್ನೇಹಿತರು ಮತ್ತು ಕುಟುಂಬ ಸದಸ್ಯರಿಂದ ತೆಗೆದುಕೊಂಡ ಮತ್ತು ಕೊಟ್ಟ ಹಣವನ್ನು ಟ್ರ್ಯಾಕ್ ಮಾಡಿ.",
+    "debts_hint": "ಯಾರು ಏನು ಪಾವತಿಸಬೇಕು ಎಂಬ ಸ್ಪಷ್ಟ ದಾಖಲೆ ಇಡಿ.",
+    "default_title": "ಇನ್ನೂ ಇಲ್ಲಿ ಏನೂ ಇಲ್ಲ",
+    "default_desc": "ನೀವು ಅಪ್ ಬಳಸುತ್ತಿದ್ದಂತೆ ಈ ವಿಭಾಗ ತುಂಬುತ್ತದೆ.",
+    "default_hint": "ಪ್ರಾರಂಭಿಸಲು ಇತರ ವೈಶಿಷ್ಟ್ಯಗಳನ್ನು ಅನ್ವೇಷಿಸಿ."
+  },
+
+  "app": {
+    "press_back_exit": "ನಿರ್ಗಮಿಸಲು ಮತ್ತೆ ಬ್ಯಾಕ್ ಒತ್ತಿ"
+  }
 }

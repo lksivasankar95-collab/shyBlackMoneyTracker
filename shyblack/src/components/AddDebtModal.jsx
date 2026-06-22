@@ -3,8 +3,10 @@ import { ArrowUpRight, ArrowDownLeft, AlertTriangle, Contact, Loader2 } from 'lu
 import Modal from './Modal'
 import { pickContact } from '../utils/contacts'
 import { useToast } from './Toast'
+import { useTranslation } from '../i18n'
 
 export default function AddDebtModal({ open, onClose, onSave }) {
+  const { t } = useTranslation()
   const { addToast } = useToast()
   const [personName, setPersonName] = useState('')
   const [personPhone, setPersonPhone] = useState('')
@@ -34,12 +36,12 @@ export default function AddDebtModal({ open, onClose, onSave }) {
       if (result.success && result.contact) {
         setPersonName(result.contact.name)
         setPersonPhone(result.contact.primaryPhone)
-        addToast(`Imported ${result.contact.name}`, 'success')
+        addToast(t('debts.contact_imported', { name: result.contact.name }), 'success')
       } else if (result.error) {
         setError(result.error)
       }
     } catch {
-      setError('Failed to import contact')
+      setError(t('debts.error_import_contact'))
     } finally {
       setImportingContact(false)
     }
@@ -56,11 +58,11 @@ export default function AddDebtModal({ open, onClose, onSave }) {
 
     const numAmount = parseFloat(amount)
     if (!personName.trim()) {
-      setError('Please enter a name')
+      setError(t('debts.error_name_required'))
       return
     }
     if (!amount || isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid amount')
+      setError(t('debts.error_invalid_amount'))
       return
     }
 
@@ -84,7 +86,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
   }
 
   return (
-    <Modal open={open} onClose={handleClose} title="Add Borrow & Lend">
+    <Modal open={open} onClose={handleClose} title={t('debts.add')}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex gap-2">
           <button
@@ -97,7 +99,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
             }`}
           >
             <ArrowUpRight size={16} />
-            Lent
+            {t('debts.lent')}
           </button>
           <button
             type="button"
@@ -109,7 +111,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
             }`}
           >
             <ArrowDownLeft size={16} />
-            Borrowed
+            {t('debts.borrowed')}
           </button>
         </div>
 
@@ -121,19 +123,19 @@ export default function AddDebtModal({ open, onClose, onSave }) {
           className="w-full py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-xs font-medium border border-blue-500/20 hover:bg-blue-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {importingContact ? (
-            <><Loader2 size={14} className="animate-spin" /> Importing...</>
+            <><Loader2 size={14} className="animate-spin" /> {t('debts.importing')}</>
           ) : (
-            <><Contact size={14} /> Import from Contacts</>
+            <><Contact size={14} /> {t('debts.import_contact')}</>
           )}
         </button>
 
         <div className="relative">
-          <label className="text-xs text-gray-500 font-medium mb-1.5 block">Person Name</label>
+          <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('debts.person_name')}</label>
           <input
             type="text"
             value={personName}
             onChange={(e) => setPersonName(e.target.value)}
-            placeholder="e.g. Rahul, Priya..."
+            placeholder={t('debts.person_placeholder')}
             className="input-field"
             maxLength={50}
             autoFocus
@@ -142,7 +144,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
 
         <div>
           <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-            Phone <span className="text-gray-600 font-normal">(optional)</span>
+            {t('common.phone')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
           </label>
           <input
             type="tel"
@@ -155,7 +157,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
         </div>
 
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-1.5 block">Amount (₹)</label>
+          <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('debts.amount')} (₹)</label>
           <input
             type="text"
             inputMode="numeric"
@@ -168,7 +170,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
 
         <div>
           <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-            Due Date <span className="text-gray-600 font-normal">(optional)</span>
+            {t('debts.due_date')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
           </label>
           <input
             type="date"
@@ -180,13 +182,13 @@ export default function AddDebtModal({ open, onClose, onSave }) {
 
         <div>
           <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-            Notes <span className="text-gray-600 font-normal">(optional)</span>
+            {t('debts.notes')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
           </label>
           <input
             type="text"
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Purpose, terms..."
+            placeholder={t('debts.notes_placeholder')}
             className="input-field"
             maxLength={100}
           />
@@ -204,7 +206,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
           disabled={!personName.trim() || !amount}
           className="w-full btn-primary text-sm flex items-center justify-center gap-2"
         >
-          {type === 'lent' ? 'Add Lent Record' : 'Add Borrowed Record'}
+          {type === 'lent' ? t('debts.add_lent') : t('debts.add_borrowed')}
         </button>
       </form>
     </Modal>

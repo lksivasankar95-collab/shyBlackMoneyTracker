@@ -3,8 +3,10 @@ import { Lock, AlertTriangle, Clock, Fingerprint } from 'lucide-react'
 import * as privacy from '../utils/privacy'
 import { hapticSuccess } from '../utils/haptics'
 import { tryBiometricUnlock, checkBiometricAvailability, isBiometricEnabled } from '../utils/biometrics'
+import { useTranslation } from '../i18n'
 
 export default function PinLockScreen({ onUnlock, onResetData }) {
+  const { t } = useTranslation()
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [showForgot, setShowForgot] = useState(false)
@@ -21,7 +23,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     const { cooldownRemaining, requiresReset: locked } = privacy.getFailState()
     if (locked) {
       setRequiresReset(true)
-      setError('Too many failed attempts. Reset required.')
+      setError(t('pin_lock.too_many_attempts'))
     } else if (cooldownRemaining > 0) {
       startCooldown(cooldownRemaining)
     }
@@ -51,7 +53,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
       hapticSuccess()
       onUnlock()
     } else {
-      setError('Biometric unlock failed. Use PIN.')
+      setError(t('pin_lock.biometric_failed'))
     }
   }, [onUnlock])
 
@@ -94,17 +96,17 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         const { cooldownRemaining, requiresReset: locked, failCount } = privacy.getFailState()
         if (locked) {
           setRequiresReset(true)
-          setError('Too many failed attempts. Reset required.')
+          setError(t('pin_lock.too_many_attempts'))
         } else if (cooldownRemaining > 0) {
           startCooldown(cooldownRemaining)
-          setError(`Too many attempts. Wait ${cooldownRemaining}s.`)
+          setError(t('pin_lock.wait_cooldown', { count: cooldownRemaining }))
         } else {
           const remaining = 5 - failCount
-          setError(remaining > 0 ? `Incorrect PIN (${remaining} attempts left)` : 'Incorrect PIN')
+          setError(remaining > 0 ? t('pin_lock.wrong_pin_with_count', { count: remaining }) : t('pin_lock.wrong_pin'))
         }
       }
     }).catch(() => {
-      setError('Unlock failed. Try again.')
+      setError(t('pin_lock.unlock_failed'))
       setPin('')
     })
   }, [pin, cooldown, requiresReset, onUnlock])
@@ -127,7 +129,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
       </div>
 
       <h1 className="text-lg font-bold text-white mb-1">ShyBlack</h1>
-      <p className="text-xs text-gray-500 font-medium mb-8">Enter PIN to unlock</p>
+      <p className="text-xs text-gray-500 font-medium mb-8">{t('pin_lock.enter_pin_prompt')}</p>
 
       <div className="flex gap-3 mb-8">
         {[0, 1, 2, 3].map((i) => (
@@ -145,7 +147,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
       {cooldown > 0 && (
         <div className="flex items-center gap-2 mb-4 px-4 py-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20">
           <Clock size={14} className="text-yellow-400" />
-          <p className="text-xs text-yellow-400 font-medium">Try again in {cooldown}s</p>
+          <p className="text-xs text-yellow-400 font-medium">{t('pin_lock.try_again_cooldown', { count: cooldown })}</p>
         </div>
       )}
 
@@ -189,7 +191,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         className="btn-primary w-full max-w-[220px] text-sm flex items-center justify-center gap-2"
       >
         <Lock size={14} />
-        Unlock
+        {t('pin_lock.unlock')}
       </button>
 
       {bioAvailable && (
@@ -198,7 +200,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
           className="mt-4 w-full max-w-[220px] py-2.5 rounded-xl border border-glass-border text-gray-400 text-sm font-medium hover:text-white hover:border-neon/30 transition-all flex items-center justify-center gap-2"
         >
           <Fingerprint size={16} />
-          Use Fingerprint
+          {t('pin_lock.use_fingerprint')}
         </button>
       )}
 
@@ -207,34 +209,34 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
           onClick={() => setShowForgot(true)}
           className="text-xs text-gray-600 hover:text-gray-400 mt-6 transition-colors"
         >
-          Forgot PIN?
+          {t('pin_lock.forgot_pin')}
         </button>
       ) : (
         <div className="mt-6 text-center max-w-[260px]">
           <p className="text-xs text-gray-500 mb-3 leading-relaxed">
-            ShyBlack stores all data offline. There is no way to recover a forgotten PIN without resetting.
+            {t('pin_lock.forgot_pin_desc')}
           </p>
           {!resetConfirm ? (
             <button
               onClick={() => setResetConfirm(true)}
               className="text-xs text-red-400 hover:text-red-300 underline transition-colors"
             >
-              Reset All App Data
+              {t('pin_lock.reset_all_data')}
             </button>
           ) : (
             <div className="space-y-2">
-              <p className="text-xs text-red-400 font-medium">This permanently deletes all your data.</p>
+              <p className="text-xs text-red-400 font-medium">{t('pin_lock.confirm_reset_warning')}</p>
               <button
                 onClick={onResetData}
                 className="text-xs px-4 py-2 rounded-lg bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 transition-colors"
               >
-                Confirm Reset
+                {t('pin_lock.confirm_reset')}
               </button>
               <button
                 onClick={() => setResetConfirm(false)}
                 className="text-xs text-gray-500 block mx-auto mt-1 hover:text-white transition-colors"
               >
-                Cancel
+                {t('common.cancel')}
               </button>
             </div>
           )}

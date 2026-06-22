@@ -87,7 +87,23 @@
     "confirm_action": "మీకు ఖచ్చితంగా ఉందా?",
     "copied": "కాపీ చేయబడింది!",
     "generating": "రూపొందిస్తోంది...",
-    "na": "N/A"
+    "na": "N/A",
+    "yes": "అవును",
+    "no": "లేదు",
+    "on": "ఆన్",
+    "off": "ఆఫ్",
+    "none": "ఏదీ లేదు",
+    "days": "రోజులు",
+    "seconds_short": "సె",
+    "kilobytes": "KB",
+    "transaction": "లావాదేవీ",
+    "of": "లో",
+    "in_progress": "జరుగుతోంది",
+    "undo": "రద్దు చేయి",
+    "processing": "ప్రాసెస్ అవుతోంది...",
+    "type_label": "టైప్ చేయండి",
+    "to_confirm": "నిర్ధారించడానికి",
+    "type_to_confirm": "నిర్ధారించడానికి {{word}} టైప్ చేయండి"
   },
 
   "dashboard": {
@@ -205,7 +221,11 @@
     "enter_valid_amount": "Please enter a valid amount",
     "amount_exceeds_limit": "Amount exceeds maximum limit",
     "select_category": "Please select a category",
-    "invalid_date": "Invalid date selected"
+    "invalid_date": "Invalid date selected",
+    "from_label": "నుండి",
+    "to_label": "కి",
+    "via_label": "ద్వారా",
+    "unknown_category": "తెలియదు"
   },
 
   "settings": {
@@ -284,7 +304,64 @@
     "disable_privacy_lock": "Disable Privacy Lock",
     "disable_privacy_lock_desc": "Enter your current PIN to disable privacy lock.",
     "enc_export_desc": "Set a password to protect your backup. You'll need it to restore.",
-    "enc_import_title": "Enter Backup Password"
+    "enc_import_title": "Enter Backup Password",
+    "reload_app": "యాప్ తిరిగి లోడ్ చేయండి",
+    "restore_backup_title": "బ్యాకప్ పునరుద్ధరించాలా?",
+    "restore_backup_desc": "ఇది మీ ప్రస్తుత డేటాను బ్యాకప్‌తో భర్తీ చేస్తుంది. PIN మరియు భద్రత సెట్టింగ్‌లు బ్యాకప్‌లో చేర్చబడవు.",
+    "restoring": "పునరుద్ధరిస్తోంది...",
+    "restore": "పునరుద్ధరించు",
+    "restore_complete": "పునరుద్ధరణ పూర్తయింది",
+    "pin_not_in_backup_warning": "PIN లాక్ బ్యాకప్‌లో చేర్చబడలేదు. మీ ప్రస్తుత PIN చురుకుగా ఉంటుంది.",
+    "restored_label": "పునరుద్ధరించబడింది",
+    "failed_label": "విఫలమైంది",
+    "reset_data_title": "అన్ని డేటాను రీసెట్ చేయాలా?",
+    "reset_data_desc": "ఇది మీ అన్ని లావాదేవీలు, అప్పులు, బడ్జెట్‌లు, పొదుపు మరియు సెట్టింగ్‌లను శాశ్వతంగా తొలగిస్తుంది.",
+    "reset_everything": "అన్నీ రీసెట్ చేయండి",
+    "backup_exported": "బ్యాకప్ విజయవంతంగా ఎగుమతి చేయబడింది!",
+    "backup_export_failed": "ఎగుమతి విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    "backup_export_error": "బ్యాకప్ ఎగుమతి విఫలమైంది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+    "restore_result": "{count} విభాగాలు పునరుద్ధరించబడ్డాయి",
+    "restore_result_with_failed": "{count} విభాగాలు పునరుద్ధరించబడ్డాయి, {failCount} విఫలమైంది",
+    "restore_failed": "పునరుద్ధరణ విఫలమైంది. డేటా పాడైపోయి ఉండవచ్చు.",
+    "data_reset": "అన్ని స్థానిక డేటా రీసెట్ చేయబడింది",
+    "balance_visible": "బ్యాలెన్స్ కనిపిస్తోంది",
+    "balance_hidden": "బ్యాలెన్స్ దాచబడింది",
+    "privacy_off": "గోప్యత మోడ్ ఆఫ్",
+    "privacy_on": "గోప్యత మోడ్ ఆన్",
+    "reminder_on": "రోజువారీ రిమైండర్ సాయంత్రం 7:00 కి ప్రారంభించబడింది",
+    "reminder_delayed": "ఈ రోజు ఇప్పటికే ట్రాక్ చేయబడింది — రిమైండర్ రేపు యాక్టివ్ అవుతుంది",
+    "reminder_enabled": "రిమైండర్ ప్రారంభించబడింది",
+    "notif_permission_denied_msg": "నోటిఫికేషన్ అనుమతి నిరాకరించబడింది. సెట్టింగ్‌లలో ప్రారంభించండి.",
+    "reminder_pref_saved": "రిమైండర్ ప్రాధాన్యత సేవ్ చేయబడింది",
+    "reminder_disabled": "రోజువారీ రిమైండర్ నిలిపివేయబడింది",
+    "biometric_disabled": "బయోమెట్రిక్ అన్‌లాక్ నిలిపివేయబడింది",
+    "biometric_unavailable_device": "ఈ పరికరంలో బయోమెట్రిక్ అందుబాటులో లేదు",
+    "biometric_failed_toast": "బయోమెట్రిక్ ధృవీకరణ విఫలమైంది",
+    "biometric_enabled_toast": "{type} అన్‌లాక్ ప్రారంభించబడింది",
+    "pin_set_toast": "గోప్యత PIN సెట్ చేయబడింది",
+    "pin_changed_toast": "PIN మార్చబడింది",
+    "privacy_lock_disabled_toast": "గోప్యత లాక్ నిలిపివేయబడింది",
+    "notif_permission_granted_toast": "నోటిఫికేషన్ అనుమతి మంజూరైంది!",
+    "notif_permission_denied_android": "అనుమతి నిరాకరించబడింది. Android సెట్టింగ్‌లలో ప్రారంభించండి.",
+    "pin_min_4": "PIN కనీసం 4 అంకెలు ఉండాలి",
+    "pins_mismatch": "PINలు సరిపోలలేదు",
+    "enter_current_pin_error": "ప్రస్తుత PIN నమోదు చేయండి",
+    "current_pin_wrong": "ప్రస్తుత PIN తప్పు",
+    "new_pin_min_4": "కొత్త PIN కనీసం 4 అంకెలు ఉండాలి",
+    "new_pins_mismatch": "కొత్త PINలు సరిపోలలేదు",
+    "enter_your_pin_error": "మీ PIN నమోదు చేయండి",
+    "pin_wrong": "PIN తప్పు",
+    "permission_label": "అనుమతి",
+    "status_label": "స్థితి",
+    "platform_label": "ప్లాట్‌ఫారమ్",
+    "checked_label": "తనిఖీ చేయబడింది",
+    "lock_now": "ఇప్పుడు",
+    "schema_label": "స్కీమా",
+    "target_label": "లక్ష్యం",
+    "biometric_type_enabled": "{{type}} ప్రారంభించబడింది",
+    "biometric_use_to_unlock": "అన్‌లాక్ చేయడానికి {{type}} వాడండి",
+    "biometric_setup_unlock": "{{type}} అన్‌లాక్ సెటప్ చేయండి",
+    "backup_schema_warning": "బ్యాకప్ స్కీమా v{{backup}} ప్రస్తుత v{{current}} నుండి భిన్నంగా ఉంది. డేటా యథాతథంగా దిగుమతి అవుతుంది."
   },
 
   "debts": {
@@ -372,7 +449,13 @@
     "payment_updated": "Payment updated",
     "payment_deleted": "Payment deleted",
     "ledger_settled": "Ledger settled",
-    "statement_ready": "Statement ready for {name}"
+    "statement_ready": "Statement ready for {name}",
+    "add_lent": "అప్పిచ్చిన రికార్డు జోడించు",
+    "add_borrowed": "అప్పు తెచ్చిన రికార్డు జోడించు",
+    "error_import_contact": "పరిచయం దిగుమతి విఫలమైంది",
+    "error_name_required": "దయచేసి పేరు నమోదు చేయండి",
+    "error_invalid_amount": "దయచేసి చెల్లుబాటు అయ్యే మొత్తం నమోదు చేయండి",
+    "contact_imported": "{{name}} దిగుమతి అయ్యింది"
   },
 
   "goals": {
@@ -637,7 +720,22 @@
     "emi_desc": "రుణ వివరాలు, చెల్లింపు చరిత్ర మరియు మిగిలిన షెడ్యూల్",
     "ledger_desc": "వ్యక్తివారీ లెడ్జర్ బ్యాలెన్స్ మరియు చెల్లింపులతో",
     "monthly_desc": "ఆదాయం, ఖర్చులు, పొదుపు మరియు వర్గ విభజన",
-    "networth_desc": "ఆస్తులు, ఖాతాలు, అప్పులు మరియు మొత్తం నికర విలువ"
+    "networth_desc": "ఆస్తులు, ఖాతాలు, అప్పులు మరియు మొత్తం నికర విలువ",
+    "select_emi_label": "EMI ఎంచుకోండి",
+    "select_emi_placeholder": "ఒక EMI ఎంచుకోండి...",
+    "select_person_label": "వ్యక్తిని ఎంచుకోండి",
+    "select_person_placeholder": "ఒక వ్యక్తిని ఎంచుకోండి...",
+    "year_label": "సంవత్సరం",
+    "month_label": "నెల",
+    "main_desc": "PDF ఆకృతిలో ఆర్థిక నివేదికలను రూపొందించి ఎగుమతి చేయండి",
+    "networth_snap_desc": "అన్ని ఖాతాలు, అప్పులు మరియు నగదు బ్యాలెన్స్‌తో సహా మీ ప్రస్తుత నికర విలువ స్నాప్‌షాట్ రూపొందిస్తుంది.",
+    "generating_btn": "రూపొందిస్తోంది...",
+    "generate_btn": "నివేదిక రూపొందించు",
+    "saved_toast": "{count} పేజీ నివేదిక సేవ్ చేయబడింది!",
+    "generated_toast": "నివేదిక రూపొందించబడింది",
+    "saved_again_toast": "నివేదిక సేవ్ చేయబడింది!",
+    "failed_toast": "నివేదిక రూపొందించడంలో విఫలమైంది",
+    "share_unsupported_toast": "భాగస్వామ్యం మద్దతు లేదు"
   },
 
   "people": {
@@ -735,7 +833,14 @@
       "future_date": "భవిష్యత్ తేదీ",
       "large_amount": "పెద్ద మొత్తం",
       "duplicate": "డూప్లికేట్ కావచ్చు"
-    }
+    },
+    "total_issues": "మొత్తం సమస్యలు",
+    "medium": "మధ్యస్థం",
+    "low": "తక్కువ",
+    "all_clear": "అన్నీ సరే",
+    "all_clear_desc": "డేటా నాణ్యత సమస్యలు లేవు. మీ డేటా మంచి స్థితిలో ఉంది!",
+    "issues_count": "{count} సమస్య",
+    "issues_count_plural": "{count} సమస్యలు"
   },
 
   "diagnostics": {
@@ -781,7 +886,15 @@
     "payment_due_tomorrow": "Payment Due Tomorrow",
     "overdue_payment": "Overdue Payment",
     "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today"
+    "emi_due_today": "EMI Due Today",
+    "csv_exported": "CSV ఎగుమతి చేయబడింది!",
+    "statement_generated": "నివేదిక రూపొందించబడింది!",
+    "pdf_saved": "{pageCount} పేజీ PDF సేవ్ చేయబడింది!",
+    "file_saved_unknown": "ఫైల్ సేవ్ చేయబడింది కానీ స్థానం తెలియదు",
+    "share_unsupported": "భాగస్వామ్యం మద్దతు లేదు",
+    "download_failed": "డౌన్‌లోడ్ విఫలమైంది",
+    "pdf_generate_failed": "PDF రూపొందించడంలో విఫలమైంది",
+    "savings_goal_updated": "పొదుపు లక్ష్యం నవీకరించబడింది"
   },
 
   "time": {
@@ -831,5 +944,174 @@
   },
 
   "months_short": ["జన", "ఫిబ్ర", "మార్చి", "ఏప్రి", "మే", "జూన్", "జూలై", "ఆగ", "సెప్టెం", "అక్టో", "నవం", "డిసెం"],
-  "months_full": ["జనవరి", "ఫిబ్రవరి", "మార్చి", "ఏప్రిల్", "మే", "జూన్", "జూలై", "ఆగస్టు", "సెప్టెంబర్", "అక్టోబర్", "నవంబర్", "డిసెంబర్"]
+  "months_full": ["జనవరి", "ఫిబ్రవరి", "మార్చి", "ఏప్రిల్", "మే", "జూన్", "జూలై", "ఆగస్టు", "సెప్టెంబర్", "అక్టోబర్", "నవంబర్", "డిసెంబర్"],
+
+  "account_center": {
+    "title": "ఖాతాలు",
+    "search_placeholder": "ఖాతాలను వెతకండి...",
+    "linked_emis": "లింక్ చేసిన EMIలు",
+    "recent_transfers": "ఇటీవలి బదిలీలు",
+    "transactions_count": "లావాదేవీలు ({count})",
+    "no_transactions": "ఈ ఖాతాకు లావాదేవీలు లేవు",
+    "no_accounts": "ఖాతాలు లేవు",
+    "no_matching": "సరిపోలే ఖాతాలు లేవు",
+    "add_first": "బ్యాలెన్స్‌లు ట్రాక్ చేయడానికి మీ మొదటి ఖాతాను జోడించండి",
+    "name_placeholder": "ఖాతా పేరు",
+    "balance_placeholder": "ప్రస్తుత బ్యాలెన్స్",
+    "type_bank": "బ్యాంక్",
+    "type_wallet": "వాలెట్",
+    "add": "జోడించు"
+  },
+
+  "review_center": {
+    "title": "ఆర్థిక సమీక్ష",
+    "no_data_title": "డేటా లేదు",
+    "no_data_desc": "ఆర్థిక సమీక్షలు రూపొందించడానికి లావాదేవీలు జోడించండి",
+    "tab_monthly": "నెలవారీ",
+    "tab_quarterly": "త్రైమాసిక",
+    "tab_yearly": "వార్షిక",
+    "savings": "పొదుపు",
+    "tx_rate_summary": "{count} లావాదేవీలు · {rate}% పొదుపు రేటు",
+    "top_spending": "అత్యధిక వ్యయం",
+    "debts_owed": "చెల్లించాల్సిన అప్పులు",
+    "debts_borrowed": "తీసుకున్న అప్పులు",
+    "active_emis": "క్రియాశీల EMIలు",
+    "goal_savings": "లక్ష్య పొదుపు",
+    "active_count": "{count} క్రియాశీల",
+    "monthly_total": "{amount}/నె"
+  },
+
+  "trends_page": {
+    "title": "ట్రెండ్స్",
+    "no_data_title": "డేటా లేదు",
+    "no_data_desc": "ట్రెండ్స్ చూడడానికి లావాదేవీలు జోడించండి",
+    "monthly_income_expense": "నెలవారీ ఆదాయం vs వ్యయం",
+    "savings_trend": "పొదుపు ట్రెండ్",
+    "category_spending": "వర్గ వ్యయం",
+    "debt_reduction": "అప్పు తగ్గింపు పురోగతి",
+    "emi_progress": "EMI పురోగతి",
+    "goal_achievement": "లక్ష్య సాధన",
+    "txns_count": "{count} లావాదేవీలు",
+    "they_owe": "వారు చెల్లించాలి",
+    "you_owe": "మీరు చెల్లించాలి",
+    "no_data_for_tab": "{tab} కోసం డేటా లేదు",
+    "tab_monthly": "నెలవారీ",
+    "tab_savings": "పొదుపు",
+    "tab_category": "వర్గాలు",
+    "tab_debts": "అప్పులు",
+    "tab_emis": "EMIలు",
+    "tab_goals": "లక్ష్యాలు",
+    "months_remaining": "{count}నె మిగిలి"
+  },
+
+  "emi_widget": {
+    "title": "EMI సారాంశం",
+    "active": "క్రియాశీల",
+    "today": "ఈ రోజు",
+    "overdue": "గడువు మించింది",
+    "seven_days": "7 రోజులు",
+    "due_today": "ఈ రోజు గడువు",
+    "due_tomorrow": "రేపు గడువు",
+    "due_in_days": "{count} రోజుల్లో గడువు",
+    "view_all": "అన్ని EMIలు చూడండి"
+  },
+
+  "pin_lock": {
+    "enter_pin_prompt": "అన్‌లాక్ చేయడానికి PIN నమోదు చేయండి",
+    "try_again_cooldown": "{count} సెకన్లలో మళ్ళీ ప్రయత్నించండి",
+    "unlock": "అన్‌లాక్",
+    "use_fingerprint": "వేలిముద్ర వినియోగించండి",
+    "forgot_pin": "PIN మర్చిపోయారా?",
+    "forgot_pin_desc": "ShyBlack అన్ని డేటాను ఆఫ్‌లైన్‌లో నిల్వ చేస్తుంది. రీసెట్ చేయకుండా మర్చిపోయిన PIN తిరిగి పొందడం సాధ్యం కాదు.",
+    "reset_all_data": "అన్ని యాప్ డేటా రీసెట్ చేయండి",
+    "confirm_reset": "రీసెట్ నిర్ధారించండి",
+    "confirm_reset_warning": "ఇది మీ అన్ని డేటాను శాశ్వతంగా తొలగిస్తుంది.",
+    "too_many_attempts": "చాలా ఎక్కువ విఫల ప్రయత్నాలు. రీసెట్ అవసరం.",
+    "wait_cooldown": "చాలా ఎక్కువ ప్రయత్నాలు. {count} సెకన్లు వేచి ఉండండి.",
+    "wrong_pin_with_count": "తప్పు PIN ({count} ప్రయత్నాలు మిగిలి)",
+    "wrong_pin": "తప్పు PIN",
+    "unlock_failed": "అన్‌లాక్ విఫలమైంది. మళ్ళీ ప్రయత్నించండి.",
+    "biometric_failed": "బయోమెట్రిక్ అన్‌లాక్ విఫలమైంది. PIN వినియోగించండి.",
+    "del": "తొలగించు"
+  },
+
+  "financial_score": {
+    "subtitle": "ఆర్థిక ఆరోగ్య స్కోరు",
+    "factors_one": "1 కారకం",
+    "factors": "{count} కారకాలు"
+  },
+
+  "error_page": {
+    "section_crashed": "ఈ విభాగం క్రాష్ అయింది",
+    "go_to_dashboard": "డాష్‌బోర్డ్‌కు వెళ్ళండి",
+    "app_error_title": "ఏదో తప్పు జరిగింది",
+    "app_error_desc": "ShyBlack అనూహ్య లోపాన్ని ఎదుర్కొంది. మీ డేటా సురక్షితంగా ఉంది.",
+    "reload_app": "యాప్ తిరిగి లోడ్ చేయండి",
+    "reset_local_data": "స్థానిక డేటా రీసెట్ చేయండి",
+    "encrypted_storage": "ఎన్‌క్రిప్టెడ్ ఆఫ్‌లైన్ నిల్వ",
+    "error_code": "లోపం కోడ్: {code} · స్వయంచాలక పునరుద్ధరణ క్రియాశీలం"
+  },
+
+  "related_items": {
+    "title": "లింక్ చేసిన అంశాలు",
+    "link": "లింక్",
+    "no_links": "ఇంకా లింక్ చేసిన అంశాలు లేవు. రికార్డులను కనెక్ట్ చేయడానికి \"లింక్\" నొక్కండి.",
+    "label_placeholder": "లేబుల్ (ఐచ్ఛికం)"
+  },
+
+  "savings_progress": {
+    "remaining": "{amount} మిగిలి",
+    "completed": "లక్ష్యం సాధించారు! చాలా బాగుంది!"
+  },
+
+  "debt_card": {
+    "status_pending": "పెండింగ్",
+    "due": "గడువు {date}",
+    "repaid_suffix": "చెల్లించారు",
+    "record_repayment": "చెల్లింపు నమోదు చేయండి",
+    "make_payment": "చెల్లించండి",
+    "due_prefix": "గడువు"
+  },
+
+  "quick_actions": {
+    "transaction": "లావాదేవీ",
+    "emi": "EMI",
+    "ledger": "లెడ్జర్",
+    "goal": "లక్ష్యం",
+    "document": "పత్రం",
+    "transfer": "బదిలీ",
+    "budgets": "బడ్జెట్‌లు",
+    "reports": "నివేదికలు",
+    "timeline": "టైమ్‌లైన్",
+    "calendar": "క్యాలెండర్",
+    "emis": "EMIలు"
+  },
+
+  "empty_states": {
+    "transactions_title": "ఇంకా లావాదేవీలు లేవు",
+    "transactions_desc": "మీ మొదటి ఆదాయం లేదా వ్యయాన్ని జోడించడం ద్వారా మీ ఆర్థిక వ్యవహారాలను ట్రాక్ చేయడం ప్రారంభించండి.",
+    "transactions_hint": "లావాదేవీ జోడించడానికి దిగువ + బటన్ నొక్కండి.",
+    "emi_title": "EMIలు ట్రాక్ చేయలేదు",
+    "emi_desc": "రుణాలు మరియు వాయిదా చెల్లింపులను ట్రాక్ చేయండి.",
+    "emi_hint": "చెల్లింపు షెడ్యూల్‌లు, మిగిలిన బ్యాలెన్స్‌లు మరియు గడువు తేదీలను చూడటానికి EMI జోడించండి.",
+    "documents_title": "ఇంకా పత్రాలు లేవు",
+    "documents_desc": "బిల్లులు, ఒప్పందాలు, రసీదులు మరియు ఆర్థిక నివేదికలను సురక్షితంగా నిల్వ చేయండి.",
+    "documents_hint": "మీ ముఖ్యమైన పత్రాలన్నింటినీ ఒకే చోట ఉంచడానికి PDFలు లేదా చిత్రాలు అప్‌లోడ్ చేయండి.",
+    "budgets_title": "బడ్జెట్‌లు సెట్ చేయలేదు",
+    "budgets_desc": "వేర్వేరు వర్గాలలో వ్యయాన్ని ట్రాక్ చేయడానికి బడ్జెట్‌లు రూపొందించండి.",
+    "budgets_hint": "ఆహారం, ఇంధనం మరియు షాపింగ్ వంటి వర్గాలకు నెలవారీ పరిమితులను నిర్ణయించండి.",
+    "goals_title": "ఆర్థిక లక్ష్యాలు లేవు",
+    "goals_desc": "పొదుపు లక్ష్యాలను నిర్ణయించుకుని కాలక్రమంలో మీ పురోగతిని ట్రాక్ చేయండి.",
+    "goals_hint": "లక్ష్యాలు మిమ్మల్ని ప్రేరేపితంగా మరియు కేంద్రీకృతంగా ఉంచడంలో సహాయపడతాయి.",
+    "debts_title": "అప్పు లేదా అప్పు ఇచ్చిన నమోదులు లేవు",
+    "debts_desc": "స్నేహితులు మరియు కుటుంబ సభ్యుల నుండి తీసుకున్న మరియు ఇచ్చిన డబ్బును ట్రాక్ చేయండి.",
+    "debts_hint": "ఎవరు ఏమి చెల్లించాలో స్పష్టమైన రికార్డు ఉంచండి.",
+    "default_title": "ఇంకా ఇక్కడ ఏమీ లేదు",
+    "default_desc": "మీరు యాప్‌ను ఉపయోగిస్తున్న కొద్దీ ఈ విభాగం నిండుతుంది.",
+    "default_hint": "ప్రారంభించడానికి ఇతర ఫీచర్‌లను అన్వేషించండి."
+  },
+
+  "app": {
+    "press_back_exit": "నిష్క్రమించడానికి మళ్ళీ బ్యాక్ నొక్కండి"
+  }
 }

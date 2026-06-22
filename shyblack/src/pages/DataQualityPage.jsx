@@ -3,6 +3,7 @@ import {
   AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, FileText, Tag, Calendar, Users, Wallet, Link2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -23,6 +24,7 @@ const SEVERITY_COLORS = {
 }
 
 export default function DataQualityPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, debts, dataQuality } = useFinance()
 
   const checks = useMemo(() => {
@@ -48,10 +50,10 @@ export default function DataQualityPage({ onNavigate }) {
             <ArrowLeft size={18} className="text-gray-400" />
           </button>
           <ShieldAlert size={18} className="text-emerald-400" />
-          <h1 className="text-xl font-bold">Data Quality</h1>
+          <h1 className="text-xl font-bold">{t('data_quality.title')}</h1>
         </div>
         <GlassCard>
-          <EmptyState icon={CheckCircle2} title="All Clear" description="No data quality issues detected. Your data is in good shape!" />
+          <EmptyState icon={CheckCircle2} title={t('data_quality.all_clear')} description={t('data_quality.all_clear_desc')} />
         </GlassCard>
       </div>
     )
@@ -64,22 +66,22 @@ export default function DataQualityPage({ onNavigate }) {
           <ArrowLeft size={18} className="text-gray-400" />
         </button>
         <ShieldAlert size={18} className="text-amber-400" />
-        <h1 className="text-xl font-bold">Data Quality</h1>
-        <span className="text-xs text-gray-500 ml-auto">{transactions.length} transactions</span>
+        <h1 className="text-xl font-bold">{t('data_quality.title')}</h1>
+        <span className="text-xs text-gray-500 ml-auto">{t('transactions.transactions_count', { count: transactions.length })}</span>
       </div>
 
       <div className="grid grid-cols-3 gap-2 mb-4">
         <GlassCard className="!p-3 text-center">
           <p className="text-2xl font-bold text-white tabular-nums">{dataQuality.total}</p>
-          <p className="text-[10px] text-gray-500">Total Issues</p>
+          <p className="text-[10px] text-gray-500">{t('data_quality.total_issues')}</p>
         </GlassCard>
         <GlassCard className="!p-3 text-center">
           <p className="text-2xl font-bold text-amber-400 tabular-nums">{dataQuality.bySeverity.medium || 0}</p>
-          <p className="text-[10px] text-gray-500">Medium</p>
+          <p className="text-[10px] text-gray-500">{t('data_quality.medium')}</p>
         </GlassCard>
         <GlassCard className="!p-3 text-center">
           <p className="text-2xl font-bold text-gray-400 tabular-nums">{dataQuality.bySeverity.low || 0}</p>
-          <p className="text-[10px] text-gray-500">Low</p>
+          <p className="text-[10px] text-gray-500">{t('data_quality.low')}</p>
         </GlassCard>
       </div>
 
@@ -89,7 +91,7 @@ export default function DataQualityPage({ onNavigate }) {
             <div className="flex items-center gap-2 mb-2">
               <check.icon size={14} className="text-amber-400" />
               <h2 className="text-xs font-semibold text-gray-300">{check.name}</h2>
-              <span className="text-[10px] text-gray-600 ml-auto">{check.count} issue{check.count !== 1 ? 's' : ''}</span>
+              <span className="text-[10px] text-gray-600 ml-auto">{check.count !== 1 ? t('data_quality.issues_count_plural', { count: check.count }) : t('data_quality.issues_count', { count: check.count })}</span>
             </div>
             <div className="space-y-1.5">
               {check.items.slice(0, 10).map((issue) => (

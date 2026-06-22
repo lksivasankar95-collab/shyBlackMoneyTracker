@@ -1,4 +1,5 @@
 import { AlertTriangle, AlertOctagon, Info, X } from 'lucide-react'
+import { useTranslation } from '../i18n'
 
 const severityConfig = {
   high: { border: 'border-red-500/30', text: 'text-red-400', bg: 'bg-red-500/8', icon: AlertOctagon },
@@ -7,6 +8,7 @@ const severityConfig = {
 }
 
 export default function NotificationBanner({ notification, onDismiss }) {
+  const { t } = useTranslation()
   if (!notification) return null
 
   const config = severityConfig[notification.severity] || severityConfig.medium
@@ -22,7 +24,7 @@ export default function NotificationBanner({ notification, onDismiss }) {
       <button
         onClick={onDismiss}
         className="shrink-0 p-1 rounded-lg opacity-50 hover:opacity-100 transition-opacity hover:bg-white/5 min-w-[24px] min-h-[24px] flex items-center justify-center"
-        aria-label="Dismiss notification"
+        aria-label={t('common.close')}
       >
         <X size={14} />
       </button>

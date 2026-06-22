@@ -1,7 +1,9 @@
 import { Target, TrendingUp } from 'lucide-react'
 import { formatCurrency } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 export default function SavingsProgress({ savingsGoal, compact }) {
+  const { t } = useTranslation()
   const progress = savingsGoal.target > 0 ? Math.min((savingsGoal.saved / savingsGoal.target) * 100, 100) : 0
   const remaining = Math.max(0, savingsGoal.target - savingsGoal.saved)
 
@@ -15,7 +17,7 @@ export default function SavingsProgress({ savingsGoal, compact }) {
             <Target size={compact ? 14 : 16} className="text-neon" />
           </div>
           <div>
-            <p className={`font-semibold ${compact ? 'text-xs' : 'text-sm'}`}>Savings Goal</p>
+            <p className={`font-semibold ${compact ? 'text-xs' : 'text-sm'}`}>{t('settings.savings_goal')}</p>
             {!compact && <p className="text-[11px] text-gray-500">{formatCurrency(savingsGoal.saved)} of {formatCurrency(savingsGoal.target)}</p>}
           </div>
         </div>
@@ -38,12 +40,12 @@ export default function SavingsProgress({ savingsGoal, compact }) {
         </div>
       </div>
       {remaining > 0 && compact && (
-        <p className="text-[10px] text-gray-500 mt-1 tabular-nums">{formatCurrency(remaining)} remaining</p>
+        <p className="text-[10px] text-gray-500 mt-1 tabular-nums">{t('savings_progress.remaining', { amount: formatCurrency(remaining) })}</p>
       )}
       {!compact && progress >= 100 && (
         <div className="flex items-center gap-1.5 mt-2 text-xs text-neon">
           <TrendingUp size={12} />
-          <span>Goal completed! Great job!</span>
+          <span>{t('savings_progress.completed')}</span>
         </div>
       )}
     </div>

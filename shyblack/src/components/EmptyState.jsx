@@ -1,5 +1,6 @@
 import { memo } from 'react'
 import { Inbox } from 'lucide-react'
+import i18n from 'i18next'
 
 const EmptyState = memo(function EmptyState({ icon: Icon, title, description, action, hint }) {
   const IconComponent = Icon || Inbox
@@ -24,39 +25,39 @@ const EmptyState = memo(function EmptyState({ icon: Icon, title, description, ac
 export function getEmptyStateConfig(page) {
   const configs = {
     transactions: {
-      title: 'No transactions yet',
-      description: 'Start tracking your finances by adding your first income or expense.',
-      hint: 'Tap the + button below to add a transaction. It only takes a few seconds.',
+      title: i18n.t('empty_states.transactions_title'),
+      description: i18n.t('empty_states.transactions_desc'),
+      hint: i18n.t('empty_states.transactions_hint'),
     },
     emi: {
-      title: 'No EMIs tracked',
-      description: 'Track loans and installment payments so you never miss a due date.',
-      hint: 'Add an EMI to see payment schedules, remaining balances, and due dates.',
+      title: i18n.t('empty_states.emi_title'),
+      description: i18n.t('empty_states.emi_desc'),
+      hint: i18n.t('empty_states.emi_hint'),
     },
     documents: {
-      title: 'No documents yet',
-      description: 'Store bills, agreements, receipts, and financial statements securely.',
-      hint: 'Upload PDFs or images to keep all your important documents in one place.',
+      title: i18n.t('empty_states.documents_title'),
+      description: i18n.t('empty_states.documents_desc'),
+      hint: i18n.t('empty_states.documents_hint'),
     },
     budgets: {
-      title: 'No budgets set',
-      description: 'Create budgets to track spending across different categories.',
-      hint: 'Set monthly limits for categories like Food, Fuel, and Shopping.',
+      title: i18n.t('empty_states.budgets_title'),
+      description: i18n.t('empty_states.budgets_desc'),
+      hint: i18n.t('empty_states.budgets_hint'),
     },
     goals: {
-      title: 'No financial goals',
-      description: 'Set savings goals and track your progress over time.',
-      hint: 'Goals help you stay motivated and focused on what matters most.',
+      title: i18n.t('empty_states.goals_title'),
+      description: i18n.t('empty_states.goals_desc'),
+      hint: i18n.t('empty_states.goals_hint'),
     },
     debts: {
-      title: 'No borrow or lend entries',
-      description: 'Track money you\'ve borrowed from or lent to friends and family.',
-      hint: 'Keep a clear record of who owes what and when it\'s due.',
+      title: i18n.t('empty_states.debts_title'),
+      description: i18n.t('empty_states.debts_desc'),
+      hint: i18n.t('empty_states.debts_hint'),
     },
     default: {
-      title: 'Nothing here yet',
-      description: 'This section will populate as you use the app.',
-      hint: 'Explore other features to get started.',
+      title: i18n.t('empty_states.default_title'),
+      description: i18n.t('empty_states.default_desc'),
+      hint: i18n.t('empty_states.default_hint'),
     },
   }
   return configs[page] || configs.default

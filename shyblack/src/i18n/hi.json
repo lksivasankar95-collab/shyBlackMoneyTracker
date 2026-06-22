@@ -87,7 +87,23 @@
     "confirm_action": "क्या आपको यकीन है?",
     "copied": "कॉपी हो गया!",
     "generating": "उत्पन्न हो रहा है...",
-    "na": "N/A"
+    "na": "N/A",
+    "yes": "हाँ",
+    "no": "नहीं",
+    "on": "चालू",
+    "off": "बंद",
+    "none": "कोई नहीं",
+    "days": "दिन",
+    "seconds_short": "से",
+    "kilobytes": "KB",
+    "transaction": "लेन-देन",
+    "of": "का",
+    "in_progress": "जारी है",
+    "undo": "पूर्ववत करें",
+    "processing": "प्रसंस्करण हो रहा है...",
+    "type_label": "टाइप करें",
+    "to_confirm": "पुष्टि करने के लिए",
+    "type_to_confirm": "पुष्टि करने के लिए {{word}} टाइप करें"
   },
 
   "dashboard": {
@@ -205,7 +221,11 @@
     "enter_valid_amount": "Please enter a valid amount",
     "amount_exceeds_limit": "Amount exceeds maximum limit",
     "select_category": "Please select a category",
-    "invalid_date": "Invalid date selected"
+    "invalid_date": "Invalid date selected",
+    "from_label": "से",
+    "to_label": "को",
+    "via_label": "द्वारा",
+    "unknown_category": "अज्ञात"
   },
 
   "settings": {
@@ -284,7 +304,64 @@
     "disable_privacy_lock": "Disable Privacy Lock",
     "disable_privacy_lock_desc": "Enter your current PIN to disable privacy lock.",
     "enc_export_desc": "Set a password to protect your backup. You'll need it to restore.",
-    "enc_import_title": "Enter Backup Password"
+    "enc_import_title": "Enter Backup Password",
+    "reload_app": "ऐप पुनः लोड करें",
+    "restore_backup_title": "बैकअप पुनर्स्थापित करें?",
+    "restore_backup_desc": "यह आपके वर्तमान डेटा को बैकअप से बदल देगा। PIN और सुरक्षा सेटिंग्स बैकअप में शामिल नहीं हैं।",
+    "restoring": "पुनर्स्थापित हो रहा है...",
+    "restore": "पुनर्स्थापित करें",
+    "restore_complete": "पुनर्स्थापना पूर्ण",
+    "pin_not_in_backup_warning": "PIN लॉक बैकअप में शामिल नहीं है। आपका मौजूदा PIN सक्रिय रहेगा।",
+    "restored_label": "पुनर्स्थापित",
+    "failed_label": "विफल",
+    "reset_data_title": "सभी डेटा रीसेट करें?",
+    "reset_data_desc": "यह आपके सभी लेन-देन, ऋण, बजट, बचत और सेटिंग्स स्थायी रूप से हटा देगा।",
+    "reset_everything": "सब कुछ रीसेट करें",
+    "backup_exported": "बैकअप सफलतापूर्वक निर्यात किया गया!",
+    "backup_export_failed": "निर्यात विफल। पुनः प्रयास करें।",
+    "backup_export_error": "बैकअप निर्यात विफल। पुनः प्रयास करें।",
+    "restore_result": "{count} अनुभाग पुनर्स्थापित किए गए",
+    "restore_result_with_failed": "{count} अनुभाग पुनर्स्थापित, {failCount} विफल",
+    "restore_failed": "पुनर्स्थापना विफल। डेटा दूषित हो सकता है।",
+    "data_reset": "सभी स्थानीय डेटा रीसेट किया गया",
+    "balance_visible": "बैलेंस दिख रहा है",
+    "balance_hidden": "बैलेंस छुपा हुआ है",
+    "privacy_off": "गोपनीयता मोड बंद",
+    "privacy_on": "गोपनीयता मोड चालू",
+    "reminder_on": "दैनिक अनुस्मारक शाम 7:00 बजे सक्षम",
+    "reminder_delayed": "आज पहले ही ट्रैक किया — अनुस्मारक कल सक्रिय होगा",
+    "reminder_enabled": "अनुस्मारक सक्षम",
+    "notif_permission_denied_msg": "अधिसूचना अनुमति अस्वीकृत। सेटिंग्स में सक्षम करें।",
+    "reminder_pref_saved": "अनुस्मारक प्राथमिकता सहेजी गई",
+    "reminder_disabled": "दैनिक अनुस्मारक अक्षम",
+    "biometric_disabled": "बायोमेट्रिक अनलॉक अक्षम",
+    "biometric_unavailable_device": "इस डिवाइस पर बायोमेट्रिक उपलब्ध नहीं",
+    "biometric_failed_toast": "बायोमेट्रिक सत्यापन विफल",
+    "biometric_enabled_toast": "{type} अनलॉक सक्षम",
+    "pin_set_toast": "गोपनीयता PIN सेट किया गया",
+    "pin_changed_toast": "PIN बदला गया",
+    "privacy_lock_disabled_toast": "गोपनीयता लॉक अक्षम",
+    "notif_permission_granted_toast": "अधिसूचना अनुमति दी गई!",
+    "notif_permission_denied_android": "अनुमति अस्वीकृत। Android सेटिंग्स में सक्षम करें।",
+    "pin_min_4": "PIN कम से कम 4 अंकों का होना चाहिए",
+    "pins_mismatch": "PIN मेल नहीं खाते",
+    "enter_current_pin_error": "वर्तमान PIN दर्ज करें",
+    "current_pin_wrong": "वर्तमान PIN गलत है",
+    "new_pin_min_4": "नया PIN कम से कम 4 अंकों का होना चाहिए",
+    "new_pins_mismatch": "नए PIN मेल नहीं खाते",
+    "enter_your_pin_error": "अपना PIN दर्ज करें",
+    "pin_wrong": "PIN गलत है",
+    "permission_label": "अनुमति",
+    "status_label": "स्थिति",
+    "platform_label": "प्लेटफ़ॉर्म",
+    "checked_label": "जाँचा गया",
+    "lock_now": "अभी",
+    "schema_label": "स्कीमा",
+    "target_label": "लक्ष्य",
+    "biometric_type_enabled": "{{type}} सक्षम",
+    "biometric_use_to_unlock": "अनलॉक करने के लिए {{type}} का उपयोग करें",
+    "biometric_setup_unlock": "{{type}} अनलॉक सेट अप करें",
+    "backup_schema_warning": "बैकअप स्कीमा v{{backup}}, वर्तमान v{{current}} से अलग है। डेटा जैसा है वैसा आयात होगा।"
   },
 
   "debts": {
@@ -372,7 +449,13 @@
     "payment_updated": "Payment updated",
     "payment_deleted": "Payment deleted",
     "ledger_settled": "Ledger settled",
-    "statement_ready": "Statement ready for {name}"
+    "statement_ready": "Statement ready for {name}",
+    "add_lent": "उधार दिया रिकॉर्ड जोड़ें",
+    "add_borrowed": "उधार लिया रिकॉर्ड जोड़ें",
+    "error_import_contact": "संपर्क आयात विफल",
+    "error_name_required": "कृपया नाम दर्ज करें",
+    "error_invalid_amount": "कृपया वैध राशि दर्ज करें",
+    "contact_imported": "{{name}} आयात किया गया"
   },
 
   "goals": {
@@ -637,7 +720,22 @@
     "emi_desc": "ऋण विवरण, भुगतान इतिहास और शेष अनुसूची",
     "ledger_desc": "व्यक्ति-वार बहीखाता शेष और भुगतान के साथ",
     "monthly_desc": "आय, व्यय, बचत और श्रेणी विवरण",
-    "networth_desc": "संपत्ति, खाते, ऋण और कुल संपत्ति"
+    "networth_desc": "संपत्ति, खाते, ऋण और कुल संपत्ति",
+    "select_emi_label": "EMI चुनें",
+    "select_emi_placeholder": "एक EMI चुनें...",
+    "select_person_label": "व्यक्ति चुनें",
+    "select_person_placeholder": "एक व्यक्ति चुनें...",
+    "year_label": "वर्ष",
+    "month_label": "महीना",
+    "main_desc": "PDF प्रारूप में वित्तीय विवरण तैयार करें और निर्यात करें",
+    "networth_snap_desc": "सभी खातों, ऋणों और नकदी शेष सहित आपकी वर्तमान नेट वर्थ का स्नैपशॉट तैयार करता है।",
+    "generating_btn": "तैयार हो रहा है...",
+    "generate_btn": "विवरण तैयार करें",
+    "saved_toast": "{count} पृष्ठ का विवरण सहेजा गया!",
+    "generated_toast": "विवरण तैयार किया गया",
+    "saved_again_toast": "विवरण सहेजा गया!",
+    "failed_toast": "विवरण तैयार करने में विफल",
+    "share_unsupported_toast": "साझा करना समर्थित नहीं"
   },
 
   "people": {
@@ -735,7 +833,14 @@
       "future_date": "भविष्य की तारीख",
       "large_amount": "बड़ी राशि",
       "duplicate": "संभावित डुप्लिकेट"
-    }
+    },
+    "total_issues": "कुल समस्याएं",
+    "medium": "मध्यम",
+    "low": "कम",
+    "all_clear": "सब ठीक है",
+    "all_clear_desc": "कोई डेटा गुणवत्ता समस्या नहीं। आपका डेटा अच्छी स्थिति में है!",
+    "issues_count": "{count} समस्या",
+    "issues_count_plural": "{count} समस्याएं"
   },
 
   "diagnostics": {
@@ -781,7 +886,15 @@
     "payment_due_tomorrow": "Payment Due Tomorrow",
     "overdue_payment": "Overdue Payment",
     "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today"
+    "emi_due_today": "EMI Due Today",
+    "csv_exported": "CSV निर्यात किया गया!",
+    "statement_generated": "विवरण तैयार किया गया!",
+    "pdf_saved": "{pageCount} पृष्ठ PDF सहेजा गया!",
+    "file_saved_unknown": "फ़ाइल सहेजी गई लेकिन स्थान अज्ञात",
+    "share_unsupported": "साझा करना समर्थित नहीं",
+    "download_failed": "डाउनलोड विफल",
+    "pdf_generate_failed": "PDF तैयार करने में विफल",
+    "savings_goal_updated": "बचत लक्ष्य अपडेट किया गया"
   },
 
   "time": {
@@ -831,5 +944,174 @@
   },
 
   "months_short": ["जन", "फ़र", "मार्च", "अप्रैल", "मई", "जून", "जुला", "अग", "सितं", "अक्टू", "नवं", "दिसं"],
-  "months_full": ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"]
+  "months_full": ["जनवरी", "फरवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"],
+
+  "account_center": {
+    "title": "खाते",
+    "search_placeholder": "खाते खोजें...",
+    "linked_emis": "लिंक्ड EMI",
+    "recent_transfers": "हाल के ट्रांसफर",
+    "transactions_count": "लेन-देन ({count})",
+    "no_transactions": "इस खाते के लिए कोई लेन-देन नहीं",
+    "no_accounts": "कोई खाता नहीं",
+    "no_matching": "कोई मिलान खाता नहीं",
+    "add_first": "बैलेंस ट्रैक करने के लिए अपना पहला खाता जोड़ें",
+    "name_placeholder": "खाते का नाम",
+    "balance_placeholder": "वर्तमान बैलेंस",
+    "type_bank": "बैंक",
+    "type_wallet": "वॉलेट",
+    "add": "जोड़ें"
+  },
+
+  "review_center": {
+    "title": "वित्तीय समीक्षा",
+    "no_data_title": "कोई डेटा नहीं",
+    "no_data_desc": "वित्तीय समीक्षा के लिए लेन-देन जोड़ें",
+    "tab_monthly": "मासिक",
+    "tab_quarterly": "त्रैमासिक",
+    "tab_yearly": "वार्षिक",
+    "savings": "बचत",
+    "tx_rate_summary": "{count} लेन-देन · {rate}% बचत दर",
+    "top_spending": "सबसे अधिक खर्च",
+    "debts_owed": "देय ऋण",
+    "debts_borrowed": "लिया ऋण",
+    "active_emis": "सक्रिय EMI",
+    "goal_savings": "लक्ष्य बचत",
+    "active_count": "{count} सक्रिय",
+    "monthly_total": "{amount}/माह"
+  },
+
+  "trends_page": {
+    "title": "रुझान",
+    "no_data_title": "कोई डेटा नहीं",
+    "no_data_desc": "रुझान देखने के लिए लेन-देन जोड़ें",
+    "monthly_income_expense": "मासिक आय बनाम खर्च",
+    "savings_trend": "बचत रुझान",
+    "category_spending": "श्रेणी खर्च",
+    "debt_reduction": "ऋण कमी प्रगति",
+    "emi_progress": "EMI प्रगति",
+    "goal_achievement": "लक्ष्य प्राप्ति",
+    "txns_count": "{count} लेन-देन",
+    "they_owe": "वे बकाया हैं",
+    "you_owe": "आप बकाया हैं",
+    "no_data_for_tab": "{tab} के लिए कोई डेटा नहीं",
+    "tab_monthly": "मासिक",
+    "tab_savings": "बचत",
+    "tab_category": "श्रेणियाँ",
+    "tab_debts": "ऋण",
+    "tab_emis": "EMI",
+    "tab_goals": "लक्ष्य",
+    "months_remaining": "{count}मा शेष"
+  },
+
+  "emi_widget": {
+    "title": "EMI सारांश",
+    "active": "सक्रिय",
+    "today": "आज",
+    "overdue": "अतिदेय",
+    "seven_days": "7 दिन",
+    "due_today": "आज देय",
+    "due_tomorrow": "कल देय",
+    "due_in_days": "{count} दिनों में देय",
+    "view_all": "सभी EMI देखें"
+  },
+
+  "pin_lock": {
+    "enter_pin_prompt": "अनलॉक करने के लिए PIN दर्ज करें",
+    "try_again_cooldown": "{count} सेकंड में पुनः प्रयास करें",
+    "unlock": "अनलॉक",
+    "use_fingerprint": "फिंगरप्रिंट का उपयोग करें",
+    "forgot_pin": "PIN भूल गए?",
+    "forgot_pin_desc": "ShyBlack सभी डेटा ऑफलाइन संग्रहीत करता है। रीसेट किए बिना भूला हुआ PIN पुनर्प्राप्त नहीं किया जा सकता।",
+    "reset_all_data": "सभी ऐप डेटा रीसेट करें",
+    "confirm_reset": "रीसेट की पुष्टि करें",
+    "confirm_reset_warning": "यह आपका सारा डेटा स्थायी रूप से हटा देगा।",
+    "too_many_attempts": "बहुत अधिक विफल प्रयास। रीसेट आवश्यक।",
+    "wait_cooldown": "बहुत अधिक प्रयास। {count} सेकंड प्रतीक्षा करें।",
+    "wrong_pin_with_count": "गलत PIN ({count} प्रयास शेष)",
+    "wrong_pin": "गलत PIN",
+    "unlock_failed": "अनलॉक विफल। पुनः प्रयास करें।",
+    "biometric_failed": "बायोमेट्रिक अनलॉक विफल। PIN का उपयोग करें।",
+    "del": "DEL"
+  },
+
+  "financial_score": {
+    "subtitle": "वित्तीय स्वास्थ्य स्कोर",
+    "factors_one": "1 कारक",
+    "factors": "{count} कारक"
+  },
+
+  "error_page": {
+    "section_crashed": "यह अनुभाग क्रैश हो गया",
+    "go_to_dashboard": "डैशबोर्ड पर जाएं",
+    "app_error_title": "कुछ गलत हो गया",
+    "app_error_desc": "ShyBlack को एक अप्रत्याशित त्रुटि का सामना करना पड़ा। आपका डेटा सुरक्षित है।",
+    "reload_app": "ऐप पुनः लोड करें",
+    "reset_local_data": "स्थानीय डेटा रीसेट करें",
+    "encrypted_storage": "एन्क्रिप्टेड ऑफलाइन संग्रहण",
+    "error_code": "त्रुटि कोड: {code} · स्वत: पुनर्प्राप्ति सक्रिय"
+  },
+
+  "related_items": {
+    "title": "लिंक्ड आइटम",
+    "link": "लिंक",
+    "no_links": "अभी तक कोई लिंक्ड आइटम नहीं। रिकॉर्ड कनेक्ट करने के लिए \"लिंक\" टैप करें।",
+    "label_placeholder": "लेबल (वैकल्पिक)"
+  },
+
+  "savings_progress": {
+    "remaining": "{amount} शेष",
+    "completed": "लक्ष्य पूरा! बहुत अच्छे!"
+  },
+
+  "debt_card": {
+    "status_pending": "लंबित",
+    "due": "देय {date}",
+    "repaid_suffix": "चुकाया",
+    "record_repayment": "पुनर्भुगतान दर्ज करें",
+    "make_payment": "भुगतान करें",
+    "due_prefix": "देय"
+  },
+
+  "quick_actions": {
+    "transaction": "लेन-देन",
+    "emi": "EMI",
+    "ledger": "खाता",
+    "goal": "लक्ष्य",
+    "document": "दस्तावेज़",
+    "transfer": "ट्रांसफर",
+    "budgets": "बजट",
+    "reports": "रिपोर्ट",
+    "timeline": "टाइमलाइन",
+    "calendar": "कैलेंडर",
+    "emis": "EMI"
+  },
+
+  "empty_states": {
+    "transactions_title": "अभी तक कोई लेन-देन नहीं",
+    "transactions_desc": "अपना पहला आय या खर्च जोड़कर अपने वित्त को ट्रैक करना शुरू करें।",
+    "transactions_hint": "लेन-देन जोड़ने के लिए नीचे + बटन टैप करें।",
+    "emi_title": "कोई EMI ट्रैक नहीं किया",
+    "emi_desc": "ऋण और किस्त भुगतान ट्रैक करें।",
+    "emi_hint": "भुगतान शेड्यूल, शेष बैलेंस और नियत तारीखें देखने के लिए EMI जोड़ें।",
+    "documents_title": "अभी तक कोई दस्तावेज़ नहीं",
+    "documents_desc": "बिल, अनुबंध, रसीद और वित्तीय विवरण सुरक्षित रूप से संग्रहीत करें।",
+    "documents_hint": "एक ही जगह सभी महत्वपूर्ण दस्तावेज़ रखने के लिए PDF या छवियाँ अपलोड करें।",
+    "budgets_title": "कोई बजट नहीं",
+    "budgets_desc": "विभिन्न श्रेणियों में खर्च ट्रैक करने के लिए बजट बनाएं।",
+    "budgets_hint": "खाना, ईंधन और खरीदारी जैसी श्रेणियों के लिए मासिक सीमाएं निर्धारित करें।",
+    "goals_title": "कोई वित्तीय लक्ष्य नहीं",
+    "goals_desc": "बचत लक्ष्य निर्धारित करें और समय के साथ अपनी प्रगति ट्रैक करें।",
+    "goals_hint": "लक्ष्य आपको प्रेरित और केंद्रित रखने में मदद करते हैं।",
+    "debts_title": "कोई उधार या उधार देने की प्रविष्टि नहीं",
+    "debts_desc": "दोस्तों और परिवार से उधार लिया और दिया हुआ पैसा ट्रैक करें।",
+    "debts_hint": "कौन क्या बकाया है इसका स्पष्ट रिकॉर्ड रखें।",
+    "default_title": "अभी यहाँ कुछ नहीं है",
+    "default_desc": "जैसे-जैसे आप ऐप का उपयोग करेंगे यह अनुभाग भर जाएगा।",
+    "default_hint": "शुरू करने के लिए अन्य सुविधाएं देखें।"
+  },
+
+  "app": {
+    "press_back_exit": "बाहर निकलने के लिए फिर से बैक दबाएं"
+  }
 }

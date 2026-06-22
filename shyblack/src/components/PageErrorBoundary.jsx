@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import { AlertTriangle, RotateCcw } from 'lucide-react'
+import i18n from 'i18next'
 
 export default class PageErrorBoundary extends Component {
   state = { hasError: false, errorMessage: '' }
@@ -40,14 +41,14 @@ export default class PageErrorBoundary extends Component {
               <AlertTriangle size={16} className="text-red-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-red-400 mb-1">This section crashed</p>
+              <p className="text-sm font-semibold text-red-400 mb-1">{i18n.t('error_page.section_crashed')}</p>
               <p className="text-[11px] text-gray-500 mb-3 break-words">{this.state.errorMessage}</p>
               <button
                 onClick={() => this.props.onNavigate?.('dashboard')}
                 className="flex items-center gap-1.5 text-xs font-medium text-gray-300 border border-glass-border rounded-lg px-3 py-2 hover:bg-white/[0.05] transition-colors"
               >
                 <RotateCcw size={12} />
-                Go to Dashboard
+                {i18n.t('error_page.go_to_dashboard')}
               </button>
             </div>
           </div>

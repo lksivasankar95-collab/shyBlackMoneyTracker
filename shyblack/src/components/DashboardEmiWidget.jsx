@@ -1,9 +1,11 @@
 import { memo, useMemo } from 'react'
 import { Landmark, ChevronRight, Clock, AlertTriangle, Calendar } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import GlassCard from './GlassCard'
 
 const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavigate }) {
+  const { t } = useTranslation()
   const overdue = emiSummary?.overdue || []
   const dueToday = emiSummary?.dueToday || []
   const dueTomorrow = emiSummary?.dueTomorrow || []
@@ -12,12 +14,13 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
 
   const nextDueItems = useMemo(() => {
     const items = [
-      ...overdue.map((e) => ({ ...e, _priority: 0, _label: 'Overdue' })),
-      ...dueToday.map((e) => ({ ...e, _priority: 1, _label: 'Due Today' })),
-      ...dueTomorrow.map((e) => ({ ...e, _priority: 2, _label: 'Due Tomorrow' })),
+      ...overdue.map((e) => ({ ...e, _priority: 0, _labelKey: 'overdue' })),
+      ...dueToday.map((e) => ({ ...e, _priority: 1, _labelKey: 'due_today' })),
+      ...dueTomorrow.map((e) => ({ ...e, _priority: 2, _labelKey: 'due_tomorrow' })),
       ...dueWithin7.filter((e) => !e.isDueToday && !e.isDueTomorrow).map((e) => ({
         ...e, _priority: 3,
-        _label: `Due in ${e.dueInDays}d`,
+        _labelKey: 'due_in_days',
+        _dueInDays: e.dueInDays,
       })),
     ]
     items.sort((a, b) => a._priority - b._priority)
@@ -34,31 +37,31 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
         <GlassCard>
           <div className="flex items-center gap-2 mb-3">
             <Landmark size={14} className="text-purple-400" />
-            <h2 className="text-xs font-semibold text-gray-300">EMI Summary</h2>
-            <span className="text-[10px] text-gray-600 ml-auto">{emiSummary.totalActive} active</span>
+            <h2 className="text-xs font-semibold text-gray-300">{t('emi_widget.title')}</h2>
+            <span className="text-[10px] text-gray-600 ml-auto">{t('review_center.active_count', { count: emiSummary.totalActive })}</span>
           </div>
 
           {/* Mini stat cards */}
           <div className="grid grid-cols-4 gap-1.5 mb-3">
             <div className="rounded-lg bg-white/[0.03] p-2 text-center">
               <p className="text-sm font-extrabold text-white">{emiSummary.totalActive}</p>
-              <p className="text-[9px] text-gray-500">Active</p>
+              <p className="text-[9px] text-gray-500">{t('emi_widget.active')}</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] p-2 text-center">
               <p className={`text-sm font-extrabold ${dueToday.length > 0 ? 'text-yellow-400' : 'text-gray-600'}`}>
                 {dueToday.length}
               </p>
-              <p className="text-[9px] text-gray-500">Today</p>
+              <p className="text-[9px] text-gray-500">{t('emi_widget.today')}</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] p-2 text-center">
               <p className={`text-sm font-extrabold ${overdue.length > 0 ? 'text-red-400' : 'text-gray-600'}`}>
                 {overdue.length}
               </p>
-              <p className="text-[9px] text-gray-500">Overdue</p>
+              <p className="text-[9px] text-gray-500">{t('emi_widget.overdue')}</p>
             </div>
             <div className="rounded-lg bg-white/[0.03] p-2 text-center">
               <p className="text-sm font-extrabold text-amber-400">{dueWithin7.length}</p>
-              <p className="text-[9px] text-gray-500">7 days</p>
+              <p className="text-[9px] text-gray-500">{t('emi_widget.seven_days')}</p>
             </div>
           </div>
 
@@ -68,11 +71,11 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
               {nextDueItems.map((emi) => (
                 <div key={emi.id} className="flex items-center gap-2.5">
                   <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                    emi._label === 'Overdue' ? 'bg-red-500/10' : emi._label === 'Due Today' ? 'bg-yellow-500/10' : 'bg-amber-500/10'
+                    emi._labelKey === 'overdue' ? 'bg-red-500/10' : emi._labelKey === 'due_today' ? 'bg-yellow-500/10' : 'bg-amber-500/10'
                   }`}>
-                    {emi._label === 'Overdue' ? (
+                    {emi._labelKey === 'overdue' ? (
                       <AlertTriangle size={12} className="text-red-400" />
-                    ) : emi._label === 'Due Today' ? (
+                    ) : emi._labelKey === 'due_today' ? (
                       <Clock size={12} className="text-yellow-400" />
                     ) : (
                       <Calendar size={12} className="text-amber-400" />
@@ -84,9 +87,11 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
                   </div>
                   <div className="text-right shrink-0">
                     <p className={`text-[10px] font-semibold ${
-                      emi._label === 'Overdue' ? 'text-red-400' : emi._label === 'Due Today' ? 'text-yellow-400' : 'text-amber-400'
+                      emi._labelKey === 'overdue' ? 'text-red-400' : emi._labelKey === 'due_today' ? 'text-yellow-400' : 'text-amber-400'
                     }`}>
-                      {emi._label}
+                      {emi._labelKey === 'due_in_days'
+                        ? t('emi_widget.due_in_days', { count: emi._dueInDays })
+                        : t(`emi_widget.${emi._labelKey}`)}
                     </p>
                   </div>
                 </div>
@@ -96,7 +101,7 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
 
           <div className="flex items-center justify-end mt-2">
             <span className="text-[10px] text-gray-600 flex items-center gap-0.5">
-              View all EMIs <ChevronRight size={10} />
+              {t('emi_widget.view_all')} <ChevronRight size={10} />
             </span>
           </div>
         </GlassCard>

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { X } from 'lucide-react'
+import { useTranslation } from '../i18n'
 
 export default function Modal({ open, onClose, title, children }) {
+  const { t } = useTranslation()
   const overlayRef = useRef()
   const dialogRef = useRef()
   const previousFocus = useRef()
@@ -64,7 +66,7 @@ export default function Modal({ open, onClose, title, children }) {
           <h2 id="modal-title" className="text-sm font-semibold">{title}</h2>
           <button
             onClick={onClose}
-            aria-label="Close dialog"
+            aria-label={t('common.close')}
             className="p-1.5 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all min-w-[32px] min-h-[32px] flex items-center justify-center"
           >
             <X size={16} />

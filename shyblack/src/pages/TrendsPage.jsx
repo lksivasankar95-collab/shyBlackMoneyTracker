@@ -1,19 +1,11 @@
 import { useMemo, useState } from 'react'
 import { ArrowLeft, TrendingUp, TrendingDown, BarChart3, Target, CreditCard, Users } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import { getMonthlyTrends, getSavingsTrend, getDebtReductionTrend, getEmiProgressTrend, getGoalAchievementTrend } from '../utils/trends'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
-
-const TREND_TABS = [
-  { id: 'monthly', label: 'Monthly', icon: BarChart3 },
-  { id: 'savings', label: 'Savings', icon: TrendingUp },
-  { id: 'category', label: 'Categories', icon: TrendingDown },
-  { id: 'debts', label: 'Debts', icon: Users },
-  { id: 'emis', label: 'EMIs', icon: CreditCard },
-  { id: 'goals', label: 'Goals', icon: Target },
-]
 
 function MiniBar({ value, max, color = 'bg-blue-400' }) {
   const pct = max > 0 ? (value / max * 100) : 0
@@ -25,8 +17,18 @@ function MiniBar({ value, max, color = 'bg-blue-400' }) {
 }
 
 export default function TrendsPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, debts, emis, goals } = useFinance()
   const [activeTab, setActiveTab] = useState('monthly')
+
+  const TREND_TABS = [
+    { id: 'monthly', label: t('trends_page.tab_monthly'), icon: BarChart3 },
+    { id: 'savings', label: t('trends_page.tab_savings'), icon: TrendingUp },
+    { id: 'category', label: t('trends_page.tab_category'), icon: TrendingDown },
+    { id: 'debts', label: t('trends_page.tab_debts'), icon: Users },
+    { id: 'emis', label: t('trends_page.tab_emis'), icon: CreditCard },
+    { id: 'goals', label: t('trends_page.tab_goals'), icon: Target },
+  ]
 
   const monthlyTrends = useMemo(() => getMonthlyTrends(transactions, 12), [transactions])
   const savingsTrend = useMemo(() => getSavingsTrend(transactions, 12), [transactions])
@@ -62,10 +64,10 @@ export default function TrendsPage({ onNavigate }) {
             <ArrowLeft size={18} className="text-gray-400" />
           </button>
           <BarChart3 size={18} className="text-blue-400" />
-          <h1 className="text-xl font-bold">Trends</h1>
+          <h1 className="text-xl font-bold">{t('trends_page.title')}</h1>
         </div>
         <GlassCard>
-          <EmptyState icon={BarChart3} title="No Data Yet" description="Add transactions to see trends" />
+          <EmptyState icon={BarChart3} title={t('trends_page.no_data_title')} description={t('trends_page.no_data_desc')} />
         </GlassCard>
       </div>
     )
@@ -78,7 +80,7 @@ export default function TrendsPage({ onNavigate }) {
           <ArrowLeft size={18} className="text-gray-400" />
         </button>
         <BarChart3 size={18} className="text-blue-400" />
-        <h1 className="text-xl font-bold">Trends</h1>
+        <h1 className="text-xl font-bold">{t('trends_page.title')}</h1>
       </div>
 
       <div className="flex gap-1.5 mb-4 overflow-x-auto scrollbar-none">
@@ -101,13 +103,13 @@ export default function TrendsPage({ onNavigate }) {
       <div className="space-y-2">
         {activeTab === 'monthly' && monthlyTrends.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">Monthly Income vs Expense</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.monthly_income_expense')}</h2>
             <div className="space-y-2">
               {monthlyTrends.map((m) => (
                 <div key={m.month}>
                   <div className="flex items-center justify-between mb-0.5">
                     <span className="text-[10px] text-gray-500">{m.month}</span>
-                    <span className="text-[10px] text-gray-500 tabular-nums">{m.count} txns</span>
+                    <span className="text-[10px] text-gray-500 tabular-nums">{t('trends_page.txns_count', { count: m.count })}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 space-y-0.5">
@@ -131,7 +133,7 @@ export default function TrendsPage({ onNavigate }) {
 
         {activeTab === 'savings' && savingsTrend.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">Savings Trend</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.savings_trend')}</h2>
             <div className="space-y-2">
               {savingsTrend.map((s) => (
                 <div key={s.month} className="flex items-center gap-2">
@@ -151,7 +153,7 @@ export default function TrendsPage({ onNavigate }) {
 
         {activeTab === 'category' && categoryTrends.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">Category Spending</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.category_spending')}</h2>
             <div className="space-y-2">
               {categoryTrends.map((c) => (
                 <div key={c.category}>
@@ -168,7 +170,7 @@ export default function TrendsPage({ onNavigate }) {
 
         {activeTab === 'debts' && debtTrend.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">Debt Reduction Progress</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.debt_reduction')}</h2>
             <div className="space-y-2">
               {debtTrend.map((d) => (
                 <div key={d.personName} className="flex items-center gap-3">
@@ -181,7 +183,7 @@ export default function TrendsPage({ onNavigate }) {
                       <div className="h-full rounded-full bg-emerald-400 transition-all duration-500" style={{ width: `${d.progress}%` }} />
                     </div>
                     <div className="flex items-center justify-between mt-0.5">
-                      <span className="text-[9px] text-gray-600">{d.type === 'lend' ? 'They owe' : 'You owe'}</span>
+                      <span className="text-[9px] text-gray-600">{d.type === 'lend' ? t('trends_page.they_owe') : t('trends_page.you_owe')}</span>
                       <span className="text-[9px] text-gray-600 tabular-nums">{formatCurrency(d.paidAmount)} of {formatCurrency(d.originalAmount)}</span>
                     </div>
                   </div>
@@ -193,7 +195,7 @@ export default function TrendsPage({ onNavigate }) {
 
         {activeTab === 'emis' && emiTrend.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">EMI Progress</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.emi_progress')}</h2>
             <div className="space-y-2">
               {emiTrend.map((e) => (
                 <div key={e.name} className="flex items-center gap-3">
@@ -205,7 +207,7 @@ export default function TrendsPage({ onNavigate }) {
                     <div className="w-full h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                       <div className="h-full rounded-full bg-orange-400 transition-all duration-500" style={{ width: `${e.progress}%` }} />
                     </div>
-                    <p className="text-[9px] text-gray-600 mt-0.5">{formatCurrency(e.amount)}/mo · {e.remainingMonths}mo remaining</p>
+                    <p className="text-[9px] text-gray-600 mt-0.5">{formatCurrency(e.amount)}/mo · {t('trends_page.months_remaining', { count: e.remainingMonths })}</p>
                   </div>
                 </div>
               ))}
@@ -215,7 +217,7 @@ export default function TrendsPage({ onNavigate }) {
 
         {activeTab === 'goals' && goalTrend.length > 0 && (
           <GlassCard>
-            <h2 className="text-xs font-semibold text-gray-300 mb-3">Goal Achievement</h2>
+            <h2 className="text-xs font-semibold text-gray-300 mb-3">{t('trends_page.goal_achievement')}</h2>
             <div className="space-y-2">
               {goalTrend.map((g) => (
                 <div key={g.name} className="flex items-center gap-3">
@@ -245,7 +247,7 @@ export default function TrendsPage({ onNavigate }) {
          (activeTab === 'emis' && emiTrend.length === 0) ||
          (activeTab === 'goals' && goalTrend.length === 0) ? (
           <GlassCard>
-            <EmptyState icon={BarChart3} title="No Data" description={`No data available for ${activeTab} trends`} />
+            <EmptyState icon={BarChart3} title={t('trends_page.no_data_title')} description={t('trends_page.no_data_for_tab', { tab: activeTab })} />
           </GlassCard>
         ) : null}
       </div>

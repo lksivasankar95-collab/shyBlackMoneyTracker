@@ -91,23 +91,23 @@ export default function Settings({ onNavigate }) {
     if (biometricState.enabled) {
       setBiometricEnabled(false)
       setBiometricState((prev) => ({ ...prev, enabled: false }))
-      addToast('Biometric unlock disabled', 'info')
+      addToast(t('settings.biometric_disabled'), 'info')
       return
     }
 
     const result = await checkBiometricAvailability()
     if (!result.available) {
-      addToast('Biometric not available on this device', 'error')
+      addToast(t('settings.biometric_unavailable_device'), 'error')
       return
     }
 
-    const verified = await authenticateWithBiometric('Enable biometric unlock')
+    const verified = await authenticateWithBiometric(t('settings.biometric_enable'))
     if (verified) {
       setBiometricEnabled(true)
       setBiometricState((prev) => ({ ...prev, enabled: true }))
-      addToast(`${getBiometricTypeLabel()} unlock enabled`, 'success')
+      addToast(t('settings.biometric_enabled_toast', { type: getBiometricTypeLabel() }), 'success')
     } else {
-      addToast('Biometric verification failed', 'error')
+      addToast(t('settings.biometric_failed_toast'), 'error')
     }
   }, [biometricState.enabled, addToast])
 
@@ -122,12 +122,12 @@ export default function Settings({ onNavigate }) {
     try {
       const result = await exportBackup()
       if (result.success) {
-        addToast('Backup exported successfully!', 'success')
+        addToast(t('settings.backup_exported'), 'success')
       } else {
-        addToast('Export failed. Please try again.', 'error')
+        addToast(t('settings.backup_export_failed'), 'error')
       }
     } catch {
-      addToast('Failed to export backup. Please try again.', 'error')
+      addToast(t('settings.backup_export_error'), 'error')
     }
   }
 
@@ -144,7 +144,7 @@ export default function Settings({ onNavigate }) {
       const backupVersion = result.data.schemaVersion
       if (backupVersion !== undefined && backupVersion !== schemaVersion) {
         setBackupSchemaWarning(
-          `Backup schema v${backupVersion} differs from current v${schemaVersion}. Data will be imported as-is.`
+          t('settings.backup_schema_warning', { backup: backupVersion, current: schemaVersion })
         )
       } else {
         setBackupSchemaWarning(null)
@@ -171,23 +171,23 @@ export default function Settings({ onNavigate }) {
   }
 
   const handleEncExportSubmit = useCallback(async () => {
-    if (encPassword.length < 6) { setEncError('Password must be at least 6 characters'); return }
-    if (encPassword !== encPassword2) { setEncError('Passwords do not match'); return }
+    if (encPassword.length < 6) { setEncError(t('settings.pin_min_4')); return }
+    if (encPassword !== encPassword2) { setEncError(t('settings.pins_mismatch')); return }
     setEncWorking(true)
     try {
       await exportEncryptedBackup(encPassword)
       setEncModal(null)
       setEncPassword('')
       setEncPassword2('')
-      addToast('Encrypted backup exported!', 'success')
+      addToast(t('settings.backup_exported'), 'success')
     } catch {
-      setEncError('Export failed. Please try again.')
+      setEncError(t('settings.backup_export_failed'))
     }
     setEncWorking(false)
   }, [encPassword, encPassword2, addToast])
 
   const handleEncImportSubmit = useCallback(async () => {
-    if (!encPassword) { setEncError('Enter the backup password'); return }
+    if (!encPassword) { setEncError(t('settings.enter_your_pin_error')); return }
     if (!pendingRestore?._raw) return
     setEncWorking(true)
     const result = await parseAndValidateEncryptedBackup(pendingRestore._raw, encPassword)
@@ -215,11 +215,13 @@ export default function Settings({ onNavigate }) {
       setPendingRestore(null)
       setShowRestoreConfirm(false)
       addToast(
-        `Restored ${results.restored.length} sections${results.failed.length > 0 ? `, ${results.failed.length} failed` : ''}`,
+        results.failed.length > 0
+          ? t('settings.restore_result_with_failed', { count: results.restored.length, failCount: results.failed.length })
+          : t('settings.restore_result', { count: results.restored.length }),
         results.failed.length > 0 ? 'warning' : 'success'
       )
     } catch {
-      addToast('Restore failed. Data may be corrupted.', 'error')
+      addToast(t('settings.restore_failed'), 'error')
     }
     setIsRestoring(false)
   }, [pendingRestore, addToast, reloadFromStorage])
@@ -228,17 +230,17 @@ export default function Settings({ onNavigate }) {
     clearAllData()
     setTarget('')
     setSaved('')
-    addToast('All local data has been reset', 'info')
+    addToast(t('settings.data_reset'), 'info')
   }, [clearAllData, addToast])
 
   const toggleHideBalance = () => {
     updateSecurity({ hideBalance: !security.hideBalance })
-    addToast(security.hideBalance ? 'Balance visible' : 'Balance hidden', 'info')
+    addToast(security.hideBalance ? t('settings.balance_visible') : t('settings.balance_hidden'), 'info')
   }
 
   const togglePrivacyMode = () => {
     updateSecurity({ privacyMode: !security.privacyMode })
-    addToast(security.privacyMode ? 'Privacy mode off' : 'Privacy mode on', 'info')
+    addToast(security.privacyMode ? t('settings.privacy_off') : t('settings.privacy_on'), 'info')
   }
 
   const toggleReminder = useCallback(async () => {
@@ -251,22 +253,22 @@ export default function Settings({ onNavigate }) {
       if (perm.granted) {
         const result = await refreshReminderSchedule(transactions, debts)
         if (result.active) {
-          addToast('Daily reminder enabled at 7:00 PM', 'success')
+          addToast(t('settings.reminder_on'), 'success')
         } else if (result.reason === 'activity-exists') {
-          addToast('Already tracked today — reminder will activate tomorrow', 'info')
+          addToast(t('settings.reminder_delayed'), 'info')
         } else {
-          addToast('Reminder enabled', 'success')
+          addToast(t('settings.reminder_enabled'), 'success')
         }
       } else {
         if (perm.reason === 'denied' || perm.reason === 'prompt-with-rationale') {
-          addToast('Notification permission denied. Enable in Settings.', 'error')
+          addToast(t('settings.notif_permission_denied_msg'), 'error')
         } else {
-          addToast('Reminder preference saved', 'info')
+          addToast(t('settings.reminder_pref_saved'), 'info')
         }
       }
     } else {
       await cancelAllReminders()
-      addToast('Daily reminder disabled', 'info')
+      addToast(t('settings.reminder_disabled'), 'info')
     }
   }, [reminderEnabled, transactions, debts, addToast])
 
@@ -399,7 +401,7 @@ export default function Settings({ onNavigate }) {
                 </div>
                 <div className="flex gap-1">
                   {[
-                    { label: 'Now', value: 0 },
+                    { label: t('settings.lock_now'), value: 0 },
                     { label: '30s', value: 30 },
                     { label: '1m', value: 60 },
                   ].map((opt) => (
@@ -445,10 +447,10 @@ export default function Settings({ onNavigate }) {
               <Smartphone size={16} className={biometricState.enabled ? 'text-neon' : 'text-gray-500'} />
               <div>
                 <p className="text-xs font-medium">
-                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? `${getBiometricTypeLabel()} Enabled` : t('settings.biometric_enable')}
+                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? t('settings.biometric_type_enabled', { type: getBiometricTypeLabel() }) : t('settings.biometric_enable')}
                 </p>
                 <p className="text-[10px] text-gray-500">
-                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? `Use ${getBiometricTypeLabel().toLowerCase()} to unlock` : biometricState.available ? `Set up ${getBiometricTypeLabel().toLowerCase()} unlock` : t('settings.biometric_unavailable')}
+                  {biometricState.checking ? t('settings.biometric_checking') : biometricState.enabled ? t('settings.biometric_use_to_unlock', { type: getBiometricTypeLabel().toLowerCase() }) : biometricState.available ? t('settings.biometric_setup_unlock', { type: getBiometricTypeLabel().toLowerCase() }) : t('settings.biometric_unavailable')}
                 </p>
               </div>
             </div>
@@ -465,7 +467,7 @@ export default function Settings({ onNavigate }) {
               </button>
             )}
             {!biometricState.available && !biometricState.checking && (
-              <span className="text-[10px] text-gray-600">N/A</span>
+              <span className="text-[10px] text-gray-600">{t('common.na')}</span>
             )}
           </div>
           {biometricState.enabled && (
@@ -520,22 +522,22 @@ export default function Settings({ onNavigate }) {
         {notifDiag && (
           <div className="mt-2 p-3 rounded-xl bg-white/[0.03] space-y-2">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Permission</span>
+              <span className="text-[10px] text-gray-500">{t('settings.permission_label')}</span>
               <span className={`text-[10px] font-medium flex items-center gap-1 ${notifDiag.permissionGranted ? 'text-neon' : 'text-red-400'}`}>
                 {notifDiag.permissionGranted ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
                 {notifDiag.permissionGranted ? t('settings.permission_granted') : t('settings.permission_denied')}
               </span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Status</span>
+              <span className="text-[10px] text-gray-500">{t('settings.status_label')}</span>
               <span className="text-[10px] text-gray-400">{notifDiag.permissionReason}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Platform</span>
+              <span className="text-[10px] text-gray-500">{t('settings.platform_label')}</span>
               <span className="text-[10px] text-gray-400">{notifDiag.platform}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] text-gray-500">Checked</span>
+              <span className="text-[10px] text-gray-500">{t('settings.checked_label')}</span>
               <span className="text-[10px] text-gray-400">{notifDiag.checkTime}</span>
             </div>
             {!notifDiag.permissionGranted && (
@@ -544,9 +546,9 @@ export default function Settings({ onNavigate }) {
                   const result = await requestNotificationPermission()
                   setNotifDiag((prev) => ({ ...prev, permissionGranted: result.granted, permissionReason: result.reason }))
                   if (result.granted) {
-                    addToast('Notification permission granted!', 'success')
+                    addToast(t('settings.notif_permission_granted_toast'), 'success')
                   } else {
-                    addToast('Permission denied. Enable in Android Settings.', 'error')
+                    addToast(t('settings.notif_permission_denied_android'), 'error')
                   }
                 }}
                 className="w-full py-2 rounded-lg bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all mt-1"
@@ -750,10 +752,10 @@ export default function Settings({ onNavigate }) {
           <h2 className="text-sm font-semibold">{t('settings.data_management')}</h2>
         </div>
         <div className="flex items-center gap-2 mb-3 px-1">
-          <span className="text-[10px] text-gray-600 font-medium">Schema</span>
+          <span className="text-[10px] text-gray-600 font-medium">{t('settings.schema_label')}</span>
           <span className="text-[10px] text-neon font-semibold">v{schemaVersion}</span>
           <span className="text-[10px] text-gray-600 mx-1">·</span>
-          <span className="text-[10px] text-gray-600 font-medium">Target</span>
+          <span className="text-[10px] text-gray-600 font-medium">{t('settings.target_label')}</span>
           <span className="text-[10px] text-neon font-semibold">v{APP_SCHEMA_VERSION}</span>
         </div>
         <div className="space-y-2">
@@ -836,14 +838,14 @@ export default function Settings({ onNavigate }) {
           {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
           <button
             onClick={async () => {
-              if (modalPin.length < 4) { setPinError('PIN must be 4 digits'); return }
-              if (modalPin !== modalPin2) { setPinError('PINs do not match'); return }
+              if (modalPin.length < 4) { setPinError(t('settings.pin_min_4')); return }
+              if (modalPin !== modalPin2) { setPinError(t('settings.pins_mismatch')); return }
               await setPin(modalPin)
               setPrivacyEnabled(true)
               setPinModal(null)
               setModalPin('')
               setModalPin2('')
-              addToast('Privacy PIN set', 'success')
+              addToast(t('settings.pin_set_toast'), 'success')
             }}
             disabled={!modalPin || !modalPin2}
             className="btn-primary w-full text-sm"
@@ -896,16 +898,16 @@ export default function Settings({ onNavigate }) {
           {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
           <button
             onClick={async () => {
-              if (modalPin.length < 4) { setPinError('Enter current PIN'); return }
-              if (!(await verifyPin(modalPin))) { setPinError('Current PIN is incorrect'); return }
-              if (modalPin2.length < 4) { setPinError('New PIN must be 4 digits'); return }
-              if (modalPin2 !== modalPin3) { setPinError('New PINs do not match'); return }
+              if (modalPin.length < 4) { setPinError(t('settings.enter_current_pin_error')); return }
+              if (!(await verifyPin(modalPin))) { setPinError(t('settings.current_pin_wrong')); return }
+              if (modalPin2.length < 4) { setPinError(t('settings.new_pin_min_4')); return }
+              if (modalPin2 !== modalPin3) { setPinError(t('settings.new_pins_mismatch')); return }
               await setPin(modalPin2)
               setPinModal(null)
               setModalPin('')
               setModalPin2('')
               setModalPin3('')
-              addToast('PIN changed', 'success')
+              addToast(t('settings.pin_changed_toast'), 'success')
             }}
             disabled={!modalPin || !modalPin2 || !modalPin3}
             className="btn-primary w-full text-sm"
@@ -937,13 +939,13 @@ export default function Settings({ onNavigate }) {
           {pinError && <p className="text-xs text-red-400 flex items-center gap-1.5"><AlertTriangle size={12} />{pinError}</p>}
           <button
             onClick={async () => {
-              if (modalPin.length < 4) { setPinError('Enter your PIN'); return }
-              if (!(await verifyPin(modalPin))) { setPinError('PIN is incorrect'); return }
+              if (modalPin.length < 4) { setPinError(t('settings.enter_your_pin_error')); return }
+              if (!(await verifyPin(modalPin))) { setPinError(t('settings.pin_wrong')); return }
               clearPin()
               setPrivacyEnabled(false)
               setPinModal(null)
               setModalPin('')
-              addToast('Privacy lock disabled', 'info')
+              addToast(t('settings.privacy_lock_disabled_toast'), 'info')
             }}
             disabled={!modalPin}
             className="btn-primary w-full text-sm"
@@ -1029,28 +1031,28 @@ export default function Settings({ onNavigate }) {
         open={showRestoreConfirm}
         onClose={() => { setShowRestoreConfirm(false); setPendingRestore(null); setBackupSchemaWarning(null) }}
         onConfirm={handleConfirmRestore}
-        title="Restore Backup?"
-        description={`${backupSchemaWarning ? backupSchemaWarning + ' ' : ''}This will replace your current data with the backup. PIN lock and security settings are not included in backups. Make sure you have exported your current data first.`}
-        confirmLabel={isRestoring ? 'Restoring...' : 'Restore'}
-        cancelLabel="Cancel"
+        title={t('settings.restore_backup_title')}
+        description={`${backupSchemaWarning ? backupSchemaWarning + ' ' : ''}${t('settings.restore_backup_desc')}`}
+        confirmLabel={isRestoring ? t('settings.restoring') : t('settings.restore')}
+        cancelLabel={t('common.cancel')}
         loading={isRestoring}
       />
 
       {/* Restore Summary Modal */}
-      <Modal open={!!restoreSummary} onClose={() => setRestoreSummary(null)} title="Restore Complete">
+      <Modal open={!!restoreSummary} onClose={() => setRestoreSummary(null)} title={t('settings.restore_complete')}>
         <div className="space-y-3">
           {restoreSummary?.pinWarning && (
             <div className="flex items-start gap-2 rounded-lg bg-yellow-500/10 border border-yellow-500/20 px-3 py-2.5">
               <AlertTriangle size={14} className="text-yellow-400 mt-0.5 shrink-0" />
               <p className="text-[11px] text-yellow-300 leading-relaxed">
-                PIN lock is not included in backups. Your existing PIN remains active. If restoring to a new device, set up PIN lock again in Security settings.
+                {t('settings.pin_not_in_backup_warning')}
               </p>
             </div>
           )}
           {restoreSummary?.restored?.length > 0 && (
             <div>
               <p className="text-xs text-neon font-medium mb-1.5 flex items-center gap-1.5">
-                <CheckCircle2 size={12} /> Restored
+                <CheckCircle2 size={12} /> {t('settings.restored_label')}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {restoreSummary.restored.map((s) => (
@@ -1062,7 +1064,7 @@ export default function Settings({ onNavigate }) {
           {restoreSummary?.failed?.length > 0 && (
             <div>
               <p className="text-xs text-red-400 font-medium mb-1.5 flex items-center gap-1.5">
-                <XCircle size={12} /> Failed
+                <XCircle size={12} /> {t('settings.failed_label')}
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {restoreSummary.failed.map((s) => (
@@ -1072,7 +1074,7 @@ export default function Settings({ onNavigate }) {
             </div>
           )}
           <button onClick={() => setRestoreSummary(null)} className="btn-primary w-full text-sm mt-1">
-            Reload App
+            {t('settings.reload_app')}
           </button>
         </div>
       </Modal>
@@ -1082,10 +1084,10 @@ export default function Settings({ onNavigate }) {
         open={showResetConfirm}
         onClose={() => setShowResetConfirm(false)}
         onConfirm={handleResetData}
-        title="Reset All Data?"
-        description="This will permanently delete all your transactions, debts, budgets, savings, and settings. Export a backup first to avoid data loss."
-        confirmLabel="Reset Everything"
-        cancelLabel="Cancel"
+        title={t('settings.reset_data_title')}
+        description={t('settings.reset_data_desc')}
+        confirmLabel={t('settings.reset_everything')}
+        cancelLabel={t('common.cancel')}
         danger
         typedConfirm
         typedConfirmWord="DELETE"

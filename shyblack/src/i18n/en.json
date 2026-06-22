@@ -98,7 +98,12 @@
     "kilobytes": "KB",
     "transaction": "Transaction",
     "of": "of",
-    "in_progress": "in progress"
+    "in_progress": "in progress",
+    "undo": "Undo",
+    "processing": "Processing...",
+    "type_label": "Type",
+    "to_confirm": "to confirm",
+    "type_to_confirm": "Type {{word}} to confirm"
   },
 
     "dashboard": {
@@ -317,7 +322,11 @@
     "enter_valid_amount": "Please enter a valid amount",
     "amount_exceeds_limit": "Amount exceeds maximum limit",
     "select_category": "Please select a category",
-    "invalid_date": "Invalid date selected"
+    "invalid_date": "Invalid date selected",
+    "from_label": "from",
+    "to_label": "to",
+    "via_label": "via",
+    "unknown_category": "Unknown"
   },
 
   "settings": {
@@ -396,7 +405,64 @@
     "disable_privacy_lock": "Disable Privacy Lock",
     "disable_privacy_lock_desc": "Enter your current PIN to disable privacy lock.",
     "enc_export_desc": "Set a password to protect your backup. You'll need it to restore.",
-    "enc_import_title": "Enter Backup Password"
+    "enc_import_title": "Enter Backup Password",
+    "reload_app": "Reload App",
+    "restore_backup_title": "Restore Backup?",
+    "restore_backup_desc": "This will replace your current data with the backup. PIN lock and security settings are not included in backups. Make sure you have exported your current data first.",
+    "restoring": "Restoring...",
+    "restore": "Restore",
+    "restore_complete": "Restore Complete",
+    "pin_not_in_backup_warning": "PIN lock is not included in backups. Your existing PIN remains active. If restoring to a new device, set up PIN lock again in Security settings.",
+    "restored_label": "Restored",
+    "failed_label": "Failed",
+    "reset_data_title": "Reset All Data?",
+    "reset_data_desc": "This will permanently delete all your transactions, debts, budgets, savings, and settings. Export a backup first to avoid data loss.",
+    "reset_everything": "Reset Everything",
+    "backup_exported": "Backup exported successfully!",
+    "backup_export_failed": "Export failed. Please try again.",
+    "backup_export_error": "Failed to export backup. Please try again.",
+    "restore_result": "Restored {count} sections",
+    "restore_result_with_failed": "Restored {count} sections, {failCount} failed",
+    "restore_failed": "Restore failed. Data may be corrupted.",
+    "data_reset": "All local data has been reset",
+    "balance_visible": "Balance visible",
+    "balance_hidden": "Balance hidden",
+    "privacy_off": "Privacy mode off",
+    "privacy_on": "Privacy mode on",
+    "reminder_on": "Daily reminder enabled at 7:00 PM",
+    "reminder_delayed": "Already tracked today — reminder will activate tomorrow",
+    "reminder_enabled": "Reminder enabled",
+    "notif_permission_denied_msg": "Notification permission denied. Enable in Settings.",
+    "reminder_pref_saved": "Reminder preference saved",
+    "reminder_disabled": "Daily reminder disabled",
+    "biometric_disabled": "Biometric unlock disabled",
+    "biometric_unavailable_device": "Biometric not available on this device",
+    "biometric_failed_toast": "Biometric verification failed",
+    "biometric_enabled_toast": "{type} unlock enabled",
+    "pin_set_toast": "Privacy PIN set",
+    "pin_changed_toast": "PIN changed",
+    "privacy_lock_disabled_toast": "Privacy lock disabled",
+    "notif_permission_granted_toast": "Notification permission granted!",
+    "notif_permission_denied_android": "Permission denied. Enable in Android Settings.",
+    "pin_min_4": "PIN must be 4 digits",
+    "pins_mismatch": "PINs do not match",
+    "enter_current_pin_error": "Enter current PIN",
+    "current_pin_wrong": "Current PIN is incorrect",
+    "new_pin_min_4": "New PIN must be 4 digits",
+    "new_pins_mismatch": "New PINs do not match",
+    "enter_your_pin_error": "Enter your PIN",
+    "pin_wrong": "PIN is incorrect",
+    "permission_label": "Permission",
+    "status_label": "Status",
+    "platform_label": "Platform",
+    "checked_label": "Checked",
+    "lock_now": "Now",
+    "schema_label": "Schema",
+    "target_label": "Target",
+    "biometric_type_enabled": "{{type}} Enabled",
+    "biometric_use_to_unlock": "Use {{type}} to unlock",
+    "biometric_setup_unlock": "Set up {{type}} unlock",
+    "backup_schema_warning": "Backup schema v{{backup}} differs from current v{{current}}. Data will be imported as-is."
   },
 
   "debts": {
@@ -484,7 +550,13 @@
     "payment_updated": "Payment updated",
     "payment_deleted": "Payment deleted",
     "ledger_settled": "Ledger settled",
-    "statement_ready": "Statement ready for {name}"
+    "statement_ready": "Statement ready for {name}",
+    "add_lent": "Add Lent Record",
+    "add_borrowed": "Add Borrowed Record",
+    "error_import_contact": "Failed to import contact",
+    "error_name_required": "Please enter a name",
+    "error_invalid_amount": "Please enter a valid amount",
+    "contact_imported": "Imported {{name}}"
   },
 
   "goals": {
@@ -779,7 +851,22 @@
     "printOpened": "Statement opened for printing",
     "printFailed": "Could not open print window",
     "generateFailed": "Failed to generate statement",
-    "downloaded": "Statement downloaded"
+    "downloaded": "Statement downloaded",
+    "select_emi_label": "Select EMI",
+    "select_emi_placeholder": "Select an EMI...",
+    "select_person_label": "Select Person",
+    "select_person_placeholder": "Select a person...",
+    "year_label": "Year",
+    "month_label": "Month",
+    "main_desc": "Generate and export financial statements in PDF format",
+    "networth_snap_desc": "Generates a snapshot of your current net worth including all accounts, debts, and cash balance.",
+    "generating_btn": "Generating...",
+    "generate_btn": "Generate Statement",
+    "saved_toast": "{count}-page statement saved!",
+    "generated_toast": "Statement generated",
+    "saved_again_toast": "Statement saved!",
+    "failed_toast": "Failed to generate statement",
+    "share_unsupported_toast": "Share not supported"
   },
 
   "people": {
@@ -887,6 +974,13 @@
     "fix_all": "Fix All",
     "fix": "Fix",
     "ignore": "Ignore",
+    "total_issues": "Total Issues",
+    "medium": "Medium",
+    "low": "Low",
+    "all_clear": "All Clear",
+    "all_clear_desc": "No data quality issues detected. Your data is in good shape!",
+    "issues_count": "{count} issue",
+    "issues_count_plural": "{count} issues",
     "categories": {
       "missing_category": "Missing Category",
       "missing_note": "Missing Note",
@@ -998,7 +1092,8 @@
     "file_saved_unknown": "File saved but location unknown",
     "share_unsupported": "Share not supported",
     "download_failed": "Download failed",
-    "pdf_generate_failed": "Failed to generate PDF"
+    "pdf_generate_failed": "Failed to generate PDF",
+    "savings_goal_updated": "Savings goal updated"
   },
 
   "time": {
@@ -1048,5 +1143,174 @@
   },
 
   "months_short": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-  "months_full": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  "months_full": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+
+  "account_center": {
+    "title": "Accounts",
+    "search_placeholder": "Search accounts...",
+    "linked_emis": "Linked EMIs",
+    "recent_transfers": "Recent Transfers",
+    "transactions_count": "Transactions ({count})",
+    "no_transactions": "No transactions for this account",
+    "no_accounts": "No accounts",
+    "no_matching": "No matching accounts",
+    "add_first": "Add your first account to track balances",
+    "name_placeholder": "Account name",
+    "balance_placeholder": "Current balance",
+    "type_bank": "Bank",
+    "type_wallet": "Wallet",
+    "add": "Add"
+  },
+
+  "review_center": {
+    "title": "Financial Review",
+    "no_data_title": "No Data Yet",
+    "no_data_desc": "Add transactions to generate financial reviews",
+    "tab_monthly": "Monthly",
+    "tab_quarterly": "Quarterly",
+    "tab_yearly": "Yearly",
+    "savings": "Savings",
+    "tx_rate_summary": "{count} transactions · {rate}% savings rate",
+    "top_spending": "Top Spending",
+    "debts_owed": "Debts Owed",
+    "debts_borrowed": "Debts Borrowed",
+    "active_emis": "Active EMIs",
+    "goal_savings": "Goal Savings",
+    "active_count": "{count} active",
+    "monthly_total": "{amount}/mo"
+  },
+
+  "trends_page": {
+    "title": "Trends",
+    "no_data_title": "No Data Yet",
+    "no_data_desc": "Add transactions to see trends",
+    "monthly_income_expense": "Monthly Income vs Expense",
+    "savings_trend": "Savings Trend",
+    "category_spending": "Category Spending",
+    "debt_reduction": "Debt Reduction Progress",
+    "emi_progress": "EMI Progress",
+    "goal_achievement": "Goal Achievement",
+    "txns_count": "{count} txns",
+    "they_owe": "They owe",
+    "you_owe": "You owe",
+    "no_data_for_tab": "No data for {tab}",
+    "tab_monthly": "Monthly",
+    "tab_savings": "Savings",
+    "tab_category": "Categories",
+    "tab_debts": "Debts",
+    "tab_emis": "EMIs",
+    "tab_goals": "Goals",
+    "months_remaining": "{count}mo remaining"
+  },
+
+  "emi_widget": {
+    "title": "EMI Summary",
+    "active": "Active",
+    "today": "Today",
+    "overdue": "Overdue",
+    "seven_days": "7 days",
+    "due_today": "Due Today",
+    "due_tomorrow": "Due Tomorrow",
+    "due_in_days": "Due in {count}d",
+    "view_all": "View all EMIs"
+  },
+
+  "pin_lock": {
+    "enter_pin_prompt": "Enter PIN to unlock",
+    "try_again_cooldown": "Try again in {count}s",
+    "unlock": "Unlock",
+    "use_fingerprint": "Use Fingerprint",
+    "forgot_pin": "Forgot PIN?",
+    "forgot_pin_desc": "ShyBlack stores all data offline. There is no way to recover a forgotten PIN without resetting.",
+    "reset_all_data": "Reset All App Data",
+    "confirm_reset": "Confirm Reset",
+    "confirm_reset_warning": "This permanently deletes all your data.",
+    "too_many_attempts": "Too many failed attempts. Reset required.",
+    "wait_cooldown": "Too many attempts. Wait {count}s.",
+    "wrong_pin_with_count": "Incorrect PIN ({count} attempts left)",
+    "wrong_pin": "Incorrect PIN",
+    "unlock_failed": "Unlock failed. Try again.",
+    "biometric_failed": "Biometric unlock failed. Use PIN.",
+    "del": "DEL"
+  },
+
+  "financial_score": {
+    "subtitle": "Financial Health Score",
+    "factors_one": "1 factor",
+    "factors": "{count} factors"
+  },
+
+  "error_page": {
+    "section_crashed": "This section crashed",
+    "go_to_dashboard": "Go to Dashboard",
+    "app_error_title": "Something went wrong",
+    "app_error_desc": "ShyBlack encountered an unexpected error. Your data is safe and no information has been lost.",
+    "reload_app": "Reload App",
+    "reset_local_data": "Reset Local Data",
+    "encrypted_storage": "Encrypted Offline Storage",
+    "error_code": "Error code: {code} · Auto-recovery active"
+  },
+
+  "related_items": {
+    "title": "Linked Items",
+    "link": "Link",
+    "no_links": "No linked items yet. Tap \"Link\" to connect records.",
+    "label_placeholder": "Label (optional)"
+  },
+
+  "savings_progress": {
+    "remaining": "{amount} remaining",
+    "completed": "Goal completed! Great job!"
+  },
+
+  "debt_card": {
+    "status_pending": "Pending",
+    "due": "Due {date}",
+    "repaid_suffix": "repaid",
+    "record_repayment": "Record Repayment",
+    "make_payment": "Make Payment",
+    "due_prefix": "Due"
+  },
+
+  "quick_actions": {
+    "transaction": "Transaction",
+    "emi": "EMI",
+    "ledger": "Ledger",
+    "goal": "Goal",
+    "document": "Document",
+    "transfer": "Transfer",
+    "budgets": "Budgets",
+    "reports": "Reports",
+    "timeline": "Timeline",
+    "calendar": "Calendar",
+    "emis": "EMIs"
+  },
+
+  "empty_states": {
+    "transactions_title": "No transactions yet",
+    "transactions_desc": "Start tracking your finances by adding your first income or expense.",
+    "transactions_hint": "Tap the + button below to add a transaction. It only takes a few seconds.",
+    "emi_title": "No EMIs tracked",
+    "emi_desc": "Track loans and installment payments so you never miss a due date.",
+    "emi_hint": "Add an EMI to see payment schedules, remaining balances, and due dates.",
+    "documents_title": "No documents yet",
+    "documents_desc": "Store bills, agreements, receipts, and financial statements securely.",
+    "documents_hint": "Upload PDFs or images to keep all your important documents in one place.",
+    "budgets_title": "No budgets set",
+    "budgets_desc": "Create budgets to track spending across different categories.",
+    "budgets_hint": "Set monthly limits for categories like Food, Fuel, and Shopping.",
+    "goals_title": "No financial goals",
+    "goals_desc": "Set savings goals and track your progress over time.",
+    "goals_hint": "Goals help you stay motivated and focused on what matters most.",
+    "debts_title": "No borrow or lend entries",
+    "debts_desc": "Track money you've borrowed from or lent to friends and family.",
+    "debts_hint": "Keep a clear record of who owes what and when it's due.",
+    "default_title": "Nothing here yet",
+    "default_desc": "This section will populate as you use the app.",
+    "default_hint": "Explore other features to get started."
+  },
+
+  "app": {
+    "press_back_exit": "Press back again to exit"
+  }
 }

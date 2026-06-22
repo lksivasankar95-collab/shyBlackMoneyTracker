@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { TrendingUp, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, BarChart3, PieChart, DollarSign, Activity, Hash } from 'lucide-react'
 import GlassCard from './GlassCard'
+import { useTranslation } from '../i18n'
 
 const scoreColors = {
   Excellent: { from: '#39ff14', to: '#22c55e', label: 'Excellent' },
@@ -18,6 +19,7 @@ const breakdownIcons = {
 }
 
 export default function FinancialScore({ score, factors, compact, breakdown }) {
+  const { t } = useTranslation()
   const [expanded, setExpanded] = useState(false)
   const { level } = score
   const colors = scoreColors[level] || scoreColors['Needs Work']
@@ -50,7 +52,7 @@ export default function FinancialScore({ score, factors, compact, breakdown }) {
             <span className="text-2xl font-extrabold tracking-tight text-gradient-brand">{score.score}</span>
             <span className="text-xs font-medium" style={{ color: colors.from }}>{level}</span>
           </div>
-          <p className="text-xs text-gray-500">Financial Health Score</p>
+          <p className="text-xs text-gray-500">{t('financial_score.subtitle')}</p>
         </div>
       </div>
 
@@ -84,7 +86,7 @@ export default function FinancialScore({ score, factors, compact, breakdown }) {
             className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-2"
           >
             {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-            {factors.length} factor{factors.length > 1 ? 's' : ''}
+            {factors.length === 1 ? t('financial_score.factors_one') : t('financial_score.factors', { count: factors.length })}
           </button>
           {expanded && (
             <div className="space-y-1.5 animate-fade-in">

@@ -87,7 +87,23 @@
     "confirm_action": "நிச்சயமாக?",
     "copied": "நகலெடுக்கப்பட்டது!",
     "generating": "உருவாக்குகிறது...",
-    "na": "N/A"
+    "na": "N/A",
+    "yes": "ஆம்",
+    "no": "இல்லை",
+    "on": "இயக்கு",
+    "off": "நிறுத்து",
+    "none": "ஏதுமில்லை",
+    "days": "நாட்கள்",
+    "seconds_short": "வி",
+    "kilobytes": "KB",
+    "transaction": "பரிவர்த்தனை",
+    "of": "இல்",
+    "in_progress": "நடைபெறுகிறது",
+    "undo": "செயல்தவிர்",
+    "processing": "செயலாக்குகிறது...",
+    "type_label": "தட்டச்சு செய்யவும்",
+    "to_confirm": "உறுதிப்படுத்த",
+    "type_to_confirm": "{{word}} தட்டச்சு செய்து உறுதிப்படுத்தவும்"
   },
 
   "dashboard": {
@@ -205,7 +221,11 @@
     "enter_valid_amount": "Please enter a valid amount",
     "amount_exceeds_limit": "Amount exceeds maximum limit",
     "select_category": "Please select a category",
-    "invalid_date": "Invalid date selected"
+    "invalid_date": "Invalid date selected",
+    "from_label": "இடமிருந்து",
+    "to_label": "க்கு",
+    "via_label": "மூலம்",
+    "unknown_category": "தெரியாத"
   },
 
   "settings": {
@@ -284,7 +304,64 @@
     "disable_privacy_lock": "Disable Privacy Lock",
     "disable_privacy_lock_desc": "Enter your current PIN to disable privacy lock.",
     "enc_export_desc": "Set a password to protect your backup. You'll need it to restore.",
-    "enc_import_title": "Enter Backup Password"
+    "enc_import_title": "Enter Backup Password",
+    "reload_app": "ஆப்பை மீண்டும் ஏற்று",
+    "restore_backup_title": "காப்பை மீட்டெடுக்கவா?",
+    "restore_backup_desc": "இது உங்கள் தற்போதைய தரவை காப்பு தரவால் மாற்றும். PIN மற்றும் பாதுகாப்பு அமைப்புகள் காப்பில் சேர்க்கப்படவில்லை.",
+    "restoring": "மீட்டெடுக்கிறது...",
+    "restore": "மீட்டெடு",
+    "restore_complete": "மீட்டெடுப்பு முடிந்தது",
+    "pin_not_in_backup_warning": "PIN பூட்டு காப்பில் சேர்க்கப்படவில்லை. உங்கள் தற்போதைய PIN செயலில் உள்ளது.",
+    "restored_label": "மீட்டெடுக்கப்பட்டது",
+    "failed_label": "தோல்வி",
+    "reset_data_title": "அனைத்து தரவையும் மீட்டமைக்கவா?",
+    "reset_data_desc": "இது உங்கள் அனைத்து பரிவர்த்தனைகள், கடன்கள், வரவு செலவு, சேமிப்பு மற்றும் அமைப்புகளை நிரந்தரமாக நீக்கும்.",
+    "reset_everything": "அனைத்தையும் மீட்டமை",
+    "backup_exported": "காப்பு வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது!",
+    "backup_export_failed": "ஏற்றுமதி தோல்வி. மீண்டும் முயற்சிக்கவும்.",
+    "backup_export_error": "காப்பு ஏற்றுமதி தோல்வி. மீண்டும் முயற்சிக்கவும்.",
+    "restore_result": "{count} பிரிவுகள் மீட்டெடுக்கப்பட்டன",
+    "restore_result_with_failed": "{count} பிரிவுகள் மீட்டெடுக்கப்பட்டன, {failCount} தோல்வி",
+    "restore_failed": "மீட்டெடுப்பு தோல்வி. தரவு சேதமடைந்திருக்கலாம்.",
+    "data_reset": "அனைத்து உள்ளூர் தரவும் மீட்டமைக்கப்பட்டது",
+    "balance_visible": "இருப்பு தெரிகிறது",
+    "balance_hidden": "இருப்பு மறைக்கப்பட்டது",
+    "privacy_off": "தனியுரிமை பயன்முறை முடக்கப்பட்டது",
+    "privacy_on": "தனியுரிமை பயன்முறை இயக்கப்பட்டது",
+    "reminder_on": "தினசரி நினைவூட்டல் மாலை 7:00 மணிக்கு இயக்கப்பட்டது",
+    "reminder_delayed": "இன்று ஏற்கனவே பதிவு செய்தீர்கள் — நினைவூட்டல் நாளை செயல்படும்",
+    "reminder_enabled": "நினைவூட்டல் இயக்கப்பட்டது",
+    "notif_permission_denied_msg": "அறிவிப்பு அனுமதி மறுக்கப்பட்டது. அமைப்புகளில் இயக்கவும்.",
+    "reminder_pref_saved": "நினைவூட்டல் விருப்பம் சேமிக்கப்பட்டது",
+    "reminder_disabled": "தினசரி நினைவூட்டல் முடக்கப்பட்டது",
+    "biometric_disabled": "கைரேகை திறத்தல் முடக்கப்பட்டது",
+    "biometric_unavailable_device": "இந்த சாதனத்தில் கைரேகை இல்லை",
+    "biometric_failed_toast": "கைரேகை சரிபார்ப்பு தோல்வி",
+    "biometric_enabled_toast": "{type} திறத்தல் இயக்கப்பட்டது",
+    "pin_set_toast": "தனியுரிமை PIN அமைக்கப்பட்டது",
+    "pin_changed_toast": "PIN மாற்றப்பட்டது",
+    "privacy_lock_disabled_toast": "தனியுரிமை பூட்டு முடக்கப்பட்டது",
+    "notif_permission_granted_toast": "அறிவிப்பு அனுமதி வழங்கப்பட்டது!",
+    "notif_permission_denied_android": "அனுமதி மறுக்கப்பட்டது. Android அமைப்புகளில் இயக்கவும்.",
+    "pin_min_4": "PIN குறைந்தது 4 இலக்கங்கள் இருக்க வேண்டும்",
+    "pins_mismatch": "PIN கள் பொருந்தவில்லை",
+    "enter_current_pin_error": "தற்போதைய PIN ஐ உள்ளிடுக",
+    "current_pin_wrong": "தற்போதைய PIN தவறானது",
+    "new_pin_min_4": "புதிய PIN குறைந்தது 4 இலக்கங்கள் இருக்க வேண்டும்",
+    "new_pins_mismatch": "புதிய PIN கள் பொருந்தவில்லை",
+    "enter_your_pin_error": "உங்கள் PIN ஐ உள்ளிடுக",
+    "pin_wrong": "PIN தவறானது",
+    "permission_label": "அனுமதி",
+    "status_label": "நிலை",
+    "platform_label": "தளம்",
+    "checked_label": "சரிபார்க்கப்பட்டது",
+    "lock_now": "இப்போது",
+    "schema_label": "திட்டம்",
+    "target_label": "இலக்கு",
+    "biometric_type_enabled": "{{type}} இயக்கப்பட்டது",
+    "biometric_use_to_unlock": "{{type}} பயன்படுத்தி திறக்கவும்",
+    "biometric_setup_unlock": "{{type}} திறப்பை அமைக்கவும்",
+    "backup_schema_warning": "காப்புப்பிரதி திட்டம் v{{backup}} தற்போதைய v{{current}} இல் இருந்து வேறுபடுகிறது. தரவு இறக்குமதி செய்யப்படும்."
   },
 
   "debts": {
@@ -372,7 +449,13 @@
     "payment_updated": "Payment updated",
     "payment_deleted": "Payment deleted",
     "ledger_settled": "Ledger settled",
-    "statement_ready": "Statement ready for {name}"
+    "statement_ready": "Statement ready for {name}",
+    "add_lent": "வட்டி பதிவு சேர்க்கவும்",
+    "add_borrowed": "கடன் பதிவு சேர்க்கவும்",
+    "error_import_contact": "தொடர்பு இறக்குமதி தவறானது",
+    "error_name_required": "பெயரை உள்ளிடவும்",
+    "error_invalid_amount": "சரியான தொகையை உள்ளிடவும்",
+    "contact_imported": "{{name}} இறக்குமதி செய்யப்பட்டது"
   },
 
   "goals": {
@@ -637,7 +720,22 @@
     "emi_desc": "கடன் விவரங்கள், கட்டண வரலாறு மற்றும் மீதி அட்டவணை",
     "ledger_desc": "நபர் வாரிய ஏட்டு புத்தகம் இருப்பு மற்றும் கட்டணங்களுடன்",
     "monthly_desc": "வருமானம், செலவுகள், சேமிப்பு மற்றும் பிரிவு விவரங்கள்",
-    "networth_desc": "சொத்துக்கள், கணக்குகள், கடன்கள் மற்றும் மொத்த நிகர மதிப்பு"
+    "networth_desc": "சொத்துக்கள், கணக்குகள், கடன்கள் மற்றும் மொத்த நிகர மதிப்பு",
+    "select_emi_label": "EMI தேர்ந்தெடுக்கவும்",
+    "select_emi_placeholder": "ஒரு EMI தேர்ந்தெடுக்கவும்...",
+    "select_person_label": "நபரை தேர்ந்தெடுக்கவும்",
+    "select_person_placeholder": "ஒரு நபரை தேர்ந்தெடுக்கவும்...",
+    "year_label": "ஆண்டு",
+    "month_label": "மாதம்",
+    "main_desc": "நிதி அறிக்கைகளை PDF வடிவத்தில் உருவாக்கி ஏற்றுமதி செய்யுங்கள்",
+    "networth_snap_desc": "அனைத்து கணக்குகள், கடன்கள் மற்றும் பணம் உட்பட உங்கள் தற்போதைய நிகர மதிப்பின் சுருக்கத்தை உருவாக்குகிறது.",
+    "generating_btn": "உருவாக்குகிறது...",
+    "generate_btn": "அறிக்கையை உருவாக்கு",
+    "saved_toast": "{count} பக்க அறிக்கை சேமிக்கப்பட்டது!",
+    "generated_toast": "அறிக்கை உருவாக்கப்பட்டது",
+    "saved_again_toast": "அறிக்கை சேமிக்கப்பட்டது!",
+    "failed_toast": "அறிக்கை உருவாக்க தோல்வி",
+    "share_unsupported_toast": "பகிர்வு ஆதரிக்கப்படவில்லை"
   },
 
   "people": {
@@ -735,7 +833,14 @@
       "future_date": "எதிர்கால தேதி",
       "large_amount": "அதிக தொகை",
       "duplicate": "நகலாக இருக்கலாம்"
-    }
+    },
+    "total_issues": "மொத்த சிக்கல்கள்",
+    "medium": "நடுத்தரம்",
+    "low": "குறைவு",
+    "all_clear": "அனைத்தும் சரி",
+    "all_clear_desc": "தரவு தர சிக்கல்கள் எதுவும் இல்லை. உங்கள் தரவு நல்ல நிலையில் உள்ளது!",
+    "issues_count": "{count} சிக்கல்",
+    "issues_count_plural": "{count} சிக்கல்கள்"
   },
 
   "diagnostics": {
@@ -781,7 +886,15 @@
     "payment_due_tomorrow": "Payment Due Tomorrow",
     "overdue_payment": "Overdue Payment",
     "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today"
+    "emi_due_today": "EMI Due Today",
+    "csv_exported": "CSV ஏற்றுமதி செய்யப்பட்டது!",
+    "statement_generated": "அறிக்கை உருவாக்கப்பட்டது!",
+    "pdf_saved": "{pageCount} பக்க PDF சேமிக்கப்பட்டது!",
+    "file_saved_unknown": "கோப்பு சேமிக்கப்பட்டது ஆனால் இருப்பிடம் தெரியவில்லை",
+    "share_unsupported": "பகிர்வு ஆதரிக்கப்படவில்லை",
+    "download_failed": "பதிவிறக்கம் தோல்வி",
+    "pdf_generate_failed": "PDF உருவாக்க தோல்வி",
+    "savings_goal_updated": "சேமிப்பு இலக்கு புதுப்பிக்கப்பட்டது"
   },
 
   "time": {
@@ -831,5 +944,174 @@
   },
 
   "months_short": ["ஜன", "பிப்", "மார்", "ஏப்", "மே", "ஜூன்", "ஜூலை", "ஆக", "செப்", "அக்", "நவ", "டிச"],
-  "months_full": ["ஜனவரி", "பிப்ரவரி", "மார்ச்", "ஏப்ரல்", "மே", "ஜூன்", "ஜூலை", "ஆகஸ்ட்", "செப்டம்பர்", "அக்டோபர்", "நவம்பர்", "டிசம்பர்"]
+  "months_full": ["ஜனவரி", "பிப்ரவரி", "மார்ச்", "ஏப்ரல்", "மே", "ஜூன்", "ஜூலை", "ஆகஸ்ட்", "செப்டம்பர்", "அக்டோபர்", "நவம்பர்", "டிசம்பர்"],
+
+  "account_center": {
+    "title": "கணக்குகள்",
+    "search_placeholder": "கணக்குகளை தேடுங்கள்...",
+    "linked_emis": "இணைக்கப்பட்ட EMI கள்",
+    "recent_transfers": "சமீபத்திய இடமாற்றங்கள்",
+    "transactions_count": "பரிவர்த்தனைகள் ({count})",
+    "no_transactions": "இந்த கணக்கில் பரிவர்த்தனைகள் இல்லை",
+    "no_accounts": "கணக்குகள் இல்லை",
+    "no_matching": "பொருந்தும் கணக்குகள் இல்லை",
+    "add_first": "இருப்பை கண்காணிக்க உங்கள் முதல் கணக்கை சேர்க்கவும்",
+    "name_placeholder": "கணக்கு பெயர்",
+    "balance_placeholder": "தற்போதைய இருப்பு",
+    "type_bank": "வங்கி",
+    "type_wallet": "வாலட்",
+    "add": "சேர்"
+  },
+
+  "review_center": {
+    "title": "நிதி மதிப்பாய்வு",
+    "no_data_title": "தரவு இல்லை",
+    "no_data_desc": "நிதி மதிப்பாய்வை உருவாக்க பரிவர்த்தனைகளை சேர்க்கவும்",
+    "tab_monthly": "மாதாந்திர",
+    "tab_quarterly": "காலாண்டு",
+    "tab_yearly": "வருடாந்திர",
+    "savings": "சேமிப்பு",
+    "tx_rate_summary": "{count} பரிவர்த்தனைகள் · {rate}% சேமிப்பு விகிதம்",
+    "top_spending": "அதிக செலவு",
+    "debts_owed": "கடன் பெற்றவை",
+    "debts_borrowed": "கடன் வாங்கியவை",
+    "active_emis": "செயலில் EMI கள்",
+    "goal_savings": "இலக்கு சேமிப்பு",
+    "active_count": "{count} செயலில்",
+    "monthly_total": "{amount}/மாதம்"
+  },
+
+  "trends_page": {
+    "title": "போக்குகள்",
+    "no_data_title": "தரவு இல்லை",
+    "no_data_desc": "போக்குகளை காண பரிவர்த்தனைகளை சேர்க்கவும்",
+    "monthly_income_expense": "மாதாந்திர வருமானம் vs செலவு",
+    "savings_trend": "சேமிப்பு போக்கு",
+    "category_spending": "வகை செலவு",
+    "debt_reduction": "கடன் குறைப்பு முன்னேற்றம்",
+    "emi_progress": "EMI முன்னேற்றம்",
+    "goal_achievement": "இலக்கு அடைவு",
+    "txns_count": "{count} பரிவர்த்தனைகள்",
+    "they_owe": "அவர்கள் கடன்பட்டிருக்கிறார்கள்",
+    "you_owe": "நீங்கள் கடன்பட்டிருக்கிறீர்கள்",
+    "no_data_for_tab": "{tab} க்கு தரவு இல்லை",
+    "tab_monthly": "மாதாந்திர",
+    "tab_savings": "சேமிப்பு",
+    "tab_category": "வகைகள்",
+    "tab_debts": "கடன்கள்",
+    "tab_emis": "EMI கள்",
+    "tab_goals": "இலக்குகள்",
+    "months_remaining": "{count}மா மீதம்"
+  },
+
+  "emi_widget": {
+    "title": "EMI சுருக்கம்",
+    "active": "செயலில்",
+    "today": "இன்று",
+    "overdue": "தாமதமானது",
+    "seven_days": "7 நாட்கள்",
+    "due_today": "இன்று செலுத்த வேண்டும்",
+    "due_tomorrow": "நாளை செலுத்த வேண்டும்",
+    "due_in_days": "{count} நாட்களில் செலுத்த வேண்டும்",
+    "view_all": "அனைத்து EMI கள் காண்க"
+  },
+
+  "pin_lock": {
+    "enter_pin_prompt": "திறக்க PIN ஐ உள்ளிடுக",
+    "try_again_cooldown": "{count} வினாடிகளில் மீண்டும் முயற்சிக்கவும்",
+    "unlock": "திறக்க",
+    "use_fingerprint": "கைரேகையை பயன்படுத்துக",
+    "forgot_pin": "PIN மறந்துவிட்டீர்களா?",
+    "forgot_pin_desc": "ShyBlack அனைத்து தரவையும் ஆஃப்லைனில் சேமிக்கிறது. மீட்டமைக்காமல் மறந்த PIN ஐ மீட்டெடுக்க முடியாது.",
+    "reset_all_data": "அனைத்து ஆப் தரவையும் மீட்டமை",
+    "confirm_reset": "மீட்டமைவை உறுதிப்படுத்துக",
+    "confirm_reset_warning": "இது உங்கள் அனைத்து தரவையும் நிரந்தரமாக நீக்கும்.",
+    "too_many_attempts": "அதிகமான தோல்வி முயற்சிகள். மீட்டமைவு தேவை.",
+    "wait_cooldown": "அதிகமான முயற்சிகள். {count} வினாடிகள் காத்திருக்கவும்.",
+    "wrong_pin_with_count": "தவறான PIN ({count} முயற்சிகள் மீதம்)",
+    "wrong_pin": "தவறான PIN",
+    "unlock_failed": "திறக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
+    "biometric_failed": "கைரேகை திறக்க முடியவில்லை. PIN ஐ பயன்படுத்துக.",
+    "del": "நீக்கு"
+  },
+
+  "financial_score": {
+    "subtitle": "நிதி ஆரோக்கிய மதிப்பெண்",
+    "factors_one": "1 காரணி",
+    "factors": "{count} காரணிகள்"
+  },
+
+  "error_page": {
+    "section_crashed": "இந்த பிரிவு செயலிழந்தது",
+    "go_to_dashboard": "டாஷ்போர்டுக்கு செல்லுக",
+    "app_error_title": "ஏதோ தவறு நடந்தது",
+    "app_error_desc": "ShyBlack எதிர்பாராத பிழையை சந்தித்தது. உங்கள் தரவு பாதுகாப்பாக உள்ளது.",
+    "reload_app": "ஆப்பை மீண்டும் ஏற்று",
+    "reset_local_data": "உள்ளூர் தரவை மீட்டமை",
+    "encrypted_storage": "குறியாக்கப்பட்ட ஆஃப்லைன் சேமிப்பு",
+    "error_code": "பிழை குறியீடு: {code} · தானியங்கி மீட்டெடுப்பு செயலில்"
+  },
+
+  "related_items": {
+    "title": "இணைக்கப்பட்ட உருப்படிகள்",
+    "link": "இணை",
+    "no_links": "இணைக்கப்பட்ட உருப்படிகள் இல்லை. \"இணை\" என்பதை தட்டி பதிவுகளை இணைக்கவும்.",
+    "label_placeholder": "லேபிள் (விரும்பினால்)"
+  },
+
+  "savings_progress": {
+    "remaining": "{amount} மீதம்",
+    "completed": "இலக்கு அடைந்தது! மிகவும் நல்லது!"
+  },
+
+  "debt_card": {
+    "status_pending": "நிலுவையில்",
+    "due": "செலுத்த வேண்டும் {date}",
+    "repaid_suffix": "திருப்பி செலுத்தியது",
+    "record_repayment": "திருப்பிச் செலுத்தல் பதிவு",
+    "make_payment": "பணம் செலுத்துக",
+    "due_prefix": "செலுத்த வேண்டும்"
+  },
+
+  "quick_actions": {
+    "transaction": "பரிவர்த்தனை",
+    "emi": "EMI",
+    "ledger": "கணக்கு",
+    "goal": "இலக்கு",
+    "document": "ஆவணம்",
+    "transfer": "இடமாற்றம்",
+    "budgets": "வரவு செலவு",
+    "reports": "அறிக்கைகள்",
+    "timeline": "காலவரிசை",
+    "calendar": "காலண்டர்",
+    "emis": "EMI கள்"
+  },
+
+  "empty_states": {
+    "transactions_title": "பரிவர்த்தனைகள் இல்லை",
+    "transactions_desc": "உங்கள் முதல் வருமானம் அல்லது செலவை சேர்ப்பதன் மூலம் நிதியை கண்காணிக்கத் தொடங்குங்கள்.",
+    "transactions_hint": "பரிவர்த்தனையை சேர்க்க கீழே + பொத்தானை தட்டுக.",
+    "emi_title": "EMI கள் கண்காணிக்கவில்லை",
+    "emi_desc": "கடன்கள் மற்றும் தவணை கட்டணங்களை கண்காணிக்கவும்.",
+    "emi_hint": "கட்டண அட்டவணைகள், மீதமுள்ள இருப்பு மற்றும் நிலுவை தேதிகளை காண EMI சேர்க்கவும்.",
+    "documents_title": "ஆவணங்கள் இல்லை",
+    "documents_desc": "பில்கள், ஒப்பந்தங்கள், ரசீதுகள் மற்றும் நிதி அறிக்கைகளை பாதுகாப்பாக சேமிக்கவும்.",
+    "documents_hint": "உங்கள் முக்கியமான ஆவணங்கள் அனைத்தையும் ஒரே இடத்தில் வைக்க PDF அல்லது படங்களை பதிவேற்றவும்.",
+    "budgets_title": "வரவு செலவு திட்டங்கள் இல்லை",
+    "budgets_desc": "வெவ்வேறு வகைகளில் செலவுகளை கண்காணிக்க வரவு செலவு திட்டங்களை உருவாக்கவும்.",
+    "budgets_hint": "உணவு, எரிபொருள் மற்றும் ஷாப்பிங் போன்ற வகைகளுக்கு மாதாந்திர வரம்புகளை அமைக்கவும்.",
+    "goals_title": "நிதி இலக்குகள் இல்லை",
+    "goals_desc": "சேமிப்பு இலக்குகளை அமைத்து உங்கள் முன்னேற்றத்தை கண்காணிக்கவும்.",
+    "goals_hint": "இலக்குகள் உங்களை உந்துதலோடு வைக்க உதவுகின்றன.",
+    "debts_title": "கடன் அல்லது கொடுத்த பதிவுகள் இல்லை",
+    "debts_desc": "நண்பர்கள் மற்றும் குடும்பத்தினரிடம் இருந்து கடன் வாங்கியதையும் கொடுத்ததையும் கண்காணிக்கவும்.",
+    "debts_hint": "யார் என்ன கடன்பட்டிருக்கிறார்கள் என்பதை தெளிவாக பதிவு வைக்கவும்.",
+    "default_title": "இங்கே எதுவும் இல்லை",
+    "default_desc": "நீங்கள் ஆப்பை பயன்படுத்தும்போது இந்த பிரிவு நிரம்பும்.",
+    "default_hint": "தொடங்க மற்ற அம்சங்களை ஆராயுங்கள்."
+  },
+
+  "app": {
+    "press_back_exit": "வெளியேற மீண்டும் பின் அழுத்துக"
+  }
 }

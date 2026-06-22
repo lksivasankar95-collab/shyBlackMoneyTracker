@@ -4,21 +4,23 @@ import {
   Share2, ExternalLink, CheckCircle2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import { generateEmiStatement, generateLedgerStatement, generateMonthlyStatement, generateNetWorthStatement } from '../utils/statementGenerator'
 import { downloadBlob, shareBlob, openFileNative } from '../utils/downloadUtils'
 import { useToast } from '../components/Toast'
 
-const STATEMENT_TYPES = [
-  { id: 'emi', label: 'EMI Statement', icon: Landmark, desc: 'Loan details, payment history, and remaining schedule' },
-  { id: 'ledger', label: 'Borrow/Lend Statement', icon: Users, desc: 'Person-wise ledger with running balance and payments' },
-  { id: 'monthly', label: 'Monthly Finance Statement', icon: BarChart3, desc: 'Income, expenses, savings, and category breakdown' },
-  { id: 'networth', label: 'Net Worth Statement', icon: Wallet, desc: 'Assets, accounts, debts, and total net worth' },
-]
-
 export default function StatementCenterPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, debts, emis, accounts, documents } = useFinance()
   const { addToast } = useToast()
+
+  const STATEMENT_TYPES = [
+    { id: 'emi', label: t('statements.types.emi'), icon: Landmark, desc: t('statements.emi_desc') },
+    { id: 'ledger', label: t('statements.types.ledger'), icon: Users, desc: t('statements.ledger_desc') },
+    { id: 'monthly', label: t('statements.types.monthly'), icon: BarChart3, desc: t('statements.monthly_desc') },
+    { id: 'networth', label: t('statements.types.networth'), icon: Wallet, desc: t('statements.networth_desc') },
+  ]
   const [selectedType, setSelectedType] = useState(null)
   const [config, setConfig] = useState({})
   const [generated, setGenerated] = useState(null)
@@ -74,14 +76,14 @@ export default function StatementCenterPage({ onNavigate }) {
         if (saveResult.success) {
           setDownloadResult(saveResult)
           setShowDownloadInfo(true)
-          addToast(`${result.pageCount}-page statement saved!`, 'success')
+          addToast(t('statements.saved_toast', { count: result.pageCount }), 'success')
         } else {
-          addToast('Statement generated', 'info')
+          addToast(t('statements.generated_toast'), 'info')
         }
       }
     } catch (err) {
       console.error('Statement generation failed:', err)
-      addToast('Failed to generate statement', 'error')
+      addToast(t('statements.failed_toast'), 'error')
     } finally {
       setGenerating(false)
     }
@@ -102,18 +104,18 @@ export default function StatementCenterPage({ onNavigate }) {
     if (result.success) {
       setDownloadResult(result)
       setShowDownloadInfo(true)
-      addToast('Statement saved!', 'success')
+      addToast(t('statements.saved_again_toast'), 'success')
     }
-  }, [generated, selectedType, addToast])
+  }, [generated, selectedType, addToast, t])
 
   const handleShare = useCallback(async () => {
     if (!generated) return
     const filename = `Statement_${new Date().toISOString().split('T')[0]}.pdf`
     const result = await shareBlob(generated.blob, filename, 'ShyBlack Finance Statement')
     if (result.shared) {
-      addToast('Statement shared!', 'success')
+      addToast(t('statements.saved_again_toast'), 'success')
     } else if (result.method === 'unsupported') {
-      addToast('Share not supported', 'info')
+      addToast(t('statements.share_unsupported_toast'), 'info')
     }
   }, [generated, addToast])
 
@@ -124,10 +126,10 @@ export default function StatementCenterPage({ onNavigate }) {
           <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] transition-colors">
             <ChevronLeft size={20} className="text-gray-400" />
           </button>
-          <h1 className="text-lg font-bold text-white">Statement Center</h1>
+          <h1 className="text-lg font-bold text-white">{t('statements.title')}</h1>
         </div>
 
-        <p className="text-xs text-gray-500 mb-4">Generate and export financial statements in PDF format</p>
+        <p className="text-xs text-gray-500 mb-4">{t('statements.main_desc')}</p>
 
         <div className="grid grid-cols-1 gap-3">
           {STATEMENT_TYPES.map((type) => {
@@ -173,13 +175,13 @@ export default function StatementCenterPage({ onNavigate }) {
         <div className="space-y-4">
           {selectedType === 'emi' && (
             <div>
-              <label className="text-xs text-gray-500 mb-1.5 block">Select EMI</label>
+              <label className="text-xs text-gray-500 mb-1.5 block">{t('statements.select_emi_label')}</label>
               <select
                 value={config.emiId || ''}
                 onChange={(e) => setConfig((prev) => ({ ...prev, emiId: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white focus:outline-none focus:border-neon/30"
               >
-                <option value="">Select an EMI...</option>
+                <option value="">{t('statements.select_emi_placeholder')}</option>
                 {emis.map((emi) => (
                   <option key={emi.id} value={emi.id}>
                     {emi.name} - {formatCurrency(emi.amount)} ({emi.status === 'closed' ? 'Closed' : 'Active'})
@@ -191,13 +193,13 @@ export default function StatementCenterPage({ onNavigate }) {
 
           {selectedType === 'ledger' && (
             <div>
-              <label className="text-xs text-gray-500 mb-1.5 block">Select Person</label>
+              <label className="text-xs text-gray-500 mb-1.5 block">{t('statements.select_person_label')}</label>
               <select
                 value={config.ledgerId || ''}
                 onChange={(e) => setConfig((prev) => ({ ...prev, ledgerId: e.target.value }))}
                 className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white focus:outline-none focus:border-neon/30"
               >
-                <option value="">Select a person...</option>
+                <option value="">{t('statements.select_person_placeholder')}</option>
                 {debts.map((d) => (
                   <option key={d.id} value={d.id}>
                     {d.personName} - {formatCurrency(d.originalAmount || d.amount || 0)} ({d.type === 'lent' ? 'Lent' : 'Borrowed'})
@@ -210,7 +212,7 @@ export default function StatementCenterPage({ onNavigate }) {
           {selectedType === 'monthly' && (
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="text-xs text-gray-500 mb-1.5 block">Year</label>
+                <label className="text-xs text-gray-500 mb-1.5 block">{t('statements.year_label')}</label>
                 <select
                   value={config.year ?? now.getFullYear()}
                   onChange={(e) => setConfig((prev) => ({ ...prev, year: parseInt(e.target.value) }))}
@@ -222,7 +224,7 @@ export default function StatementCenterPage({ onNavigate }) {
                 </select>
               </div>
               <div className="flex-1">
-                <label className="text-xs text-gray-500 mb-1.5 block">Month</label>
+                <label className="text-xs text-gray-500 mb-1.5 block">{t('statements.month_label')}</label>
                 <select
                   value={config.month ?? now.getMonth()}
                   onChange={(e) => setConfig((prev) => ({ ...prev, month: parseInt(e.target.value) }))}
@@ -239,7 +241,7 @@ export default function StatementCenterPage({ onNavigate }) {
           {selectedType === 'networth' && (
             <div className="glass p-4 rounded-xl">
               <p className="text-xs text-gray-400">
-                Generates a snapshot of your current net worth including all accounts, debts, and cash balance.
+                {t('statements.networth_snap_desc')}
               </p>
             </div>
           )}
@@ -250,7 +252,7 @@ export default function StatementCenterPage({ onNavigate }) {
             className="w-full py-3 rounded-xl bg-neon/10 text-neon text-sm font-semibold border border-neon/20 hover:bg-neon/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
           >
             <FileText size={16} />
-            {generating ? 'Generating...' : 'Generate Statement'}
+            {generating ? t('statements.generating_btn') : t('statements.generate_btn')}
           </button>
         </div>
       )}
@@ -264,20 +266,20 @@ export default function StatementCenterPage({ onNavigate }) {
                 <CheckCircle2 size={16} className="text-neon" />
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">Statement Saved</p>
+                <p className="text-sm font-semibold text-white">{t('statements.saved')}</p>
                 {generated && (
-                  <p className="text-[10px] text-gray-500">{generated.pageCount} page{generated.pageCount !== 1 ? 's' : ''}</p>
+                  <p className="text-[10px] text-gray-500">{generated.pageCount !== 1 ? t('statements.pages') : t('statements.page')}</p>
                 )}
               </div>
             </div>
 
             <div className="space-y-2 mb-3">
               <div className="p-2.5 rounded-lg bg-white/[0.03]">
-                <p className="text-[10px] text-gray-500 mb-0.5">File Name</p>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('statements.file_name')}</p>
                 <p className="text-xs text-white font-medium break-all">{downloadResult.filename}</p>
               </div>
               <div className="p-2.5 rounded-lg bg-white/[0.03]">
-                <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('statements.location')}</p>
                 <p className="text-xs text-gray-300 font-mono">{downloadResult.path}</p>
               </div>
             </div>
@@ -288,14 +290,14 @@ export default function StatementCenterPage({ onNavigate }) {
                 className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-xs font-medium border border-neon/20 hover:bg-neon/20 transition-all flex items-center justify-center gap-1.5"
               >
                 <ExternalLink size={13} />
-                Open
+                {t('statements.open')}
               </button>
               <button
                 onClick={handleShare}
                 className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
               >
                 <Share2 size={13} />
-                Share
+                {t('statements.share')}
               </button>
             </div>
             <button
@@ -303,7 +305,7 @@ export default function StatementCenterPage({ onNavigate }) {
               className="w-full mt-2 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
             >
               <Download size={13} />
-              Save Again
+              {t('statements.save_again')}
             </button>
           </div>
 
@@ -311,7 +313,7 @@ export default function StatementCenterPage({ onNavigate }) {
             onClick={() => { setShowDownloadInfo(false); setGenerated(null); setDownloadResult(null) }}
             className="w-full py-2.5 text-xs text-gray-500 hover:text-white transition-colors"
           >
-            Generate Another Statement
+            {t('statements.generate_another')}
           </button>
         </div>
       )}
