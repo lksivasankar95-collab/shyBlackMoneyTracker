@@ -160,7 +160,7 @@ export default function StatementCenterPage({ onNavigate }) {
     <div className="p-4 max-w-lg mx-auto pb-24">
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <button onClick={() => { setSelectedType(null); setGenerated(null); setPreviewUrl(null); setShowPreview(false) }} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] transition-colors">
+        <button onClick={() => { setSelectedType(null); setGenerated(null) }} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] transition-colors">
           <ChevronLeft size={20} className="text-gray-400" />
         </button>
         <h1 className="text-lg font-bold text-white">

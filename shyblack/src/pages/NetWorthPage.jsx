@@ -8,6 +8,7 @@ import {
   PieChart, Pie, Cell,
 } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
   getAccounts, saveAccounts, createAccount, updateAccount, deleteAccount,
@@ -20,7 +21,6 @@ import { useToast } from '../components/Toast'
 
 const COLORS = ['#39ff14', '#22c55e', '#3b82f6', '#a855f7', '#ef4444']
 const ACCOUNT_ICONS = { cash: Wallet, bank: Landmark, trading: TrendingUp }
-const ACCOUNT_LABELS = { cash: 'Cash', bank: 'Bank Account', trading: 'Trading' }
 
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
@@ -39,6 +39,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function NetWorthPage() {
+  const { t } = useTranslation()
   const { transactions, debts, accounts: contextAccounts, updateAccounts } = useFinance()
   const { addToast } = useToast()
   const [accounts, setAccounts] = useState(() => contextAccounts || getAccounts())
@@ -63,14 +64,14 @@ export default function NetWorthPage() {
   const handleSave = () => {
     const name = form.name.trim()
     const balance = parseFloat(form.balance) || 0
-    if (!name) { addToast('Enter account name', 'error'); return }
+    if (!name) { addToast(t('networth.enter_name'), 'error'); return }
 
     if (editAccount) {
       const updated = updateAccount(editAccount.id, { name, type: form.type, balance })
-      if (updated) addToast('Account updated', 'success')
+      if (updated) addToast(t('networth.account_updated'), 'success')
     } else {
       createAccount({ name, type: form.type, balance })
-      addToast('Account added', 'success')
+      addToast(t('networth.account_added'), 'success')
     }
     setAccounts(getAccounts())
     setShowAddModal(false)
@@ -81,13 +82,13 @@ export default function NetWorthPage() {
   const handleDelete = (id) => {
     deleteAccount(id)
     setAccounts(getAccounts())
-    addToast('Account removed', 'info')
+    addToast(t('networth.account_removed'), 'info')
   }
 
   const chartData = history.map((h) => ({
     ...h,
-    assetsLabel: 'Assets',
-    liabilitiesLabel: 'Liabilities',
+    assetsLabel: t('networth.total_assets'),
+    liabilitiesLabel: t('networth.total_debts'),
   }))
 
   const breakdownData = netWorth.breakdown
@@ -101,20 +102,20 @@ export default function NetWorthPage() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <BarChart3 size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Net Worth</h1>
+          <h1 className="text-xl font-bold">{t('networth.title')}</h1>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all"
         >
           <Plus size={14} />
-          Add Account
+          {t('networth.add_account')}
         </button>
       </div>
 
       {/* Net Worth Hero */}
       <GlassCard brand className="mb-4 text-center">
-        <p className="text-xs text-gray-500 font-medium mb-1">Current Net Worth</p>
+        <p className="text-xs text-gray-500 font-medium mb-1">{t('networth.current_net_worth')}</p>
         <p className={`text-3xl font-extrabold tracking-tight ${netWorth.netWorth >= 0 ? 'text-gradient-brand glow-neon-sm' : 'text-red-400'}`}>
           {formatCurrency(netWorth.netWorth)}
         </p>
@@ -126,7 +127,7 @@ export default function NetWorthPage() {
               <ArrowDownRight size={14} className="text-red-400" />
             )}
             <span className={`text-xs font-semibold ${growth >= 0 ? 'text-neon' : 'text-red-400'}`}>
-              {growth >= 0 ? '+' : ''}{growth.toFixed(1)}% vs last month
+              {t('networth.vs_last_month', { sign: growth >= 0 ? '+' : '', value: growth.toFixed(1) })}
             </span>
           </div>
         )}
@@ -135,11 +136,11 @@ export default function NetWorthPage() {
       {/* Asset / Liability Summary */}
       <div className="flex gap-3 mb-4">
         <GlassCard className="flex-1">
-          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">Assets</p>
+          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">{t('networth.total_assets')}</p>
           <p className="text-lg font-extrabold text-neon tabular-nums">{formatCurrency(netWorth.totalAssets)}</p>
         </GlassCard>
         <GlassCard className="flex-1">
-          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">Liabilities</p>
+          <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider mb-1">{t('networth.total_debts')}</p>
           <p className="text-lg font-extrabold text-red-400 tabular-nums">{formatCurrency(netWorth.totalLiabilities)}</p>
         </GlassCard>
       </div>
@@ -149,7 +150,7 @@ export default function NetWorthPage() {
         <GlassCard brand className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={14} className="text-neon" />
-            <h2 className="text-sm font-semibold">Net Worth Trend</h2>
+            <h2 className="text-sm font-semibold">{t('networth.history')}</h2>
           </div>
           <div className="h-44 -mx-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -163,7 +164,7 @@ export default function NetWorthPage() {
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Area type="monotone" dataKey="netWorth" stroke="#39ff14" strokeWidth={2} fill="url(#nwGrad)" name="Net Worth" />
+                <Area type="monotone" dataKey="netWorth" stroke="#39ff14" strokeWidth={2} fill="url(#nwGrad)" name={t('networth.net_worth')} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -175,7 +176,7 @@ export default function NetWorthPage() {
         <GlassCard brand className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <PieChartIcon size={14} className="text-neon" />
-            <h2 className="text-sm font-semibold">Asset Breakdown</h2>
+            <h2 className="text-sm font-semibold">{t('networth.asset_breakdown')}</h2>
           </div>
           <div className="flex flex-col sm:flex-row items-center gap-4">
             <div className="h-36 w-36 shrink-0">
@@ -209,15 +210,15 @@ export default function NetWorthPage() {
 
       {/* Accounts */}
       <div className="mb-4">
-        <h2 className="text-sm font-semibold text-gray-300 mb-3">Your Accounts</h2>
+        <h2 className="text-sm font-semibold text-gray-300 mb-3">{t('networth.accounts')}</h2>
         {accounts.length === 0 ? (
           <GlassCard>
             <EmptyState
               icon={Wallet}
-              title="No accounts yet"
-              description="Add your bank accounts, cash, and trading accounts to track your full net worth"
+              title={t('networth.no_accounts')}
+              description={t('networth.no_accounts_desc')}
               action={
-                <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">Add Account</button>
+                <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">{t('networth.add_account')}</button>
               }
             />
           </GlassCard>
@@ -235,7 +236,7 @@ export default function NetWorthPage() {
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium truncate">{acc.name}</p>
                         <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-matte-200 text-gray-500 font-medium">
-                          {ACCOUNT_LABELS[acc.type] || acc.type}
+                          {t(`networth.types.${acc.type}`, { defaultValue: acc.type })}
                         </span>
                       </div>
                       <p className="text-lg font-extrabold tabular-nums mt-0.5">{formatCurrency(acc.balance)}</p>
@@ -266,25 +267,25 @@ export default function NetWorthPage() {
       <Modal
         open={showAddModal}
         onClose={() => { setShowAddModal(false); setEditAccount(null); resetForm() }}
-        title={editAccount ? 'Edit Account' : 'Add Account'}
+        title={editAccount ? t('networth.edit_account') : t('networth.add_account')}
       >
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Account Name</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('networth.account_name')}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Savings Account, Trading Wallet"
+              placeholder={t('networth.account_name_placeholder')}
               className="input-field"
               maxLength={50}
               autoFocus
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Account Type</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('networth.account_type')}</label>
             <div className="flex gap-2">
-              {Object.entries(ACCOUNT_LABELS).map(([type, label]) => (
+              {['cash', 'bank', 'trading'].map((type) => (
                 <button
                   key={type}
                   onClick={() => setForm((f) => ({ ...f, type }))}
@@ -294,13 +295,13 @@ export default function NetWorthPage() {
                       : 'bg-matte-100 text-gray-400 hover:text-white'
                   }`}
                 >
-                  {label}
+                  {t(`networth.types.${type}`)}
                 </button>
               ))}
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Current Balance</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('networth.balance')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -312,13 +313,13 @@ export default function NetWorthPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={handleSave} disabled={!form.name.trim()} className="flex-1 btn-primary text-sm">
-              {editAccount ? 'Update' : 'Add Account'}
+              {editAccount ? t('common.save') : t('networth.add_account')}
             </button>
             <button
               onClick={() => { setShowAddModal(false); setEditAccount(null); resetForm() }}
               className="flex-1 btn-secondary text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>

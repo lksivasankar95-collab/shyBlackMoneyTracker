@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Sparkles, TrendingUp, TrendingDown, Flame, Repeat2, Target, AlertTriangle, PieChart, DollarSign, CheckCircle2, Minus, History } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { generateMonthlyReview, wasReviewGenerated, markReviewGenerated } from '../utils/review'
@@ -24,6 +25,7 @@ const TYPE_ICON_COLORS = {
 }
 
 export default function MonthlyReview() {
+  const { t } = useTranslation()
   const { transactions, recurring, insights } = useFinance()
   const [review, setReview] = useState(null)
 
@@ -48,10 +50,10 @@ export default function MonthlyReview() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Sparkles size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Monthly Review</h1>
+          <h1 className="text-xl font-bold">{t('settings.monthly_review')}</h1>
         </div>
         <GlassCard>
-          <EmptyState icon={Sparkles} title="No data yet" description="Add transactions this month to see your review" />
+          <EmptyState icon={Sparkles} title={t('common.no_data')} description={t('monthlyReview.noDataDesc')} />
         </GlassCard>
       </div>
     )
@@ -63,21 +65,21 @@ export default function MonthlyReview() {
         <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
           <Sparkles size={18} className="text-neon" />
         </div>
-        <h1 className="text-xl font-bold">Monthly Review</h1>
+        <h1 className="text-xl font-bold">{t('settings.monthly_review')}</h1>
       </div>
       <p className="text-xs text-gray-500 mb-5">{review.month}</p>
 
       <div className="grid grid-cols-3 gap-2.5 mb-5">
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-0.5">Income</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-0.5">{t('common.income')}</p>
           <p className="text-sm font-extrabold text-neon tabular-nums">{formatCurrency(review.income)}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-0.5">Expenses</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-0.5">{t('common.expense')}</p>
           <p className="text-sm font-extrabold text-red-400 tabular-nums">{formatCurrency(review.expense)}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-0.5">Balance</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-0.5">{t('common.balance')}</p>
           <p className={`text-sm font-extrabold tabular-nums ${review.balance >= 0 ? 'text-neon' : 'text-red-400'}`}>
             {review.balance >= 0 ? '+' : ''}{formatCurrency(review.balance)}
           </p>
@@ -86,8 +88,8 @@ export default function MonthlyReview() {
 
       <div className="flex items-center gap-2 mb-3">
         <History size={14} className="text-gray-500" />
-        <p className="text-xs font-semibold text-gray-500">Highlights</p>
-        <span className="text-[10px] text-gray-600">{review.transactionCount} transactions</span>
+        <p className="text-xs font-semibold text-gray-500">{t('monthlyReview.highlights')}</p>
+        <span className="text-[10px] text-gray-600">{t('monthlyReview.transactionCount', { count: review.transactionCount })}</span>
       </div>
 
       <div className="space-y-2">
@@ -117,9 +119,9 @@ export default function MonthlyReview() {
               <TrendingUp size={18} />
             </div>
             <div>
-              <p className="text-sm font-semibold">Financial Score: {review.score}</p>
+              <p className="text-sm font-semibold">{t('monthlyReview.financialScore', { score: review.score })}</p>
               <p className="text-[11px] text-gray-500">
-                {review.score >= 800 ? 'Excellent' : review.score >= 650 ? 'Good' : review.score >= 500 ? 'Fair' : 'Needs Work'}
+                {review.score >= 800 ? t('health.excellent') : review.score >= 650 ? t('health.good') : review.score >= 500 ? t('health.fair') : t('health.poor')}
               </p>
             </div>
           </div>

@@ -4,6 +4,7 @@ import {
   Landmark, Star, PiggyBank, Heart, Flame, ArrowLeftRight, CreditCard,
   Repeat2, Download, Calendar, Trophy,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { getStoredNetWorthHistory } from '../utils/networth'
@@ -23,12 +24,6 @@ const ICON_MAP = {
   'repeat-2': Repeat2, download: Download, calendar: Calendar,
 }
 
-const CATEGORY_LABELS = {
-  milestone: 'Milestones',
-  achievement: 'Achievements',
-  streak: 'Streaks',
-}
-
 const CATEGORY_COLORS = {
   milestone: { text: 'text-blue-400', bg: 'bg-blue-500/10', border: 'border-blue-500/20' },
   achievement: { text: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
@@ -36,9 +31,16 @@ const CATEGORY_COLORS = {
 }
 
 export default function AchievementsPage() {
+  const { t } = useTranslation()
   const { transactions, budgets, debts, goals, emis, recurring } = useFinance()
   const [activeCategory, setActiveCategory] = useState('all')
   const [justUnlocked, setJustUnlocked] = useState([])
+
+  const CATEGORY_LABELS = {
+    milestone: t('achievements.categoryMilestones'),
+    achievement: t('achievements.categoryAchievements'),
+    streak: t('achievements.categoryStreaks'),
+  }
 
   const accounts = useMemo(() => {
     try {
@@ -105,7 +107,7 @@ export default function AchievementsPage() {
         <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
           <Award size={18} className="text-amber-400" />
         </div>
-        <h1 className="text-xl font-bold">Achievements</h1>
+        <h1 className="text-xl font-bold">{t('achievements.title')}</h1>
       </div>
 
       {/* Just unlocked banner */}
@@ -113,7 +115,7 @@ export default function AchievementsPage() {
         <GlassCard className="mb-4 border-amber-500/20 animate-fade-in">
           <div className="text-center">
             <Trophy size={24} className="text-amber-400 mx-auto mb-1" />
-            <p className="text-xs font-bold text-amber-400">New Achievement{justUnlocked.length > 1 ? 's' : ''} Unlocked!</p>
+            <p className="text-xs font-bold text-amber-400">{t('achievements.newAchievementUnlocked', { count: justUnlocked.length })}</p>
             {justUnlocked.map((a) => (
               <p key={a.id} className="text-[10px] text-gray-400 mt-0.5">{a.name}: {a.description}</p>
             ))}
@@ -125,7 +127,7 @@ export default function AchievementsPage() {
       <GlassCard brand className="mb-4">
         <div className="text-center">
           <p className="text-3xl font-extrabold text-gradient-brand">{stats.progress}%</p>
-          <p className="text-[10px] text-gray-500 mt-0.5">{stats.unlocked} / {stats.total} achievements</p>
+          <p className="text-[10px] text-gray-500 mt-0.5">{stats.unlocked} / {stats.total} {t('achievements.label')}</p>
           <div className="w-full h-1.5 bg-matte-200 rounded-full overflow-hidden mt-2">
             <div
               className="h-full rounded-full bg-gradient-to-r from-amber-400 to-neon transition-all"
@@ -152,7 +154,7 @@ export default function AchievementsPage() {
                 : 'text-gray-500 hover:text-white hover:bg-white/[0.04]'
             }`}
           >
-            {cat === 'all' ? 'All' : CATEGORY_LABELS[cat] || cat}
+            {cat === 'all' ? t('achievements.all') : CATEGORY_LABELS[cat] || cat}
           </button>
         ))}
       </div>
@@ -160,7 +162,7 @@ export default function AchievementsPage() {
       {/* Achievement Grid */}
       {filtered.length === 0 ? (
         <GlassCard>
-          <EmptyState icon={Award} title="No achievements" description="Start using the app to unlock achievements" />
+          <EmptyState icon={Award} title={t('achievements.emptyTitle')} description={t('achievements.emptyDescription')} />
         </GlassCard>
       ) : (
         <div className="grid grid-cols-2 gap-2">

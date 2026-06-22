@@ -4,6 +4,7 @@ import {
   ArrowUpRight, ArrowDownLeft, CheckCircle2, Clock, Filter,
   History, Sparkles, AlertTriangle, FileText, Award, Landmark,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { buildTimeline, filterTimeline, generateMonthlyInsights } from '../utils/timeline'
@@ -15,14 +16,14 @@ const ICON_MAP = {
   ArrowUpRight, ArrowDownLeft, CheckCircle2, FileText, Award, Landmark,
 }
 
-const FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'debts', label: 'Debts' },
-  { id: 'expenses', label: 'Expenses' },
-  { id: 'income', label: 'Income' },
-  { id: 'emi', label: 'EMI' },
-  { id: 'documents', label: 'Docs' },
-  { id: 'goals', label: 'Goals' },
+const FILTERS = (t) => [
+  { id: 'all', label: t('timeline.all') },
+  { id: 'debts', label: t('timeline.debts') },
+  { id: 'expenses', label: t('timeline.expenses') },
+  { id: 'income', label: t('timeline.income') },
+  { id: 'emi', label: t('timeline.emi') },
+  { id: 'documents', label: t('timeline.documents') },
+  { id: 'goals', label: t('timeline.goals') },
 ]
 
 const INSIGHT_ICONS = {
@@ -38,6 +39,7 @@ const INSIGHT_COLORS = {
 }
 
 export default function TimelinePage() {
+  const { t } = useTranslation()
   const { transactions, debts, emis, documents, goals } = useFinance()
   const [activeFilter, setActiveFilter] = useState('all')
 
@@ -61,15 +63,17 @@ export default function TimelinePage() {
   const hasAnyData = timeline.entries.length > 0
   const hasFilteredData = Object.keys(filteredGroups).length > 0
 
+  const filters = FILTERS(t)
+
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center gap-2.5 mb-5">
         <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
           <History size={18} className="text-neon" />
         </div>
-        <h1 className="text-xl font-bold">Smart Timeline</h1>
+        <h1 className="text-xl font-bold">{t('timeline.title')}</h1>
         {hasAnyData && (
-          <span className="text-[10px] text-gray-500 font-medium ml-auto">{timeline.entries.length} events</span>
+          <span className="text-[10px] text-gray-500 font-medium ml-auto">{t('timeline.eventsCount', { count: timeline.entries.length })}</span>
         )}
       </div>
 
@@ -91,7 +95,7 @@ export default function TimelinePage() {
       )}
 
       <div className="flex gap-1.5 mb-5 overflow-x-auto scrollbar-none">
-        {FILTERS.map((f) => (
+        {filters.map((f) => (
           <button
             key={f.id}
             onClick={() => setActiveFilter(f.id)}
@@ -111,16 +115,16 @@ export default function TimelinePage() {
         <GlassCard>
           <EmptyState
             icon={History}
-            title="No activity yet"
-            description="Your financial timeline will appear here as you add transactions and track debts"
+            title={t('timeline.noActivity')}
+            description={t('timeline.noActivityDesc')}
           />
         </GlassCard>
       ) : !hasFilteredData ? (
         <GlassCard>
           <EmptyState
             icon={Filter}
-            title="No matching events"
-            description="Try a different filter to see more activity"
+            title={t('timeline.noMatching')}
+            description={t('timeline.noMatchingDesc')}
           />
         </GlassCard>
       ) : (
@@ -155,10 +159,10 @@ export default function TimelinePage() {
                           <div className="flex items-center gap-2">
                             <p className="text-sm font-medium truncate leading-tight">{entry.title}</p>
                             {entry.isLarge && (
-                              <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-neon/10 text-neon leading-none">Notable</span>
+                              <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-neon/10 text-neon leading-none">{t('timeline.notable')}</span>
                             )}
                             {entry.isOverdue && (
-                              <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-500/10 text-red-400 leading-none">Overdue</span>
+                              <span className="shrink-0 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-red-500/10 text-red-400 leading-none">{t('dashboard.overdue')}</span>
                             )}
                           </div>
                           <p className={`text-xs mt-0.5 leading-tight ${

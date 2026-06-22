@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from '../i18n'
 import {
   Shield, Database, TrendingUp, Handshake,
   ChevronRight, Check, ArrowLeft, FileText, Scale,
@@ -18,23 +19,25 @@ const CURRENCIES = [
 
 const EXPENSE_CATEGORIES = ALL_CATEGORIES.filter((c) => c.type === 'expense').slice(0, 6)
 
-const STEPS = [
-  { id: 'welcome', icon: Shield, label: 'Welcome' },
-  { id: 'account', icon: Wallet, label: 'Account' },
-  { id: 'income', icon: Plus, label: 'Income' },
-  { id: 'expense', icon: Minus, label: 'Expense' },
-  { id: 'tour', icon: LayoutDashboard, label: 'Tour' },
-  { id: 'done', icon: Sparkles, label: 'Ready' },
-]
-
-const FEATURES = [
-  { icon: Database, title: '100% Offline', desc: 'All data stays on your device. No accounts, no cloud, no tracking.' },
-  { icon: TrendingUp, title: 'Smart Tracking', desc: 'Track income, expenses, EMIs, budgets, and goals in one place.' },
-  { icon: Handshake, title: 'Borrow & Lend', desc: 'Keep tabs on money you\'ve lent or borrowed from friends.' },
-  { icon: Shield, title: 'Privacy First', desc: 'PIN lock protection. Your data, your rules.' },
-]
-
 export default function Onboarding({ onComplete }) {
+  const { t } = useTranslation()
+
+  const STEPS = [
+    { id: 'welcome', icon: Shield, label: t('onboarding.steps.welcome') },
+    { id: 'account', icon: Wallet, label: t('onboarding.steps.account') },
+    { id: 'income', icon: Plus, label: t('onboarding.steps.income') },
+    { id: 'expense', icon: Minus, label: t('onboarding.steps.expense') },
+    { id: 'tour', icon: LayoutDashboard, label: t('onboarding.steps.tour') },
+    { id: 'done', icon: Sparkles, label: t('onboarding.steps.done') },
+  ]
+
+  const FEATURES = [
+    { icon: Database, title: t('onboarding.features.offline_title'), desc: t('onboarding.features.offline_desc') },
+    { icon: TrendingUp, title: t('onboarding.features.tracking_title'), desc: t('onboarding.features.tracking_desc') },
+    { icon: Handshake, title: t('onboarding.features.borrow_title'), desc: t('onboarding.features.borrow_desc') },
+    { icon: Shield, title: t('onboarding.features.privacy_title'), desc: t('onboarding.features.privacy_desc') },
+  ]
+
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState('INR')
@@ -106,7 +109,7 @@ export default function Onboarding({ onComplete }) {
               className="flex items-center gap-1 text-xs text-gray-500 hover:text-white transition-colors min-h-[32px]"
             >
               <ArrowLeft size={14} />
-              Back
+              {t('common.back')}
             </button>
           ) : (
             <div />
@@ -139,9 +142,9 @@ export default function Onboarding({ onComplete }) {
               <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-neon/20 to-neon/5 flex items-center justify-center mx-auto mb-4 shadow-[0_0_30px_rgba(57,255,20,0.1)]">
                 <Shield size={36} className="text-neon" />
               </div>
-              <h1 className="text-2xl font-bold mb-2 text-gradient-brand">ShyBlack Finance</h1>
+              <h1 className="text-2xl font-bold mb-2 text-gradient-brand">{t('onboarding.welcome.title')}</h1>
               <p className="text-xs text-gray-500 max-w-[300px] mx-auto leading-relaxed">
-                Your private, offline finance companion. Smart tracking meets dark mode elegance.
+                {t('onboarding.welcome.description')}
               </p>
             </div>
 
@@ -160,7 +163,7 @@ export default function Onboarding({ onComplete }) {
             </div>
 
             <button onClick={handleNext} className="btn-primary w-full text-sm flex items-center justify-center gap-2">
-              Get Started
+              {t('onboarding.welcome.get_started')}
               <ChevronRight size={15} />
             </button>
           </div>
@@ -173,18 +176,18 @@ export default function Onboarding({ onComplete }) {
               <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-3">
                 <Wallet size={24} className="text-neon" />
               </div>
-              <h1 className="text-lg font-bold mb-1">Set Up Your Profile</h1>
-              <p className="text-xs text-gray-500">You can change these anytime in Settings</p>
+              <h1 className="text-lg font-bold mb-1">{t('onboarding.profile.title')}</h1>
+              <p className="text-xs text-gray-500">{t('onboarding.profile.subtitle')}</p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">Your Name</label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('onboarding.profile.your_name')}</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your name"
+                  placeholder={t('onboarding.profile.name_placeholder')}
                   className="input-field"
                   autoFocus
                   maxLength={50}
@@ -192,7 +195,7 @@ export default function Onboarding({ onComplete }) {
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1.5 block">Preferred Currency</label>
+                <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('onboarding.profile.preferred_currency')}</label>
                 <select
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
@@ -206,7 +209,7 @@ export default function Onboarding({ onComplete }) {
 
               <div>
                 <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-                  Monthly Income <span className="text-gray-600 font-normal">(optional)</span>
+                  {t('onboarding.profile.monthly_income')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
                 </label>
                 <div className="flex gap-2 flex-wrap">
                   {quickAmounts.map((a) => (
@@ -231,7 +234,7 @@ export default function Onboarding({ onComplete }) {
                     const v = e.target.value
                     if (v === '' || /^\d+$/.test(v)) setMonthlyIncome(v)
                   }}
-                  placeholder="Or enter custom amount"
+                  placeholder={t('onboarding.profile.custom_amount')}
                   className="input-field mt-2"
                 />
               </div>
@@ -243,10 +246,10 @@ export default function Onboarding({ onComplete }) {
                 disabled={!canContinue()}
                 className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-40"
               >
-                Continue
+                {t('onboarding.profile.continue')}
                 <ChevronRight size={15} />
               </button>
-              <p className="text-[10px] text-gray-600 text-center">Name is needed to personalize your experience</p>
+              <p className="text-[10px] text-gray-600 text-center">{t('onboarding.profile.name_hint')}</p>
             </div>
           </div>
         )}
@@ -258,12 +261,12 @@ export default function Onboarding({ onComplete }) {
               <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-3">
                 <Plus size={24} className="text-neon" />
               </div>
-              <h1 className="text-lg font-bold mb-1">Add Your First Income</h1>
-              <p className="text-xs text-gray-500">Add a sample income to see how tracking works</p>
+              <h1 className="text-lg font-bold mb-1">{t('onboarding.income.title')}</h1>
+              <p className="text-xs text-gray-500">{t('onboarding.income.subtitle')}</p>
             </div>
 
             <div className="glass p-4 space-y-3">
-              <p className="text-xs font-medium text-gray-400">How much was your income?</p>
+              <p className="text-xs font-medium text-gray-400">{t('onboarding.income.how_much')}</p>
               <div className="flex gap-2 flex-wrap">
                 {quickAmounts.map((a) => (
                   <button
@@ -287,7 +290,7 @@ export default function Onboarding({ onComplete }) {
                   const v = e.target.value
                   if (v === '' || /^\d+$/.test(v)) setSampleIncome(v)
                 }}
-                placeholder="Enter amount"
+                placeholder={t('onboarding.income.enter_amount')}
                 className="input-field"
               />
             </div>
@@ -297,7 +300,7 @@ export default function Onboarding({ onComplete }) {
                 onClick={handleNext}
                 className="btn-primary flex-1 text-sm flex items-center justify-center gap-2"
               >
-                {sampleIncome ? `Add ${currency === 'INR' ? '₹' : '$'}${parseFloat(sampleIncome).toLocaleString()}` : 'Skip for now'}
+                {sampleIncome ? t('onboarding.income.add', { amount: `${currency === 'INR' ? '₹' : '$'}${parseFloat(sampleIncome).toLocaleString()}` }) : t('onboarding.income.skip')}
                 <ChevronRight size={15} />
               </button>
             </div>
@@ -311,13 +314,13 @@ export default function Onboarding({ onComplete }) {
               <div className="w-14 h-14 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto mb-3">
                 <Minus size={24} className="text-red-400" />
               </div>
-              <h1 className="text-lg font-bold mb-1">Add Your First Expense</h1>
-              <p className="text-xs text-gray-500">Track a sample expense to see the full picture</p>
+              <h1 className="text-lg font-bold mb-1">{t('onboarding.expense.title')}</h1>
+              <p className="text-xs text-gray-500">{t('onboarding.expense.subtitle')}</p>
             </div>
 
             <div className="glass p-4 space-y-3">
               <div>
-                <p className="text-xs font-medium text-gray-400 mb-2">What did you spend on?</p>
+                <p className="text-xs font-medium text-gray-400 mb-2">{t('onboarding.expense.spend_on')}</p>
                 <div className="grid grid-cols-3 gap-2">
                   {EXPENSE_CATEGORIES.map((cat) => (
                     <button
@@ -335,7 +338,7 @@ export default function Onboarding({ onComplete }) {
                 </div>
               </div>
               <div>
-                <p className="text-xs font-medium text-gray-400 mb-2">How much?</p>
+                <p className="text-xs font-medium text-gray-400 mb-2">{t('onboarding.expense.how_much')}</p>
                 <div className="flex gap-2 flex-wrap">
                   {quickExpenseAmounts.map((a) => (
                     <button
@@ -359,7 +362,7 @@ export default function Onboarding({ onComplete }) {
                     const v = e.target.value
                     if (v === '' || /^\d+$/.test(v)) setSampleExpense(v)
                   }}
-                  placeholder="Enter amount"
+                  placeholder={t('onboarding.expense.enter_amount')}
                   className="input-field mt-2"
                 />
               </div>
@@ -370,7 +373,7 @@ export default function Onboarding({ onComplete }) {
                 onClick={handleNext}
                 className="btn-primary flex-1 text-sm flex items-center justify-center gap-2"
               >
-                {sampleExpense ? `Add ${currency === 'INR' ? '₹' : '$'}${parseFloat(sampleExpense).toLocaleString()}` : 'Skip for now'}
+                {sampleExpense ? t('onboarding.expense.add', { amount: `${currency === 'INR' ? '₹' : '$'}${parseFloat(sampleExpense).toLocaleString()}` }) : t('onboarding.expense.skip')}
                 <ChevronRight size={15} />
               </button>
             </div>
@@ -384,8 +387,8 @@ export default function Onboarding({ onComplete }) {
               <div className="w-14 h-14 rounded-2xl bg-neon/10 flex items-center justify-center mx-auto mb-3">
                 <LayoutDashboard size={24} className="text-neon" />
               </div>
-              <h1 className="text-lg font-bold mb-1">Your Dashboard</h1>
-              <p className="text-xs text-gray-500">Everything you need at a glance</p>
+              <h1 className="text-lg font-bold mb-1">{t('onboarding.tour.title')}</h1>
+              <p className="text-xs text-gray-500">{t('onboarding.tour.subtitle')}</p>
             </div>
 
             <div className="space-y-3">
@@ -394,8 +397,8 @@ export default function Onboarding({ onComplete }) {
                   <Wallet size={16} className="text-neon" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium">Net Worth & Balance</p>
-                  <p className="text-[10px] text-gray-500">See your total wealth and account balances instantly.</p>
+                  <p className="text-xs font-medium">{t('onboarding.tour.net_worth')}</p>
+                  <p className="text-[10px] text-gray-500">{t('onboarding.tour.net_worth_desc')}</p>
                 </div>
               </div>
               <div className="glass p-3 flex items-center gap-3">
@@ -403,8 +406,8 @@ export default function Onboarding({ onComplete }) {
                   <TrendingUp size={16} className="text-neon" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium">Monthly Summary</p>
-                  <p className="text-[10px] text-gray-500">Track income vs expenses for the current month.</p>
+                  <p className="text-xs font-medium">{t('onboarding.tour.monthly_summary')}</p>
+                  <p className="text-[10px] text-gray-500">{t('onboarding.tour.monthly_summary_desc')}</p>
                 </div>
               </div>
               <div className="glass p-3 flex items-center gap-3">
@@ -412,14 +415,14 @@ export default function Onboarding({ onComplete }) {
                   <Handshake size={16} className="text-neon" />
                 </div>
                 <div>
-                  <p className="text-xs font-medium">Quick Actions</p>
-                  <p className="text-[10px] text-gray-500">One-tap access to budgets, reports, calendar, and more.</p>
+                  <p className="text-xs font-medium">{t('onboarding.tour.quick_actions')}</p>
+                  <p className="text-[10px] text-gray-500">{t('onboarding.tour.quick_actions_desc')}</p>
                 </div>
               </div>
             </div>
 
             <button onClick={handleNext} className="btn-primary w-full text-sm flex items-center justify-center gap-2 mt-6">
-              Looks Good!
+              {t('onboarding.tour.looks_good')}
               <ChevronRight size={15} />
             </button>
           </div>
@@ -432,27 +435,27 @@ export default function Onboarding({ onComplete }) {
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-neon/20 to-green-500/10 flex items-center justify-center mx-auto mb-3">
                 <Sparkles size={24} className="text-neon" />
               </div>
-              <h1 className="text-lg font-bold mb-1">You're All Set!</h1>
-              <p className="text-xs text-gray-500">One last step before you begin</p>
+              <h1 className="text-lg font-bold mb-1">{t('onboarding.complete.title')}</h1>
+              <p className="text-xs text-gray-500">{t('onboarding.complete.subtitle')}</p>
             </div>
 
             <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto pr-1">
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <FileText size={14} className="text-neon" />
-                  <h3 className="text-xs font-semibold">Privacy Policy</h3>
+                  <h3 className="text-xs font-semibold">{t('onboarding.complete.privacy_policy')}</h3>
                 </div>
                 <div className="text-[11px] text-gray-400 leading-relaxed space-y-1.5 bg-white/[0.02] rounded-xl p-3">
-                  <p>All financial data is stored exclusively on your device. No data is transmitted to any server. No account creation is required.</p>
+                  <p>{t('onboarding.complete.privacy_text')}</p>
                 </div>
               </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <Scale size={14} className="text-neon" />
-                  <h3 className="text-xs font-semibold">Terms & Conditions</h3>
+                  <h3 className="text-xs font-semibold">{t('onboarding.complete.terms')}</h3>
                 </div>
                 <div className="text-[11px] text-gray-400 leading-relaxed space-y-1.5 bg-white/[0.02] rounded-xl p-3">
-                  <p>This app is a financial tracking tool and does not provide financial advice. You are responsible for your data backups.</p>
+                  <p>{t('onboarding.complete.terms_text')}</p>
                 </div>
               </div>
             </div>
@@ -474,7 +477,7 @@ export default function Onboarding({ onComplete }) {
                   {agreePrivacy && <Check size={12} strokeWidth={3} />}
                 </div>
                 <span className="text-xs text-gray-400 leading-relaxed">
-                  I agree to the <span className="text-neon">Privacy Policy</span>
+                  {t('onboarding.complete.agree_prefix')} <span className="text-neon">{t('onboarding.complete.privacy_policy')}</span>
                 </span>
               </label>
 
@@ -494,7 +497,7 @@ export default function Onboarding({ onComplete }) {
                   {agreeTerms && <Check size={12} strokeWidth={3} />}
                 </div>
                 <span className="text-xs text-gray-400 leading-relaxed">
-                  I agree to the <span className="text-neon">Terms & Conditions</span>
+                  {t('onboarding.complete.agree_prefix')} <span className="text-neon">{t('onboarding.complete.terms')}</span>
                 </span>
               </label>
             </div>
@@ -507,12 +510,12 @@ export default function Onboarding({ onComplete }) {
               {isCompleting ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 rounded-full border-2 border-black/30 border-t-transparent animate-spin" />
-                  Setting up...
+                  {t('onboarding.complete.setting_up')}
                 </span>
               ) : (
                 <>
                   <Sparkles size={16} />
-                  Start Using ShyBlack
+                  {t('onboarding.complete.start')}
                 </>
               )}
             </button>

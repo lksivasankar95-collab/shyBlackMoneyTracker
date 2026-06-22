@@ -1,5 +1,6 @@
 import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
@@ -22,6 +23,7 @@ const tipColors = {
 }
 
 export default function InsightsPage() {
+  const { t } = useTranslation()
   const { transactions, insights, cashflowForecast } = useFinance()
 
   const { trends, scoreVelocity, streak, monthPrediction, scoreHistory } = insights
@@ -31,12 +33,12 @@ export default function InsightsPage() {
   if (transactions.length === 0) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
-        <h1 className="text-xl font-bold mb-6">Financial Insights</h1>
+        <h1 className="text-xl font-bold mb-6">{t('insights.title')}</h1>
         <GlassCard>
           <EmptyState
             icon={Lightbulb}
-            title="No insights yet"
-            description="Add transactions to unlock smart financial insights"
+            title={t('insights.emptyTitle')}
+            description={t('insights.emptyDescription')}
           />
         </GlassCard>
       </div>
@@ -45,7 +47,7 @@ export default function InsightsPage() {
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
-      <h1 className="text-xl font-bold mb-6">Financial Insights</h1>
+      <h1 className="text-xl font-bold mb-6">{t('insights.title')}</h1>
 
       <FinancialScore score={insights.score} factors={insights.score.factors} breakdown={insights.scoreBreakdown} />
 
@@ -53,15 +55,15 @@ export default function InsightsPage() {
         <GlassCard brand className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <Heart size={16} className="text-neon" />
-            <h2 className="text-sm font-semibold">Financial Health</h2>
+            <h2 className="text-sm font-semibold">{t('insights.financialHealth')}</h2>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <p className="text-[11px] text-gray-500 mb-1">Emergency Fund</p>
+              <p className="text-[11px] text-gray-500 mb-1">{t('insights.emergencyFund')}</p>
               <p className="text-lg font-extrabold tabular-nums">{formatCurrency(insights.health.emergencyFund)}</p>
             </div>
             <div>
-              <p className="text-[11px] text-gray-500 mb-1">Months Covered</p>
+              <p className="text-[11px] text-gray-500 mb-1">{t('insights.monthsCovered')}</p>
               <p className="text-lg font-extrabold tabular-nums">{insights.health.monthsCovered}</p>
             </div>
           </div>
@@ -74,7 +76,7 @@ export default function InsightsPage() {
               }`}>
                 {insights.health.rating}
               </div>
-              <span className="text-xs text-gray-500">financial health rating</span>
+              <span className="text-xs text-gray-500">{t('insights.healthRating')}</span>
             </div>
           </div>
         </GlassCard>
@@ -84,7 +86,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <Lightbulb size={16} className="text-yellow-400" />
-            <h2 className="text-sm font-semibold">Recommendations</h2>
+            <h2 className="text-sm font-semibold">{t('insights.recommendations')}</h2>
           </div>
           <div className="space-y-2">
             {insights.recommendations.map((rec, i) => {
@@ -101,7 +103,7 @@ export default function InsightsPage() {
                       <span className={`text-[10px] font-medium mt-0.5 inline-block ${
                         rec.impact === 'high' ? 'text-yellow-400' : 'text-gray-500'
                       }`}>
-                        {rec.impact} priority
+                        {t('insights.priority', { impact: rec.impact })}
                       </span>
                     )}
                   </div>
@@ -116,7 +118,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <Calendar size={16} className="text-blue-400" />
-            <h2 className="text-sm font-semibold">Spending Habits</h2>
+            <h2 className="text-sm font-semibold">{t('insights.spendingHabits')}</h2>
           </div>
           <div className="space-y-2">
             {insights.habits.map((habit, i) => {
@@ -138,7 +140,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={16} className="text-orange-400" />
-            <h2 className="text-sm font-semibold">Category Trends</h2>
+            <h2 className="text-sm font-semibold">{t('insights.categoryTrends')}</h2>
           </div>
           <div className="space-y-2.5">
             {trends.slice(0, 5).map((trend) => (
@@ -168,22 +170,22 @@ export default function InsightsPage() {
                 {scoreVelocity.direction === 'up'
                   ? <TrendingUp size={14} className="text-neon" />
                   : <TrendingDown size={14} className="text-red-400" />}
-                <span className="text-[11px] text-gray-500 font-medium">Score trend</span>
+                <span className="text-[11px] text-gray-500 font-medium">{t('insights.scoreTrend')}</span>
               </div>
               <p className={`text-lg font-extrabold tabular-nums ${scoreVelocity.direction === 'up' ? 'text-neon' : 'text-red-400'}`}>
                 {scoreVelocity.delta > 0 ? '+' : ''}{scoreVelocity.delta}
               </p>
-              <p className="text-[10px] text-gray-500 mt-0.5">vs last month</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{t('insights.vsLastMonth')}</p>
             </GlassCard>
           )}
           {streak > 1 && (
             <GlassCard className="flex-1">
               <div className="flex items-center gap-1.5 mb-1">
                 <Flame size={14} className="text-orange-400" />
-                <span className="text-[11px] text-gray-500 font-medium">Logging streak</span>
+                <span className="text-[11px] text-gray-500 font-medium">{t('insights.loggingStreak')}</span>
               </div>
               <p className="text-lg font-extrabold tabular-nums text-orange-400">{streak}</p>
-              <p className="text-[10px] text-gray-500 mt-0.5">{streak === 1 ? 'day' : 'days'} in a row</p>
+              <p className="text-[10px] text-gray-500 mt-0.5">{t('insights.streakDays', { count: streak })}</p>
             </GlassCard>
           )}
         </div>
@@ -194,16 +196,16 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <BarChart2 size={16} className="text-purple-400" />
-            <h2 className="text-sm font-semibold">Month-end Forecast</h2>
+            <h2 className="text-sm font-semibold">{t('insights.monthEndForecast')}</h2>
           </div>
           <div className="flex items-baseline gap-2 mb-1">
             <span className="text-2xl font-extrabold tabular-nums text-purple-400">
               {formatCurrency(monthPrediction.projected)}
             </span>
-            <span className="text-xs text-gray-500">projected total</span>
+            <span className="text-xs text-gray-500">{t('insights.projectedTotal')}</span>
           </div>
           <p className="text-[11px] text-gray-500 mb-3">
-            {formatCurrency(monthPrediction.spentSoFar)} spent in {monthPrediction.daysElapsed} of {monthPrediction.daysInMonth} days
+            {t('insights.spentIn', { amount: formatCurrency(monthPrediction.spentSoFar), elapsed: monthPrediction.daysElapsed, total: monthPrediction.daysInMonth })}
           </p>
           {monthPrediction.categoryProjections.slice(0, 3).map((c) => (
             <div key={c.category} className="flex items-center justify-between py-1">
@@ -219,7 +221,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <Activity size={16} className="text-neon" />
-            <h2 className="text-sm font-semibold">Health Timeline</h2>
+            <h2 className="text-sm font-semibold">{t('insights.healthTimeline')}</h2>
           </div>
           <ResponsiveContainer width="100%" height={100}>
             <LineChart data={scoreHistory} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
@@ -228,7 +230,7 @@ export default function InsightsPage() {
               <Tooltip
                 contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 11 }}
                 labelStyle={{ color: '#9ca3af' }}
-                formatter={(v) => v !== null ? [v, 'Score'] : ['N/A', 'Score']}
+                formatter={(v) => v !== null ? [v, t('insights.score')] : [t('insights.na'), t('insights.score')]}
               />
               <Line
                 type="monotone"
@@ -240,7 +242,7 @@ export default function InsightsPage() {
               />
             </LineChart>
           </ResponsiveContainer>
-          <p className="text-[10px] text-gray-600 mt-1">Monthly financial score — last 6 months</p>
+          <p className="text-[10px] text-gray-600 mt-1">{t('insights.timelineDescription')}</p>
         </GlassCard>
       )}
 
@@ -249,7 +251,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4">
           <div className="flex items-center gap-2 mb-3">
             <ArrowRightLeft size={16} className="text-blue-400" />
-            <h2 className="text-sm font-semibold">Cashflow Forecast</h2>
+            <h2 className="text-sm font-semibold">{t('insights.cashflowForecast')}</h2>
           </div>
           <ResponsiveContainer width="100%" height={100}>
             <BarChart data={cashflowForecast} margin={{ top: 4, right: 4, bottom: 0, left: -20 }} barSize={16}>
@@ -264,7 +266,7 @@ export default function InsightsPage() {
               <Bar dataKey="expense" fill="#ef4444" radius={[3, 3, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
-          <p className="text-[10px] text-gray-600 mt-1">Projected from recurring transactions — next 3 months</p>
+          <p className="text-[10px] text-gray-600 mt-1">{t('insights.cashflowDescription')}</p>
           <div className="flex gap-3 mt-2">
             {cashflowForecast.map((m) => (
               <div key={m.label} className="flex-1 p-2 rounded-lg bg-white/[0.02] text-center">
@@ -282,7 +284,7 @@ export default function InsightsPage() {
         <GlassCard className="mt-4 border-red-500/20">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle size={16} className="text-red-400" />
-            <h2 className="text-sm font-semibold text-red-400">Spending Alert</h2>
+            <h2 className="text-sm font-semibold text-red-400">{t('insights.spendingAlert')}</h2>
           </div>
           <p className="text-xs text-gray-400">{insights.overspend.message}</p>
         </GlassCard>

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
   calculateHealthScore, getHealthHistory, getScoreVelocity,
@@ -35,6 +36,7 @@ function formatCategoryDetail(detail) {
 }
 
 export default function FinancialHealthPage() {
+  const { t } = useTranslation()
   const { transactions, budgets, debts, goals } = useFinance()
   const [activeTab, setActiveTab] = useState('overview')
 
@@ -56,12 +58,12 @@ export default function FinancialHealthPage() {
   if (!hasData) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
-        <h1 className="text-xl font-bold mb-6">Financial Health</h1>
+        <h1 className="text-xl font-bold mb-6">{t('health.title')}</h1>
         <GlassCard>
           <EmptyState
             icon={Heart}
-            title="No data yet"
-            description="Add transactions to see your financial health score"
+            title={t('health.no_data')}
+            description={t('health.no_data_desc')}
           />
         </GlassCard>
       </div>
@@ -74,7 +76,7 @@ export default function FinancialHealthPage() {
         <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
           <Heart size={18} className="text-neon" />
         </div>
-        <h1 className="text-xl font-bold">Financial Health</h1>
+        <h1 className="text-xl font-bold">{t('health.title')}</h1>
       </div>
 
       {/* Score Gauge */}
@@ -105,9 +107,9 @@ export default function FinancialHealthPage() {
           health.level === 'Fair' ? 'bg-yellow-500/10 text-yellow-400' :
           'bg-red-500/10 text-red-400'
         }`}>
-          {health.level}
+          {t(`health.${health.level.toLowerCase()}`)}
         </div>
-        <p className="text-[11px] text-gray-500 mt-2">out of 100</p>
+        <p className="text-[11px] text-gray-500 mt-2">{t('health.out_of_100')}</p>
 
         {velocity && (
           <div className="flex items-center justify-center gap-1.5 mt-2">
@@ -117,7 +119,7 @@ export default function FinancialHealthPage() {
               <ArrowDownRight size={14} className="text-red-400" />
             ) : null}
             <span className={`text-xs font-medium ${velocity.direction === 'up' ? 'text-neon' : velocity.direction === 'down' ? 'text-red-400' : 'text-gray-500'}`}>
-              {velocity.direction === 'up' ? '+' : ''}{velocity.delta} vs last month
+              {t('health.vs_last_month', { sign: velocity.direction === 'up' ? '+' : '', delta: velocity.delta })}
             </span>
           </div>
         )}
@@ -133,7 +135,7 @@ export default function FinancialHealthPage() {
               activeTab === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
             }`}
           >
-            {v === 'overview' ? 'Overview' : v === 'details' ? 'Details' : 'Tips'}
+            {v === 'overview' ? t('health.overview') : v === 'details' ? t('health.details') : t('health.tips')}
           </button>
         ))}
       </div>
@@ -182,7 +184,7 @@ export default function FinancialHealthPage() {
             <GlassCard brand>
               <div className="flex items-center gap-2 mb-3">
                 <Activity size={14} className="text-neon" />
-                <h2 className="text-sm font-semibold">Score History</h2>
+                <h2 className="text-sm font-semibold">{t('health.score_history')}</h2>
               </div>
               <div className="h-28 -mx-1">
                 <ResponsiveContainer width="100%" height="100%">
@@ -193,7 +195,7 @@ export default function FinancialHealthPage() {
                       contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 11 }}
                       labelStyle={{ color: '#9ca3af' }}
                     />
-                    <Line type="monotone" dataKey="score" stroke="#39ff14" strokeWidth={2} dot={{ r: 3, fill: '#39ff14' }} connectNulls={false} name="Score" />
+                    <Line type="monotone" dataKey="score" stroke="#39ff14" strokeWidth={2} dot={{ r: 3, fill: '#39ff14' }} connectNulls={false} name={t('health.score')} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -236,8 +238,8 @@ export default function FinancialHealthPage() {
             <GlassCard>
               <EmptyState
                 icon={CheckCircle}
-                title="Doing great!"
-                description="You're on top of your finances. Keep it up!"
+                title={t('health.doing_great')}
+                description={t('health.doing_great_desc')}
               />
             </GlassCard>
           ) : (
@@ -259,7 +261,7 @@ export default function FinancialHealthPage() {
                       <span className={`text-[10px] font-medium mt-1 inline-block ${
                         rec.impact === 'high' ? 'text-neon' : 'text-gray-500'
                       }`}>
-                        {rec.impact === 'high' ? 'High priority' : 'Nice to have'}
+                        {rec.impact === 'high' ? t('health.high_priority') : t('health.nice_to_have')}
                       </span>
                     )}
                   </div>

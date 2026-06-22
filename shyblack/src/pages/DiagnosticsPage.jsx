@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone, FolderOpen, Link2, Wallet, Activity, AlertCircle } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { getActiveAdapterType } from '../utils/storageAdapter'
@@ -29,6 +30,7 @@ const ANDROID_STRESS_SCENARIOS = [
 ]
 
 export default function DiagnosticsPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex, emis, documents, accounts, goals, dataQuality } = useFinance()
 
   const storageInfo = useMemo(() => safeStorage.getStorageInfo(), [])
@@ -58,8 +60,8 @@ export default function DiagnosticsPage({ onNavigate }) {
           <Terminal size={18} className="text-neon" />
         </div>
         <div>
-          <h1 className="text-base font-bold">Dev Diagnostics</h1>
-          <p className="text-[10px] text-gray-600">Internal — not visible to users</p>
+          <h1 className="text-base font-bold">{t('diagnostics.title')}</h1>
+          <p className="text-[10px] text-gray-600">{t('diagnostics.internal_note')}</p>
         </div>
         <button
           onClick={() => onNavigate?.('dashboard')}
@@ -72,73 +74,73 @@ export default function DiagnosticsPage({ onNavigate }) {
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Database size={13} className="text-neon" />
-          <span className="text-xs font-semibold">Storage</span>
+          <span className="text-xs font-semibold">{t('diagnostics.storage')}</span>
         </div>
-        <Row label="Used" value={`${storageInfo.usedKB} KB`} mono />
-        <Row label="Raw bytes" value={storageInfo.usedBytes.toLocaleString()} mono />
-        <Row label="Keys tracked" value={storageInfo.keyCount} mono />
-        <Row label="Schema (current)" value={`v${schemaVersion}`} mono />
-        <Row label="Schema (target)" value={`v${APP_SCHEMA_VERSION}`} mono />
-        <Row label="Adapter" value={adapterType} mono />
+        <Row label={t('diagnostics.used')} value={`${storageInfo.usedKB} KB`} mono />
+        <Row label={t('diagnostics.raw_bytes')} value={storageInfo.usedBytes.toLocaleString()} mono />
+        <Row label={t('diagnostics.keys_tracked')} value={storageInfo.keyCount} mono />
+        <Row label={t('diagnostics.schema_current')} value={`v${schemaVersion}`} mono />
+        <Row label={t('diagnostics.schema_target')} value={`v${APP_SCHEMA_VERSION}`} mono />
+        <Row label={t('diagnostics.adapter')} value={adapterType} mono />
       </GlassCard>
 
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <RefreshCw size={13} className="text-blue-400" />
-          <span className="text-xs font-semibold">Data Counts</span>
+          <span className="text-xs font-semibold">{t('diagnostics.data_counts')}</span>
         </div>
-        <Row label="Transactions" value={transactions.length} mono />
-        <Row label="Income / Expense" value={`${txByType.income} / ${txByType.expense}`} mono />
-        <Row label="Debts" value={`${debts.length} (${debts.filter((d) => d.remainingAmount > 0).length} active)`} mono />
-        <Row label="Goals" value={`${goals.length} (${activeGoals} in progress)`} mono />
-        <Row label="EMIs" value={`${emis.length} (${activeEmis} active)`} mono />
-        <Row label="Recurring" value={`${recurring.length} (${recurringActive} active)`} mono />
-        <Row label="Accounts" value={accounts.length} mono />
-        <Row label="Documents" value={`${documents.length} (${docFileSizeKB} KB)`} mono />
-        <Row label="Relationships" value={relationships.length} mono />
-        <Row label="Tags" value={tags.length} mono />
-        <Row label="Budget categories" value={Object.keys(budgets).length} mono />
+        <Row label={t('diagnostics.transactions')} value={transactions.length} mono />
+        <Row label={t('diagnostics.income_expense')} value={`${txByType.income} / ${txByType.expense}`} mono />
+        <Row label={t('diagnostics.debts')} value={t('diagnostics.debts_with_active', { total: debts.length, active: debts.filter((d) => d.remainingAmount > 0).length })} mono />
+        <Row label={t('diagnostics.goals')} value={t('diagnostics.goals_with_active', { total: goals.length, active: activeGoals })} mono />
+        <Row label={t('diagnostics.emis')} value={t('diagnostics.emis_with_active', { total: emis.length, active: activeEmis })} mono />
+        <Row label={t('diagnostics.recurring')} value={t('diagnostics.recurring_with_active', { total: recurring.length, active: recurringActive })} mono />
+        <Row label={t('diagnostics.accounts')} value={accounts.length} mono />
+        <Row label={t('diagnostics.documents')} value={t('diagnostics.documents_with_size', { count: documents.length, size: docFileSizeKB })} mono />
+        <Row label={t('diagnostics.relationships')} value={relationships.length} mono />
+        <Row label={t('diagnostics.tags')} value={tags.length} mono />
+        <Row label={t('diagnostics.budget_categories')} value={Object.keys(budgets).length} mono />
       </GlassCard>
 
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <ShieldCheck size={13} className="text-yellow-400" />
-          <span className="text-xs font-semibold">Security & Privacy</span>
+          <span className="text-xs font-semibold">{t('diagnostics.security_privacy')}</span>
         </div>
-        <Row label="PIN set" value={security.pinHash ? 'Yes' : 'No'} mono />
-        <Row label="Hide balance" value={security.hideBalance ? 'On' : 'Off'} mono />
-        <Row label="Privacy mode" value={security.privacyMode ? 'On' : 'Off'} mono />
-        <Row label="Auto-lock timeout" value={`${security.lockTimeout ?? 0}s`} mono />
-        <Row label="Fail count" value={security.failCount ?? 0} mono />
-        <Row label="Requires reset" value={security.requiresReset ? 'Yes' : 'No'} mono />
+        <Row label={t('diagnostics.pin_set')} value={security.pinHash ? t('common.yes') : t('common.no')} mono />
+        <Row label={t('diagnostics.hide_balance')} value={security.hideBalance ? t('common.on') : t('common.off')} mono />
+        <Row label={t('diagnostics.privacy_mode')} value={security.privacyMode ? t('common.on') : t('common.off')} mono />
+        <Row label={t('diagnostics.auto_lock_timeout')} value={`${security.lockTimeout ?? 0}${t('common.seconds_short')}`} mono />
+        <Row label={t('diagnostics.fail_count')} value={security.failCount ?? 0} mono />
+        <Row label={t('diagnostics.requires_reset')} value={security.requiresReset ? t('common.yes') : t('common.no')} mono />
       </GlassCard>
 
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Users size={13} className="text-orange-400" />
-          <span className="text-xs font-semibold">Onboarding & Streaks</span>
+          <span className="text-xs font-semibold">{t('diagnostics.onboarding_streaks')}</span>
         </div>
-        <Row label="Name" value={onboarding.name || '—'} />
-        <Row label="Currency" value={onboarding.currency || '—'} mono />
-        <Row label="Completed" value={onboarding.hasCompletedOnboarding ? 'Yes' : 'No'} mono />
-        <Row label="Streak milestone" value={streak.milestone ? `${streak.milestone} days` : 'None'} mono />
-        <Row label="Streak date" value={streak.date ?? null} mono />
-        <Row label="Budget notif keys" value={Object.keys(budgetNotif).length} mono />
+        <Row label={t('diagnostics.name')} value={onboarding.name || '—'} />
+        <Row label={t('diagnostics.currency')} value={onboarding.currency || '—'} mono />
+        <Row label={t('diagnostics.completed')} value={onboarding.hasCompletedOnboarding ? t('common.yes') : t('common.no')} mono />
+        <Row label={t('diagnostics.streak_milestone')} value={streak.milestone ? t('diagnostics.streak_milestone_value', { milestone: streak.milestone }) : t('common.none')} mono />
+        <Row label={t('diagnostics.streak_date')} value={streak.date ?? null} mono />
+        <Row label={t('diagnostics.budget_notif_keys')} value={Object.keys(budgetNotif).length} mono />
       </GlassCard>
 
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Activity size={13} className="text-cyan-400" />
-          <span className="text-xs font-semibold">Performance</span>
+          <span className="text-xs font-semibold">{t('diagnostics.performance')}</span>
         </div>
-        <Row label="Oldest tx date" value={transactions.length > 0 ? transactions[transactions.length - 1].date : '—'} mono />
-        <Row label="Newest tx date" value={transactions.length > 0 ? transactions[0].date : '—'} mono />
-        <Row label="Data quality issues" value={dataQuality?.total ?? 0} mono />
+        <Row label={t('diagnostics.oldest_tx_date')} value={transactions.length > 0 ? transactions[transactions.length - 1].date : '—'} mono />
+        <Row label={t('diagnostics.newest_tx_date')} value={transactions.length > 0 ? transactions[0].date : '—'} mono />
+        <Row label={t('diagnostics.data_quality_issues')} value={dataQuality?.total ?? 0} mono />
         {transactionIndex && (
           <>
-            <Row label="Index monthly buckets" value={transactionIndex.summaries.monthly.length} mono />
-            <Row label="Index category buckets" value={transactionIndex.summaries.categoryTotals.length} mono />
-            <Row label="Index person keys" value={transactionIndex.byPerson.size} mono />
+            <Row label={t('diagnostics.index_monthly_buckets')} value={transactionIndex.summaries.monthly.length} mono />
+            <Row label={t('diagnostics.index_category_buckets')} value={transactionIndex.summaries.categoryTotals.length} mono />
+            <Row label={t('diagnostics.index_person_keys')} value={transactionIndex.byPerson.size} mono />
           </>
         )}
       </GlassCard>
@@ -147,13 +149,13 @@ export default function DiagnosticsPage({ onNavigate }) {
         <GlassCard className="mb-3">
           <div className="flex items-center gap-2 mb-2">
             <Camera size={13} className="text-green-400" />
-            <span className="text-xs font-semibold">Snapshot Recovery Chain</span>
+            <span className="text-xs font-semibold">{t('diagnostics.snapshot_recovery_chain')}</span>
           </div>
-          <Row label="Snapshots stored" value={snapshotDiagnostics.total} mono />
-          <Row label="Newest" value={snapshotDiagnostics.newest ? new Date(snapshotDiagnostics.newest).toLocaleString() : '—'} />
-          <Row label="Oldest" value={snapshotDiagnostics.oldest ? new Date(snapshotDiagnostics.oldest).toLocaleString() : '—'} />
+          <Row label={t('diagnostics.snapshots_stored')} value={snapshotDiagnostics.total} mono />
+          <Row label={t('diagnostics.newest')} value={snapshotDiagnostics.newest ? new Date(snapshotDiagnostics.newest).toLocaleString() : '—'} />
+          <Row label={t('diagnostics.oldest')} value={snapshotDiagnostics.oldest ? new Date(snapshotDiagnostics.oldest).toLocaleString() : '—'} />
           {snapshotDiagnostics.snapshots && snapshotDiagnostics.snapshots.slice(0, 5).map((s, i) => (
-            <Row key={i} label={`#${i + 1}`} value={`${s.txCount} tx · ${s.ageDays}d old · ${s.valid ? 'valid' : 'corrupt'}`} mono />
+            <Row key={i} label={t('diagnostics.snapshot_entry', { index: i + 1 })} value={s.valid ? t('diagnostics.snapshot_valid', { txCount: s.txCount, ageDays: s.ageDays, validity: t('diagnostics.valid') }) : t('diagnostics.snapshot_corrupt', { txCount: s.txCount, ageDays: s.ageDays, validity: t('diagnostics.corrupt') })} mono />
           ))}
         </GlassCard>
       )}
@@ -162,7 +164,7 @@ export default function DiagnosticsPage({ onNavigate }) {
         <GlassCard className="mb-3 border-red-500/20">
           <div className="flex items-center gap-2 mb-2">
             <HardDrive size={13} className="text-red-400" />
-            <span className="text-xs font-semibold text-red-400">Corruption Detected</span>
+            <span className="text-xs font-semibold text-red-400">{t('diagnostics.corruption_detected')}</span>
           </div>
           {storageCorruptionReport.map((issue, i) => (
             <Row key={i} label={`Issue #${i + 1}`} value={issue.reason} />
@@ -173,15 +175,15 @@ export default function DiagnosticsPage({ onNavigate }) {
       <GlassCard className="mb-3">
         <div className="flex items-center gap-2 mb-2">
           <Smartphone size={13} className="text-cyan-400" />
-          <span className="text-xs font-semibold">Android Stress Scenarios</span>
+          <span className="text-xs font-semibold">{t('diagnostics.android_stress_scenarios')}</span>
         </div>
         {ANDROID_STRESS_SCENARIOS.map((s) => (
-          <Row key={s.id} label={s.label} value={s.status === 'pass' ? '✓ Protected' : '○ Untested'} mono />
+          <Row key={s.id} label={s.label} value={s.status === 'pass' ? t('diagnostics.protected') : t('diagnostics.untested')} mono />
         ))}
       </GlassCard>
 
       <p className="text-[10px] text-gray-700 text-center mt-2">
-        Tap logo 5× on any screen to open · Not shown in production builds
+        {t('diagnostics.footer_note')}
       </p>
     </div>
   )

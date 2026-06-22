@@ -34,21 +34,20 @@ async function ensureCrypto() {
     _crypto = globalThis.crypto
     return true
   }
-  if (typeof globalThis !== 'undefined' && globalThis.crypto) {
-    _crypto = globalThis.crypto
-    return true
-  }
   if (typeof window !== 'undefined' && window.crypto) {
     _crypto = window.crypto
     return true
   }
-  try {
-    const mod = await import('node:crypto')
-    _crypto = mod.webcrypto || mod.default
-    return !!_crypto
-  } catch {
-    return false
+  if (typeof process !== 'undefined' && process.versions?.node) {
+    try {
+      const mod = await import('node:crypto')
+      _crypto = mod.webcrypto || mod.default
+      return !!_crypto
+    } catch {
+      return false
+    }
   }
+  return false
 }
 
 export async function encryptBackup(backupObj, password) {

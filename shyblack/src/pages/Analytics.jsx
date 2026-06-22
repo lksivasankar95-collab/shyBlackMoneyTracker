@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useTranslation } from '../i18n'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
@@ -33,6 +34,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function Analytics() {
+  const { t } = useTranslation()
   const { transactions } = useFinance()
   const [viewMode, setViewMode] = useState('overview')
 
@@ -79,12 +81,14 @@ export default function Analytics() {
   const firstDay = new Date(year, month, 1).getDay()
   const maxHeat = hasData ? Math.max(...heatmap.map((d) => d.amount), 1) : 1
 
+  const dayAbbr = [t('time.sun'), t('time.mon'), t('time.tue'), t('time.wed'), t('time.thu'), t('time.fri'), t('time.sat')]
+
   if (!hasData) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
-        <h1 className="text-xl font-bold mb-6">Analytics</h1>
+        <h1 className="text-xl font-bold mb-6">{t('analytics.title')}</h1>
         <GlassCard>
-          <EmptyState icon={BarChart3} title="No data to analyze" description="Add some transactions to see your spending patterns" />
+          <EmptyState icon={BarChart3} title={t('analytics.no_data')} description={t('analytics.no_data_desc')} />
         </GlassCard>
       </div>
     )
@@ -93,7 +97,7 @@ export default function Analytics() {
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Analytics</h1>
+        <h1 className="text-xl font-bold">{t('analytics.title')}</h1>
         <div className="flex bg-matte-100 rounded-lg p-0.5">
           {['overview', 'trends', 'heatmap'].map((v) => (
             <button
@@ -103,7 +107,7 @@ export default function Analytics() {
                 viewMode === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
               }`}
             >
-              {v === 'overview' ? 'Overview' : v === 'trends' ? 'Trends' : 'Heatmap'}
+              {v === 'overview' ? t('analytics.overview') : v === 'trends' ? t('analytics.trends') : t('analytics.heatmap')}
             </button>
           ))}
         </div>
@@ -113,23 +117,23 @@ export default function Analytics() {
         <GlassCard brand className="flex-1">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-2 font-medium">
             <TrendingUp size={12} className="text-neon" />
-            <span>Income</span>
+            <span>{t('common.income')}</span>
           </div>
           <p className="text-lg font-extrabold text-neon tabular-nums tracking-tight glow-neon-sm">
             <AnimatedNumber value={currentMonth.income} format={formatCurrency} />
           </p>
-          <p className="text-[11px] text-gray-600 mt-0.5">{currentMonth.count} transactions</p>
+          <p className="text-[11px] text-gray-600 mt-0.5">{t('analytics.transactions_count', { count: currentMonth.count })}</p>
         </GlassCard>
         <GlassCard brand className="flex-1">
           <div className="flex items-center gap-1.5 text-[11px] text-gray-500 mb-2 font-medium">
             <TrendingDown size={12} className="text-red-400" />
-            <span>Expenses</span>
+            <span>{t('common.expense')}</span>
           </div>
           <p className="text-lg font-extrabold text-red-400 tabular-nums tracking-tight">
             <AnimatedNumber value={currentMonth.expense} format={formatCurrency} />
           </p>
           <p className="text-[11px] text-gray-600 mt-0.5">
-            {currentMonth.income > 0 ? `${((currentMonth.expense / currentMonth.income) * 100).toFixed(0)}% of income` : ''}
+            {currentMonth.income > 0 ? t('analytics.percent_of_income', { percent: ((currentMonth.expense / currentMonth.income) * 100).toFixed(0) }) : ''}
           </p>
         </GlassCard>
       </div>
@@ -137,7 +141,7 @@ export default function Analytics() {
       {comparison && (
         <GlassCard brand className="mb-4">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold">Spending Comparison</h2>
+            <h2 className="text-sm font-semibold">{t('analytics.spending_comparison')}</h2>
             <span className={`text-xs font-semibold flex items-center gap-1 ${
               comparison.direction === 'down' ? 'text-neon' : comparison.direction === 'up' ? 'text-red-400' : 'text-gray-400'
             }`}>
@@ -146,11 +150,11 @@ export default function Analytics() {
           </div>
           <div className="flex gap-3">
             <div className="flex-1 p-2.5 rounded-lg bg-white/[0.03]">
-              <p className="text-[10px] text-gray-500 mb-0.5">Last Month</p>
+              <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.last_month')}</p>
               <p className="text-sm font-bold tabular-nums text-gray-400">{formatCurrency(comparison.previous)}</p>
             </div>
             <div className="flex-1 p-2.5 rounded-lg bg-white/[0.03]">
-              <p className="text-[10px] text-gray-500 mb-0.5">This Month</p>
+              <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.this_month')}</p>
               <p className="text-sm font-bold tabular-nums">{formatCurrency(comparison.current)}</p>
             </div>
           </div>
@@ -160,15 +164,15 @@ export default function Analytics() {
       {viewMode === 'overview' && (
         <>
           <GlassCard brand className="mb-4">
-            <h2 className="text-sm font-semibold mb-4">Monthly Overview</h2>
+            <h2 className="text-sm font-semibold mb-4">{t('analytics.monthly_overview')}</h2>
             <div className="h-56 -mx-1">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={monthlyData} barGap={4} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
                   <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} />
                   <YAxis hide />
                   <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Bar dataKey="income" fill={NEON} radius={[4, 4, 0, 0]} maxBarSize={20} name="Income" />
-                  <Bar dataKey="expense" fill={RED} radius={[4, 4, 0, 0]} maxBarSize={20} name="Expense" />
+                  <Bar dataKey="income" fill={NEON} radius={[4, 4, 0, 0]} maxBarSize={20} name={t('common.income')} />
+                  <Bar dataKey="expense" fill={RED} radius={[4, 4, 0, 0]} maxBarSize={20} name={t('common.expense')} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -176,7 +180,7 @@ export default function Analytics() {
 
           {growthData.length > 0 && (
             <GlassCard brand className="mb-4">
-              <h2 className="text-sm font-semibold mb-4">Net Worth Trend</h2>
+              <h2 className="text-sm font-semibold mb-4">{t('analytics.net_worth_trend')}</h2>
               <div className="h-48 -mx-1">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={growthData} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
@@ -189,7 +193,7 @@ export default function Analytics() {
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} />
                     <YAxis hide />
                     <Tooltip content={<CustomTooltip />} />
-                    <Area type="monotone" dataKey="balance" stroke="#39ff14" strokeWidth={2} fill="url(#balanceGrad)" name="Net Worth" />
+                    <Area type="monotone" dataKey="balance" stroke="#39ff14" strokeWidth={2} fill="url(#balanceGrad)" name={t('common.net_worth')} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -200,22 +204,22 @@ export default function Analytics() {
             <GlassCard brand className="mb-4">
               <div className="flex items-center gap-2 mb-3">
                 <Activity size={16} className="text-neon" />
-                <h2 className="text-sm font-semibold">Income Forecast</h2>
+                <h2 className="text-sm font-semibold">{t('analytics.income_forecast')}</h2>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-white/[0.03]">
-                  <p className="text-[10px] text-gray-500 mb-1">Monthly Average</p>
+                  <p className="text-[10px] text-gray-500 mb-1">{t('analytics.monthly_average')}</p>
                   <p className="text-base font-extrabold text-neon tabular-nums">{formatCurrency(forecast.average)}</p>
                 </div>
                 <div className="p-3 rounded-xl bg-white/[0.03]">
-                  <p className="text-[10px] text-gray-500 mb-1">Next Month</p>
+                  <p className="text-[10px] text-gray-500 mb-1">{t('analytics.next_month')}</p>
                   <p className="text-base font-extrabold tabular-nums">{formatCurrency(forecast.nextMonth)}</p>
                 </div>
               </div>
               {forecast.trend !== 0 && (
                 <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-500">
                   <TrendingUp size={12} className={forecast.trend > 0 ? 'text-neon' : 'text-red-400'} />
-                  <span>Trend: {forecast.trend > 0 ? '+' : ''}{formatCurrency(forecast.trend)}/month</span>
+                  <span>{t('analytics.trend_value', { value: `${forecast.trend > 0 ? '+' : ''}${formatCurrency(forecast.trend)}` })}</span>
                 </div>
               )}
             </GlassCard>
@@ -223,7 +227,7 @@ export default function Analytics() {
 
           {categoryData.length > 0 && (
             <GlassCard brand>
-              <h2 className="text-sm font-semibold mb-4">Expense Breakdown</h2>
+              <h2 className="text-sm font-semibold mb-4">{t('analytics.expense_breakdown')}</h2>
               <div className="flex flex-col sm:flex-row items-center gap-5">
                 <div className="h-44 w-44 shrink-0">
                   <ResponsiveContainer width="100%" height="100%">
@@ -265,13 +269,13 @@ export default function Analytics() {
                     <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 10 }} />
                     <YAxis hide />
                     <Tooltip content={<CustomTooltip />} />
-                    <Line type="monotone" dataKey="amount" stroke="#39ff14" strokeWidth={2} dot={false} name="Spent" />
+                    <Line type="monotone" dataKey="amount" stroke="#39ff14" strokeWidth={2} dot={false} name={t('analytics.spent')} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-500 mt-2">
-                <span>Avg: {formatCurrency(trend.avg)}</span>
-                <span>Total: {formatCurrency(trend.total)}</span>
+                <span>{t('analytics.avg', { value: formatCurrency(trend.avg) })}</span>
+                <span>{t('analytics.total', { value: formatCurrency(trend.total) })}</span>
               </div>
             </GlassCard>
           ))}
@@ -281,7 +285,7 @@ export default function Analytics() {
       {viewMode === 'heatmap' && (
         <GlassCard brand>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold">Daily Spending</h2>
+            <h2 className="text-sm font-semibold">{t('analytics.daily_spending')}</h2>
             <Calendar size={14} className="text-gray-500" />
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -304,7 +308,7 @@ export default function Analytics() {
                     color: intensity > 0.3 ? '#000' : isWeekend ? '#555' : '#444',
                     boxShadow: intensity > 0.5 ? '0 0 8px rgba(57,255,20,0.25)' : 'none',
                   }}
-                  title={`${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dayOfWeek]} ${d.day}: ${formatCurrency(d.amount)}`}
+                  title={`${dayAbbr[dayOfWeek]} ${d.day}: ${formatCurrency(d.amount)}`}
                 >
                   {d.day}
                 </div>
@@ -313,9 +317,9 @@ export default function Analytics() {
           </div>
           {heatmap.length > 0 && (
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-glass-border text-[10px] text-gray-500">
-              <span>Total: {formatCurrency(heatmap.reduce((s, d) => s + d.amount, 0))}</span>
-              <span>Avg: {formatCurrency(Math.round(heatmap.reduce((s, d) => s + d.amount, 0) / heatmap.filter((d) => d.amount > 0).length || 1))}/day</span>
-              <span>Peak: {formatCurrency(Math.max(...heatmap.map((d) => d.amount)))}</span>
+              <span>{t('analytics.total', { value: formatCurrency(heatmap.reduce((s, d) => s + d.amount, 0)) })}</span>
+              <span>{t('analytics.avg_day', { value: formatCurrency(Math.round(heatmap.reduce((s, d) => s + d.amount, 0) / heatmap.filter((d) => d.amount > 0).length || 1)) })}</span>
+              <span>{t('analytics.peak', { value: formatCurrency(Math.max(...heatmap.map((d) => d.amount))) })}</span>
             </div>
           )}
         </GlassCard>

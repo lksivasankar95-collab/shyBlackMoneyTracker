@@ -8,6 +8,7 @@ import {
   LineChart, Line, PieChart as RePieChart, Pie, Cell,
 } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
 import { getCategoryDetail, getCategoryMonthlyTrend } from '../utils/categoryDrilldown'
@@ -38,6 +39,7 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function CategoryDetail({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions } = useFinance()
   const categoryId = getCategoryDetailId()
   const cat = useMemo(() => ALL_CATEGORIES.find((c) => c.id === categoryId), [categoryId])
@@ -85,7 +87,7 @@ export default function CategoryDetail({ onNavigate }) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
         <GlassCard>
-          <EmptyState title="Category not found" description="Please select a valid category" />
+          <EmptyState title={t('categoryDetail.notFound')} description={t('categoryDetail.notFoundHint')} />
         </GlassCard>
       </div>
     )
@@ -95,7 +97,7 @@ export default function CategoryDetail({ onNavigate }) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
         <GlassCard>
-          <EmptyState title="No data" description={`No transactions found for ${cat.label}`} />
+          <EmptyState title={t('categoryDetail.noData')} description={t('categoryDetail.noDataHint', { label: cat.label })} />
         </GlassCard>
       </div>
     )
@@ -113,7 +115,7 @@ export default function CategoryDetail({ onNavigate }) {
         </button>
         <div className="flex-1">
           <h1 className="text-xl font-bold">{cat.label}</h1>
-          <p className="text-xs text-gray-500">{isIncome ? 'Income' : 'Expense'} category</p>
+          <p className="text-xs text-gray-500">{isIncome ? t('categoryDetail.incomeCategory') : t('categoryDetail.expenseCategory')}</p>
         </div>
         <div className={`w-10 h-10 rounded-xl ${accentBg} flex items-center justify-center ${accentBorder} border`}>
           {isIncome ? <TrendingUp size={20} className={accentColor} /> : <TrendingDown size={20} className={accentColor} />}
@@ -123,7 +125,7 @@ export default function CategoryDetail({ onNavigate }) {
       {/* ── Total & Change ── */}
       <GlassCard brand className="mb-4">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs text-gray-500 font-medium">Total {cat.label}</span>
+          <span className="text-xs text-gray-500 font-medium">{t('categoryDetail.total', { label: cat.label })}</span>
           <span className={`text-xs font-semibold flex items-center gap-1 ${
             detail.direction === 'up' && isIncome ? 'text-neon' :
             detail.direction === 'down' && !isIncome ? 'text-neon' :
@@ -139,33 +141,33 @@ export default function CategoryDetail({ onNavigate }) {
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 gap-3 mb-4">
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">This Month</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.thisMonth')}</p>
           <p className={`text-sm font-bold tabular-nums ${detail.currentMonthAmount > 0 ? accentColor : 'text-gray-400'}`}>
             {formatCurrency(detail.currentMonthAmount)}
           </p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Last Month</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.lastMonth')}</p>
           <p className="text-sm font-bold tabular-nums text-gray-300">{formatCurrency(detail.previousMonthAmount)}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Transactions</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.transactions')}</p>
           <p className="text-sm font-bold tabular-nums">{detail.transactionCount}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Avg Transaction</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.avgTransaction')}</p>
           <p className="text-sm font-bold tabular-nums">{formatCurrency(detail.averageTransaction)}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Highest</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.highest')}</p>
           <p className="text-sm font-bold tabular-nums text-green-400">{formatCurrency(detail.highestTransaction)}</p>
         </GlassCard>
         <GlassCard className="!p-3">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Lowest</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.lowest')}</p>
           <p className="text-sm font-bold tabular-nums text-orange-400">{formatCurrency(detail.lowestTransaction)}</p>
         </GlassCard>
         <GlassCard className="!p-3 col-span-2">
-          <p className="text-[10px] text-gray-500 font-medium mb-1">Category Share</p>
+          <p className="text-[10px] text-gray-500 font-medium mb-1">{t('categoryDetail.categoryShare')}</p>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="w-full h-2 bg-matte-200 rounded-full overflow-hidden">
@@ -183,7 +185,7 @@ export default function CategoryDetail({ onNavigate }) {
       {/* ── Charts ── */}
       <GlassCard brand className="mb-4">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold">Trends</h2>
+          <h2 className="text-sm font-semibold">{t('categoryDetail.trends')}</h2>
           <div className="flex bg-matte-100 rounded-lg p-0.5">
             {['monthly', 'weekly'].map((v) => (
               <button
@@ -193,7 +195,7 @@ export default function CategoryDetail({ onNavigate }) {
                   viewChart === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
                 }`}
               >
-                {v === 'monthly' ? 'Monthly' : 'Weekly'}
+                {v === 'monthly' ? t('categoryDetail.monthly') : t('categoryDetail.weekly')}
               </button>
             ))}
           </div>
@@ -206,7 +208,7 @@ export default function CategoryDetail({ onNavigate }) {
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="amount" fill="#39ff14" radius={[4, 4, 0, 0]} maxBarSize={24} name="Amount" />
+                <Bar dataKey="amount" fill="#39ff14" radius={[4, 4, 0, 0]} maxBarSize={24} name={t('categoryDetail.amount')} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -217,14 +219,14 @@ export default function CategoryDetail({ onNavigate }) {
                 <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 11 }} />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} />
-                <Line type="monotone" dataKey="amount" stroke="#39ff14" strokeWidth={2} dot={{ r: 3, fill: '#39ff14' }} name="Amount" />
+                <Line type="monotone" dataKey="amount" stroke="#39ff14" strokeWidth={2} dot={{ r: 3, fill: '#39ff14' }} name={t('categoryDetail.amount')} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         )}
 
         <p className="text-[10px] text-gray-600 mt-2">
-          {viewChart === 'monthly' ? 'Last 6 months trend' : 'Weekly breakdown for this month'}
+          {viewChart === 'monthly' ? t('categoryDetail.last6Months') : t('categoryDetail.weeklyBreakdown')}
         </p>
       </GlassCard>
 
@@ -233,7 +235,7 @@ export default function CategoryDetail({ onNavigate }) {
         <GlassCard brand className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <PieChart size={16} className="text-neon" />
-            <h2 className="text-sm font-semibold">Category Share</h2>
+            <h2 className="text-sm font-semibold">{t('categoryDetail.categoryShare')}</h2>
           </div>
           <div className="flex items-center gap-4">
             <div className="h-28 w-28 shrink-0">
@@ -242,7 +244,7 @@ export default function CategoryDetail({ onNavigate }) {
                   <Pie
                     data={[
                       { name: cat.label, value: detail.totalAmount },
-                      { name: 'Other Categories', value: detail.totalAmount * ((100 - detail.categoryShare) / detail.categoryShare) || 1 },
+                      { name: t('categoryDetail.otherCategories'), value: detail.totalAmount * ((100 - detail.categoryShare) / detail.categoryShare) || 1 },
                     ]}
                     cx="50%" cy="50%" innerRadius={28} outerRadius={44} paddingAngle={3} dataKey="value"
                   >
@@ -261,7 +263,7 @@ export default function CategoryDetail({ onNavigate }) {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-2.5 h-2.5 rounded-full bg-white/10" />
-                <span className="text-xs text-gray-400">Others</span>
+                <span className="text-xs text-gray-400">{t('categoryDetail.others')}</span>
                 <span className="text-xs font-semibold ml-auto tabular-nums text-gray-500">{Math.round(100 - detail.categoryShare)}%</span>
               </div>
             </div>
@@ -272,8 +274,8 @@ export default function CategoryDetail({ onNavigate }) {
       {/* ── Transactions ── */}
       <GlassCard>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Transactions</h2>
-          <span className="text-[10px] text-gray-500">{categoryTransactions.length} total</span>
+          <h2 className="text-sm font-semibold">{t('categoryDetail.transactions')}</h2>
+          <span className="text-[10px] text-gray-500">{t('categoryDetail.totalCount', { count: categoryTransactions.length })}</span>
         </div>
 
         {/* Search & Filters */}
@@ -281,7 +283,7 @@ export default function CategoryDetail({ onNavigate }) {
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
           <input
             type="text"
-            placeholder="Search notes, amounts..."
+            placeholder={t('categoryDetail.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full bg-matte-200 rounded-lg pl-8 pr-3 py-2 text-xs placeholder-gray-600 border border-white/[0.06] focus:border-neon/30 focus:outline-none transition-all"
@@ -300,14 +302,14 @@ export default function CategoryDetail({ onNavigate }) {
               value={dateFrom}
               onChange={(e) => setDateFrom(e.target.value)}
               className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
-              placeholder="From"
+              placeholder={t('common.from')}
             />
             <input
               type="date"
               value={dateTo}
               onChange={(e) => setDateTo(e.target.value)}
               className="flex-1 bg-matte-200 rounded-lg px-2 py-1.5 text-[10px] border border-white/[0.06] focus:border-neon/30 focus:outline-none"
-              placeholder="To"
+              placeholder={t('common.to')}
             />
           </div>
           <button
@@ -315,12 +317,12 @@ export default function CategoryDetail({ onNavigate }) {
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium bg-matte-200 text-gray-500 hover:text-white border border-white/[0.06] transition-all whitespace-nowrap"
           >
             <ArrowUpDown size={11} />
-            {sortOrder === 'desc' ? 'Newest' : sortOrder === 'asc' ? 'Oldest' : 'Highest'}
+            {sortOrder === 'desc' ? t('categoryDetail.newest') : sortOrder === 'asc' ? t('categoryDetail.oldest') : t('categoryDetail.highest')}
           </button>
         </div>
 
         {categoryTransactions.length === 0 ? (
-          <EmptyState title="No transactions found" description="Try different search or date range" />
+          <EmptyState title={t('categoryDetail.noTransactions')} description={t('categoryDetail.noTransactionsHint')} />
         ) : (
           <div className="space-y-1">
             {categoryTransactions.slice(0, 100).map((t) => (
@@ -344,7 +346,7 @@ export default function CategoryDetail({ onNavigate }) {
             ))}
             {categoryTransactions.length > 100 && (
               <p className="text-[10px] text-gray-600 text-center pt-2">
-                Showing 100 of {categoryTransactions.length} transactions
+                {t('categoryDetail.showingLimited', { count: categoryTransactions.length })}
               </p>
             )}
           </div>

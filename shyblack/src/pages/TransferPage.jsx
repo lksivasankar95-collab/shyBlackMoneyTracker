@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import {
   ArrowLeftRight, ArrowRight, AlertCircle, CheckCircle2, History, RefreshCw,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { executeTransfer, getTransferHistory } from '../utils/transfers'
@@ -10,6 +11,7 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
 export default function TransferPage({ onNavigate }) {
+  const { t } = useTranslation()
   const accounts = useMemo(() => getAccounts(), [])
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')
@@ -25,7 +27,7 @@ export default function TransferPage({ onNavigate }) {
   const handleTransfer = () => {
     if (!fromId || !toId || !amount) return
     if (fromId === toId) {
-      setResult({ success: false, error: 'Cannot transfer to the same account' })
+      setResult({ success: false, error: t('transfer.sameAccountError') })
       return
     }
 
@@ -56,7 +58,7 @@ export default function TransferPage({ onNavigate }) {
           <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center">
             <ArrowLeftRight size={18} className="text-amber-400" />
           </div>
-          <h1 className="text-xl font-bold">Transfer</h1>
+          <h1 className="text-xl font-bold">{t('transfer.title')}</h1>
         </div>
         <button
           onClick={() => setShowHistory(!showHistory)}
@@ -70,13 +72,13 @@ export default function TransferPage({ onNavigate }) {
 
       {showHistory ? (
         <>
-          <h2 className="text-xs font-semibold text-gray-400 mb-2">Transfer History</h2>
+          <h2 className="text-xs font-semibold text-gray-400 mb-2">{t('transfer.history')}</h2>
           {transferHistory.length === 0 ? (
             <GlassCard>
               <EmptyState
                 icon={History}
-                title="No transfers yet"
-                description="Transfers between accounts appear here"
+                title={t('transfer.noTransfers')}
+                description={t('transfer.noTransfersDesc')}
               />
             </GlassCard>
           ) : (
@@ -110,17 +112,17 @@ export default function TransferPage({ onNavigate }) {
       ) : (
         <>
           <GlassCard className="mb-4 border-amber-500/20">
-            <h3 className="text-xs font-bold mb-3">New Transfer</h3>
+            <h3 className="text-xs font-bold mb-3">{t('transfer.newTransfer')}</h3>
 
             {/* From Account */}
             <div className="mb-3">
-              <label className="text-[10px] text-gray-500 block mb-1">From Account</label>
+              <label className="text-[10px] text-gray-500 block mb-1">{t('transfer.fromAccount')}</label>
               <select
                 value={fromId}
                 onChange={(e) => { setFromId(e.target.value); setResult(null) }}
                 className="w-full bg-matte-200 rounded-lg px-3.5 py-2.5 text-sm border border-white/[0.06] focus:border-amber-400/30 focus:outline-none transition-all"
               >
-                <option value="">Select account</option>
+                <option value="">{t('transfer.selectAccount')}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name} ({formatCurrency(a.balance)})
@@ -134,12 +136,12 @@ export default function TransferPage({ onNavigate }) {
               <button
                 onClick={handleSwap}
                 className="p-2 rounded-lg bg-white/[0.05] hover:bg-white/[0.08] text-gray-500 transition-all"
-                title="Swap accounts"
+                title={t('transfer.swapAccounts')}
               >
                 <RefreshCw size={14} />
               </button>
               <div className="flex-1">
-                <label className="text-[10px] text-gray-500 block mb-1">Amount</label>
+                <label className="text-[10px] text-gray-500 block mb-1">{t('transfer.amount')}</label>
                 <input
                   type="number"
                   placeholder="0"
@@ -153,13 +155,13 @@ export default function TransferPage({ onNavigate }) {
 
             {/* To Account */}
             <div className="mb-4">
-              <label className="text-[10px] text-gray-500 block mb-1">To Account</label>
+              <label className="text-[10px] text-gray-500 block mb-1">{t('transfer.toAccount')}</label>
               <select
                 value={toId}
                 onChange={(e) => { setToId(e.target.value); setResult(null) }}
                 className="w-full bg-matte-200 rounded-lg px-3.5 py-2.5 text-sm border border-white/[0.06] focus:border-amber-400/30 focus:outline-none transition-all"
               >
-                <option value="">Select account</option>
+                <option value="">{t('transfer.selectAccount')}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
                     {a.name} ({formatCurrency(a.balance)})
@@ -174,7 +176,7 @@ export default function TransferPage({ onNavigate }) {
               className="w-full bg-amber-500 hover:bg-amber-600 disabled:opacity-30 disabled:cursor-not-allowed text-white text-sm font-semibold py-2.5 rounded-lg transition-all flex items-center justify-center gap-2"
             >
               <ArrowLeftRight size={14} />
-              Transfer
+              {t('transfer.button')}
             </button>
 
             {/* Result Message */}
@@ -185,13 +187,13 @@ export default function TransferPage({ onNavigate }) {
                   : 'bg-red-500/10 text-red-400 border border-red-500/20'
               }`}>
                 {result.success ? <CheckCircle2 size={14} /> : <AlertCircle size={14} />}
-                {result.success ? 'Transfer completed successfully' : result.error}
+                {result.success ? t('transfer.success') : result.error}
               </div>
             )}
           </GlassCard>
 
           {/* Account Balances */}
-          <h2 className="text-xs font-semibold text-gray-400 mb-2">Account Balances</h2>
+          <h2 className="text-xs font-semibold text-gray-400 mb-2">{t('transfer.accountBalances')}</h2>
           <div className="space-y-2">
             {accounts.map((a) => (
               <GlassCard key={a.id}>
@@ -208,8 +210,8 @@ export default function TransferPage({ onNavigate }) {
               <GlassCard>
                 <EmptyState
                   icon={ArrowLeftRight}
-                  title="No accounts"
-                  description="Create accounts in Net Worth section"
+                  title={t('transfer.noAccounts')}
+                  description={t('transfer.noAccountsDesc')}
                 />
               </GlassCard>
             )}

@@ -4,6 +4,7 @@ import {
   AlertTriangle, Calendar, Clock, PiggyBank, Car, Home, Sparkles,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
 import { createGoal, updateGoal, deleteGoal, getGoalProjection } from '../utils/goals'
@@ -13,13 +14,14 @@ import ConfirmationModal from '../components/ConfirmationModal'
 import Modal from '../components/Modal'
 
 const GOAL_PRESETS = [
-  { name: 'Emergency Fund', icon: PiggyBank, color: 'text-yellow-400 bg-yellow-500/10', defaultTarget: 50000 },
-  { name: 'Vehicle Purchase', icon: Car, color: 'text-blue-400 bg-blue-500/10', defaultTarget: 500000 },
-  { name: 'House Down Payment', icon: Home, color: 'text-purple-400 bg-purple-500/10', defaultTarget: 2000000 },
-  { name: 'Custom Goal', icon: Sparkles, color: 'text-neon bg-neon/10', defaultTarget: 10000 },
+  { name: 'goals.preset_emergency_fund', icon: PiggyBank, color: 'text-yellow-400 bg-yellow-500/10', defaultTarget: 50000 },
+  { name: 'goals.preset_vehicle', icon: Car, color: 'text-blue-400 bg-blue-500/10', defaultTarget: 500000 },
+  { name: 'goals.preset_house', icon: Home, color: 'text-purple-400 bg-purple-500/10', defaultTarget: 2000000 },
+  { name: 'goals.preset_custom', icon: Sparkles, color: 'text-neon bg-neon/10', defaultTarget: 10000 },
 ]
 
 export default function GoalsPage() {
+  const { t } = useTranslation()
   const { goals: contextGoals, addGoal, editGoal, removeGoal } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
@@ -72,29 +74,29 @@ export default function GoalsPage() {
     const monthlyContribution = parseFloat(form.monthlyContribution) || 0
     const targetDate = form.targetDate || null
 
-    if (!name) { addToast('Enter a goal name', 'error'); return }
-    if (!target || target <= 0) { addToast('Enter a valid target amount', 'error'); return }
-    if (saved >= target) { addToast('Saved amount already meets target', 'error'); return }
+    if (!name) { addToast(t('goals.enter_goal_name'), 'error'); return }
+    if (!target || target <= 0) { addToast(t('goals.enter_valid_target'), 'error'); return }
+    if (saved >= target) { addToast(t('goals.saved_meets_target'), 'error'); return }
 
     if (editTarget) {
       editGoal(editTarget.id, { name, target, saved, monthlyContribution, targetDate })
-      addToast('Goal updated', 'success')
+      addToast(t('goals.goal_updated'), 'success')
     } else {
       addGoal({ name, target, saved, monthlyContribution, targetDate })
-      addToast('Goal created', 'success')
+      addToast(t('goals.goal_created'), 'success')
     }
 
     setShowAddModal(false)
     setEditTarget(null)
     resetForm()
-  }, [form, editTarget, addGoal, editGoal, addToast, resetForm])
+  }, [form, editTarget, addGoal, editGoal, addToast, resetForm, t])
 
   const confirmDelete = useCallback(() => {
     if (!deleteTarget) return
     removeGoal(deleteTarget)
-    addToast('Goal deleted', 'info')
+    addToast(t('goals.goal_deleted'), 'info')
     setDeleteTarget(null)
-  }, [deleteTarget, removeGoal, addToast])
+  }, [deleteTarget, removeGoal, addToast, t])
 
   const achieved = useMemo(() => goalsProjections.filter((g) => g.projection?.isAchieved), [goalsProjections])
   const active = useMemo(() => goalsProjections.filter((g) => !g.projection?.isAchieved), [goalsProjections])
@@ -116,25 +118,25 @@ export default function GoalsPage() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Target size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Goals</h1>
+          <h1 className="text-xl font-bold">{t('goals.title')}</h1>
         </div>
         <button
           onClick={openAdd}
           className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all"
         >
           <Plus size={14} />
-          New Goal
+          {t('goals.add')}
         </button>
       </div>
 
       {goals.length === 0 && (
         <EmptyState
           icon={Target}
-          title="No goals yet"
-          description="Set financial goals like Emergency Fund, Vehicle, or House Down Payment"
+          title={t('goals.no_goals')}
+          description={t('goals.no_goals_desc')}
           action={
             <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">
-              Create Your First Goal
+              {t('goals.create_first')}
             </button>
           }
         />
@@ -145,7 +147,7 @@ export default function GoalsPage() {
         <div className="mb-4">
           <h2 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
             <CheckCircle2 size={12} className="text-neon" />
-            Achieved ({achieved.length})
+            {t('goals.achieved_count', { count: achieved.length })}
           </h2>
           <div className="space-y-2">
             {achieved.map((g) => (
@@ -240,18 +242,18 @@ export default function GoalsPage() {
                         {/* Stats Grid */}
                         <div className="grid grid-cols-3 gap-2 mt-2">
                           <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
-                            <p className="text-[10px] text-gray-600">Progress</p>
+                            <p className="text-[10px] text-gray-600">{t('goals.progress')}</p>
                             <p className="text-xs font-bold tabular-nums">{Math.round(p.progress)}%</p>
                           </div>
                           {forecastMonths !== null && (
                             <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
-                              <p className="text-[10px] text-gray-600">ETA</p>
+                              <p className="text-[10px] text-gray-600">{t('goals.eta')}</p>
                               <p className="text-xs font-bold tabular-nums">{forecastMonths}m</p>
                             </div>
                           )}
                           {g.monthlyContribution > 0 && (
                             <div className="p-1.5 rounded-lg bg-white/[0.03] text-center">
-                              <p className="text-[10px] text-gray-600">Monthly</p>
+                              <p className="text-[10px] text-gray-600">{t('goals.monthly')}</p>
                               <p className="text-xs font-bold tabular-nums text-neon">
                                 {formatCurrency(g.monthlyContribution)}
                               </p>
@@ -273,8 +275,8 @@ export default function GoalsPage() {
                             )}
                             <span>
                               {targetDateEta.onTrack
-                                ? `On track for ${formatDate(g.targetDate)}`
-                                : `Need ${formatCurrency(targetDateEta.requiredMonthly)}/mo to hit target date`
+                                ? t('goals.on_track', { date: formatDate(g.targetDate) })
+                                : t('goals.behind', { amount: formatCurrency(targetDateEta.requiredMonthly) })
                               }
                             </span>
                           </div>
@@ -283,7 +285,7 @@ export default function GoalsPage() {
                         {p.progress >= 80 && !p.isAchieved && (
                           <div className="flex items-center gap-1.5 mt-2 text-xs text-neon bg-neon/5 rounded-lg p-2">
                             <TrendingUp size={12} />
-                            <span>Almost there! Just {formatCurrency(totalRemaining)} to go</span>
+                            <span>{t('goals.almost_there', { amount: formatCurrency(totalRemaining) })}</span>
                           </div>
                         )}
                       </>
@@ -300,13 +302,13 @@ export default function GoalsPage() {
       <Modal
         open={showAddModal}
         onClose={() => { setShowAddModal(false); setEditTarget(null); resetForm() }}
-        title={editTarget ? 'Edit Goal' : 'New Goal'}
+        title={editTarget ? t('goals.edit') : t('goals.add')}
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
           {/* Presets (only for new goals) */}
           {!editTarget && (
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-2 block">Quick Start</label>
+              <label className="text-xs text-gray-500 font-medium mb-2 block">{t('goals.quick_start')}</label>
               <div className="grid grid-cols-2 gap-2">
                 {GOAL_PRESETS.map((preset) => {
                   const Icon = preset.icon
@@ -323,7 +325,7 @@ export default function GoalsPage() {
                       <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${preset.color}`}>
                         <Icon size={14} />
                       </div>
-                      <span className="text-xs font-medium truncate">{preset.name}</span>
+                      <span className="text-xs font-medium truncate">{t(preset.name)}</span>
                     </button>
                   )
                 })}
@@ -332,19 +334,19 @@ export default function GoalsPage() {
           )}
 
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Goal Name</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('goals.name')}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Emergency Fund, MacBook..."
+              placeholder={t('goals.name_placeholder')}
               className="input-field"
               maxLength={50}
               autoFocus
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Target Amount</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('goals.target')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -356,7 +358,7 @@ export default function GoalsPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-              Saved So Far <span className="text-gray-600 font-normal">(optional)</span>
+              {t('goals.saved')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
             </label>
             <input
               type="text"
@@ -369,7 +371,7 @@ export default function GoalsPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-              Monthly Contribution <span className="text-gray-600 font-normal">(optional)</span>
+              {t('goals.monthly_contribution')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
             </label>
             <input
               type="text"
@@ -382,7 +384,7 @@ export default function GoalsPage() {
           </div>
           <div>
             <label className="text-xs text-gray-500 font-medium mb-1.5 block">
-              Target Date <span className="text-gray-600 font-normal">(optional)</span>
+              {t('goals.deadline')} <span className="text-gray-600 font-normal">({t('common.optional')})</span>
             </label>
             <input
               type="date"
@@ -396,21 +398,21 @@ export default function GoalsPage() {
           {/* Forecast */}
           {parseFloat(form.target) > 0 && (
             <div className="p-3 rounded-xl bg-white/[0.03] space-y-1.5">
-              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">Forecast</p>
+              <p className="text-[10px] text-gray-500 font-medium uppercase tracking-wider">{t('goals.forecast')}</p>
               {parseFloat(form.monthlyContribution) > 0 && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">At current pace</span>
+                  <span className="text-gray-400">{t('goals.at_current_pace')}</span>
                   <span className="font-semibold tabular-nums">
                     {Math.ceil(
                       (parseFloat(form.target) - (parseFloat(form.saved) || 0)) /
                       parseFloat(form.monthlyContribution)
-                    )} months
+                    )} {t('goals.months_remaining')}
                   </span>
                 </div>
               )}
               {form.targetDate && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">Required monthly</span>
+                  <span className="text-gray-400">{t('goals.required_monthly')}</span>
                   <span className="font-semibold tabular-nums">
                     {formatCurrency(
                       Math.ceil(
@@ -423,9 +425,9 @@ export default function GoalsPage() {
               )}
               {parseFloat(form.monthlyContribution) > 0 && (
                 <div className="flex items-center justify-between text-xs">
-                  <span className="text-gray-400">Daily savings needed</span>
+                  <span className="text-gray-400">{t('goals.daily_savings')}</span>
                   <span className="font-semibold tabular-nums">
-                    {formatCurrency(Math.round(parseFloat(form.monthlyContribution) / 30))}/day
+                    {formatCurrency(Math.round(parseFloat(form.monthlyContribution) / 30))}{t('goals.per_day')}
                   </span>
                 </div>
               )}
@@ -438,13 +440,13 @@ export default function GoalsPage() {
               disabled={!form.name.trim() || !form.target}
               className="flex-1 btn-primary text-sm"
             >
-              {editTarget ? 'Save Changes' : 'Create Goal'}
+              {editTarget ? t('goals.save_changes') : t('goals.create_goal')}
             </button>
             <button
               onClick={() => { setShowAddModal(false); setEditTarget(null); resetForm() }}
               className="flex-1 btn-secondary text-sm"
             >
-              Cancel
+              {t('common.cancel')}
             </button>
           </div>
         </div>
@@ -454,10 +456,10 @@ export default function GoalsPage() {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={confirmDelete}
-        title="Delete Goal?"
-        description="This will permanently remove this goal."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('goals.delete_title')}
+        description={t('goals.delete_desc')}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
         danger
       />
     </div>

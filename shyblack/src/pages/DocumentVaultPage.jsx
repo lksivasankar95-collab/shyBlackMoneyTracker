@@ -5,6 +5,7 @@ import {
   CheckCircle2, Loader2, ExternalLink, FileDown,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatDate } from '../utils/helpers'
 import {
   DOCUMENT_CATEGORIES, DOCUMENT_SORT_OPTIONS, FILTER_DATE_OPTIONS,
@@ -23,9 +24,9 @@ const FILE_ICONS = {
   png: Image,
 }
 
-function getCategoryIcon(catId) {
+function getCategoryIcon(catId, translate) {
   const cat = DOCUMENT_CATEGORIES.find((c) => c.id === catId)
-  return cat ? cat.label : 'Other'
+  return cat ? cat.label : (translate ? translate('documentVault.otherCategory') : 'Other')
 }
 
 function getCategoryColor(catId) {
@@ -57,6 +58,7 @@ function isPdfType(fileType) {
 
 export default function DocumentVaultPage({ onNavigate }) {
   const { documents, addDocument, editDocument, removeDocument } = useFinance()
+  const { t } = useTranslation()
   const { addToast } = useToast()
   const [searchQuery, setSearchQuery] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -147,13 +149,13 @@ export default function DocumentVaultPage({ onNavigate }) {
     privacy.suppressLockForTransition(10000)
 
     setUploading(true)
-    setUploadProgress('Reading file...')
+    setUploadProgress(t('documentVault.readingFile'))
     const ext = file.name.split('.').pop().toLowerCase()
     const maxSize = 10 * 1024 * 1024
     if (file.size > maxSize) {
       setUploading(false)
       setUploadProgress(null)
-      addToast('File too large. Max 10MB allowed.', 'error')
+      addToast(t('documentVault.fileTooLarge'), 'error')
       return
     }
 
@@ -161,7 +163,7 @@ export default function DocumentVaultPage({ onNavigate }) {
     reader.onprogress = (ev) => {
       if (ev.lengthComputable) {
         const pct = Math.round((ev.loaded / ev.total) * 100)
-        setUploadProgress(`Reading... ${pct}%`)
+        setUploadProgress(t('documentVault.readingProgress', { pct }))
       }
     }
     reader.onload = (ev) => {
@@ -179,10 +181,10 @@ export default function DocumentVaultPage({ onNavigate }) {
     reader.onerror = () => {
       setUploading(false)
       setUploadProgress(null)
-      addToast('Failed to read file.', 'error')
+      addToast(t('documentVault.failedReadFile'), 'error')
     }
     reader.readAsDataURL(file)
-  }, [addToast])
+  }, [addToast, t])
 
   const resetForm = useCallback(() => {
     setFormData({ title: '', category: 'other', notes: '', tags: '', relatedEntityType: '', relatedEntityId: '' })
@@ -196,7 +198,7 @@ export default function DocumentVaultPage({ onNavigate }) {
   const handleAdd = useCallback(() => {
     if (!formData.title.trim()) return
     if (!formData.fileData) {
-      addToast('Please select a file to upload.', 'error')
+      addToast(t('documentVault.selectFile'), 'error')
       return
     }
     const tags = formData.tags.split(',').map((t) => t.trim()).filter(Boolean)
@@ -208,14 +210,14 @@ export default function DocumentVaultPage({ onNavigate }) {
     }
     if (editingDoc) {
       editDocument(editingDoc.id, data)
-      addToast('Document updated!', 'success')
+      addToast(t('documentVault.documentUpdated'), 'success')
     } else {
       addDocument(data)
-      addToast('Document uploaded!', 'success')
+      addToast(t('documentVault.documentUploaded'), 'success')
     }
     setShowAddModal(false)
     resetForm()
-  }, [formData, editingDoc, addDocument, editDocument, resetForm, addToast])
+  }, [formData, editingDoc, addDocument, editDocument, resetForm, addToast, t])
 
   const handleEdit = useCallback((doc) => {
     setEditingDoc(doc)
@@ -235,13 +237,13 @@ export default function DocumentVaultPage({ onNavigate }) {
   }, [])
 
   const handleDelete = useCallback((id) => {
-    if (window.confirm('Delete this document? This cannot be undone.')) {
+    if (window.confirm(t('documentVault.deleteConfirm'))) {
       removeDocument(id)
       setSelectedDoc(null)
       setShowViewer(false)
-      addToast('Document deleted', 'info')
+      addToast(t('documentVault.documentDeleted'), 'info')
     }
-  }, [removeDocument, addToast])
+  }, [removeDocument, addToast, t])
 
   const handleView = useCallback((doc) => {
     setSelectedDoc(doc)
@@ -262,74 +264,74 @@ export default function DocumentVaultPage({ onNavigate }) {
 
   const handleDownload = useCallback(async (doc) => {
     if (!doc.fileDataId) {
-      addToast('No file attached to this document.', 'error')
+      addToast(t('documentVault.noFileAttachedError'), 'error')
       return
     }
     const fileData = getDocumentFileData(doc.fileDataId)
     if (!fileData) {
-      addToast('File data not found.', 'error')
+      addToast(t('documentVault.fileDataNotFound'), 'error')
       return
     }
 
     const filename = doc.fileName || `${doc.title}.${doc.fileType || 'bin'}`
 
-    addToast('Downloading...', 'info')
+    addToast(t('documentVault.downloading'), 'info')
 
     try {
       const result = await downloadDataUri(fileData, filename)
       if (result.success) {
         setDownloadResult(result)
         setShowDownloadInfo(true)
-        addToast(`Saved to ${result.path}`, 'success')
+        addToast(t('documentVault.savedTo', { path: result.path }), 'success')
       } else {
         const blob = dataUriToBlob(fileData)
         if (blob) {
           downloadDataUriLegacy(fileData, filename)
-          addToast('File downloaded (legacy mode)!', 'success')
+          addToast(t('documentVault.downloadedLegacy'), 'success')
         } else {
-          addToast('Download failed: ' + (result.error || 'Unknown error'), 'error')
+          addToast(t('documentVault.downloadFailed', { error: result.error || t('documentVault.unknownError') }), 'error')
         }
       }
     } catch (err) {
       const blob = dataUriToBlob(fileData)
       if (blob) {
         downloadDataUriLegacy(fileData, filename)
-        addToast('File downloaded (legacy mode)!', 'success')
+        addToast(t('documentVault.downloadedLegacy'), 'success')
       } else {
-        addToast('Download failed: ' + err.message, 'error')
+        addToast(t('documentVault.downloadFailed', { error: err.message }), 'error')
       }
     }
-  }, [addToast])
+  }, [addToast, t])
 
   const handleShare = useCallback(async (doc) => {
     if (!doc.fileDataId) {
-      addToast('No file attached.', 'error')
+      addToast(t('documentVault.noFileAttachedError'), 'error')
       return
     }
     const fileData = getDocumentFileData(doc.fileDataId)
     if (!fileData) {
-      addToast('File data not found.', 'error')
+      addToast(t('documentVault.fileDataNotFound'), 'error')
       return
     }
     const blob = dataUriToBlob(fileData)
     if (!blob) {
-      addToast('Could not process file.', 'error')
+      addToast(t('documentVault.couldNotProcess'), 'error')
       return
     }
     const filename = doc.fileName || `${doc.title}.${doc.fileType}`
-    addToast('Sharing...', 'info')
+    addToast(t('documentVault.sharing'), 'info')
 
     const result = await shareBlob(blob, filename, doc.title)
     if (result.shared) {
-      addToast('File shared!', 'success')
+      addToast(t('documentVault.fileShared'), 'success')
     } else if (result.method === 'cancelled') {
-      addToast('Share cancelled', 'info')
+      addToast(t('documentVault.shareCancelled'), 'info')
     } else if (result.method === 'unsupported') {
-      addToast('Share not supported on this device.', 'error')
+      addToast(t('documentVault.shareUnsupported'), 'error')
     } else if (result.error) {
-      addToast('Share failed: ' + result.error, 'error')
+      addToast(t('documentVault.shareFailed', { error: result.error }), 'error')
     }
-  }, [addToast])
+  }, [addToast, t])
 
   const toggleSortOrder = useCallback(() => {
     setSortOrder((prev) => prev === 'desc' ? 'asc' : 'desc')
@@ -352,7 +354,7 @@ export default function DocumentVaultPage({ onNavigate }) {
           <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05] transition-colors">
             <ChevronLeft size={20} className="text-gray-400" />
           </button>
-          <h1 className="text-lg font-bold text-white">Documents</h1>
+          <h1 className="text-lg font-bold text-white">{t('documentVault.title')}</h1>
         </div>
         <button
           onClick={handleOpenAddModal}
@@ -367,7 +369,7 @@ export default function DocumentVaultPage({ onNavigate }) {
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
         <input
           type="text"
-          placeholder="Search documents..."
+          placeholder={t('documentVault.searchPlaceholder')}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-500 focus:outline-none focus:border-neon/30 transition-colors"
@@ -386,7 +388,7 @@ export default function DocumentVaultPage({ onNavigate }) {
           onChange={(e) => setCategoryFilter(e.target.value)}
           className="px-3 py-1.5 rounded-lg bg-matte-200 border border-glass-border text-xs text-gray-300 focus:outline-none focus:border-neon/30"
         >
-          <option value="all">All Categories</option>
+          <option value="all">{t('documentVault.allCategories')}</option>
           {DOCUMENT_CATEGORIES.map((cat) => (
             <option key={cat.id} value={cat.id}>{cat.label}</option>
           ))}
@@ -414,13 +416,13 @@ export default function DocumentVaultPage({ onNavigate }) {
           className="px-3 py-1.5 rounded-lg bg-matte-200 border border-glass-border text-xs text-gray-300 hover:text-neon transition-colors flex items-center gap-1"
         >
           <ArrowUpDown size={12} />
-          {sortOrder === 'desc' ? 'New' : 'Old'}
+          {sortOrder === 'desc' ? t('documentVault.new') : t('documentVault.old')}
         </button>
         <button
           onClick={() => setViewMode((prev) => prev === 'grid' ? 'list' : 'grid')}
           className="px-3 py-1.5 rounded-lg bg-matte-200 border border-glass-border text-xs text-gray-300 hover:text-neon transition-colors"
         >
-          {viewMode === 'grid' ? 'List' : 'Grid'}
+          {viewMode === 'grid' ? t('documentVault.list') : t('documentVault.grid')}
         </button>
       </div>
 
@@ -428,15 +430,15 @@ export default function DocumentVaultPage({ onNavigate }) {
       {filteredDocs.length === 0 ? (
         <EmptyState
           icon={FolderOpen}
-          title={searchQuery ? 'No matching documents' : 'No documents yet'}
-          description={searchQuery ? 'Try a different search term' : 'Tap + to add your first document'}
+          title={searchQuery ? t('documentVault.noMatchingDocs') : t('documentVault.noDocs')}
+          description={searchQuery ? t('documentVault.noMatchingHint') : t('documentVault.noDocsHint')}
           action={
             !searchQuery ? (
               <button
                 onClick={handleOpenAddModal}
                 className="btn-primary text-xs !px-4 !py-2"
               >
-                Add Document
+                {t('documentVault.addDocument')}
               </button>
             ) : null
           }
@@ -467,7 +469,7 @@ export default function DocumentVaultPage({ onNavigate }) {
               <p className="text-xs font-medium text-white truncate">{doc.title}</p>
               <div className="flex items-center justify-between mt-1">
                 <span className={`text-[10px] px-1.5 py-0.5 rounded ${getCategoryColor(doc.category)}`}>
-                  {getCategoryIcon(doc.category)}
+                  {getCategoryIcon(doc.category, t)}
                 </span>
                 <span className="text-[10px] text-gray-600">{formatDate(new Date(doc.createdAt))}</span>
               </div>
@@ -497,11 +499,11 @@ export default function DocumentVaultPage({ onNavigate }) {
                 <p className="text-xs font-medium text-white truncate">{doc.title}</p>
                 <div className="flex items-center gap-2 mt-0.5">
                   <span className={`text-[10px] px-1 py-0.5 rounded ${getCategoryColor(doc.category)}`}>
-                    {getCategoryIcon(doc.category)}
+                    {getCategoryIcon(doc.category, t)}
                   </span>
                   <span className="text-[10px] text-gray-600">{formatDate(new Date(doc.createdAt))}</span>
                   {doc.relatedEntityType && (
-                    <span className="text-[10px] text-neon/60">Linked</span>
+                    <span className="text-[10px] text-neon/60">{t('documentVault.linked')}</span>
                   )}
                 </div>
               </div>
@@ -516,7 +518,7 @@ export default function DocumentVaultPage({ onNavigate }) {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => { setShowAddModal(false); resetForm() }}>
           <div className="w-full max-w-lg bg-matte rounded-t-2xl sm:rounded-2xl p-5 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm font-semibold text-white">{editingDoc ? 'Edit Document' : 'Add Document'}</h2>
+              <h2 className="text-sm font-semibold text-white">{editingDoc ? t('documentVault.editDocument') : t('documentVault.addDocumentTitle')}</h2>
               <button onClick={() => { setShowAddModal(false); resetForm() }} className="p-1.5 rounded-lg hover:bg-white/[0.05]">
                 <X size={16} className="text-gray-500" />
               </button>
@@ -524,18 +526,18 @@ export default function DocumentVaultPage({ onNavigate }) {
 
             <div className="space-y-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Title *</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.titleField')}</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  placeholder="e.g. Car Insurance Policy"
+                  placeholder={t('documentVault.titlePlaceholder')}
                   className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Category</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.categoryField')}</label>
                 <select
                   value={formData.category}
                   onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
@@ -548,7 +550,7 @@ export default function DocumentVaultPage({ onNavigate }) {
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">File</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.fileField')}</label>
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -560,7 +562,7 @@ export default function DocumentVaultPage({ onNavigate }) {
                 {uploading && (
                   <div className="mt-2 flex items-center gap-2 px-3 py-2 rounded-lg bg-neon/5 text-neon text-xs">
                     <Loader2 size={14} className="animate-spin" />
-                    {uploadProgress || 'Processing...'}
+                    {uploadProgress || t('documentVault.processing')}
                   </div>
                 )}
                 {!uploading && previewUrl && (
@@ -569,10 +571,10 @@ export default function DocumentVaultPage({ onNavigate }) {
                       <img src={previewUrl} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
                     ) : (
                       <div className="w-full h-16 rounded-lg bg-matte-200 flex items-center justify-center gap-2 text-xs text-gray-500">
-                        <FileText size={16} /> {formData.fileName || 'PDF file selected'}
+                        <FileText size={16} /> {formData.fileName || t('documentVault.pdfSelected')}
                         {formData.fileSize && (
                           <span className="text-gray-600">
-                            ({(formData.fileSize / 1024 / 1024).toFixed(1)} MB)
+                            {t('documentVault.fileSizeMB', { size: (formData.fileSize / 1024 / 1024).toFixed(1) })}
                           </span>
                         )}
                       </div>
@@ -588,49 +590,49 @@ export default function DocumentVaultPage({ onNavigate }) {
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Notes</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.notesField')}</label>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                  placeholder="Optional notes..."
+                  placeholder={t('documentVault.notesPlaceholder')}
                   rows={2}
                   className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30 resize-none"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Tags (comma separated)</label>
+                <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.tagsField')}</label>
                 <input
                   type="text"
                   value={formData.tags}
                   onChange={(e) => setFormData((prev) => ({ ...prev, tags: e.target.value }))}
-                  placeholder="insurance, car, 2024"
+                  placeholder={t('documentVault.tagsPlaceholder')}
                   className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
                 />
               </div>
 
               <div className="flex gap-2">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Linked Entity Type</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.linkedEntityType')}</label>
                   <select
                     value={formData.relatedEntityType}
                     onChange={(e) => setFormData((prev) => ({ ...prev, relatedEntityType: e.target.value }))}
                     className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white focus:outline-none focus:border-neon/30"
                   >
-                    <option value="">None</option>
-                    <option value="emi">EMI</option>
-                    <option value="ledger">Borrow/Lend</option>
-                    <option value="transaction">Transaction</option>
-                    <option value="goal">Goal</option>
+                    <option value="">{t('documentVault.none')}</option>
+                    <option value="emi">{t('documentVault.emi')}</option>
+                    <option value="ledger">{t('documentVault.borrowLend')}</option>
+                    <option value="transaction">{t('documentVault.transaction')}</option>
+                    <option value="goal">{t('documentVault.goal')}</option>
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500 mb-1 block">Entity ID</label>
+                  <label className="text-xs text-gray-500 mb-1 block">{t('documentVault.entityId')}</label>
                   <input
                     type="text"
                     value={formData.relatedEntityId}
                     onChange={(e) => setFormData((prev) => ({ ...prev, relatedEntityId: e.target.value }))}
-                    placeholder="ID"
+                    placeholder={t('documentVault.idPlaceholder')}
                     className="w-full px-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
                   />
                 </div>
@@ -643,7 +645,7 @@ export default function DocumentVaultPage({ onNavigate }) {
                 className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors"
                 disabled={uploading}
               >
-                Cancel
+                {t('documentVault.cancel')}
               </button>
               <button
                 onClick={handleAdd}
@@ -651,9 +653,9 @@ export default function DocumentVaultPage({ onNavigate }) {
                 className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               >
                 {uploading ? (
-                  <><Loader2 size={14} className="animate-spin" /> Uploading...</>
+                  <><Loader2 size={14} className="animate-spin" /> {t('documentVault.uploading')}</>
                 ) : (
-                  editingDoc ? 'Update' : 'Upload'
+                  editingDoc ? t('documentVault.update') : t('documentVault.upload')
                 )}
               </button>
             </div>
@@ -672,7 +674,7 @@ export default function DocumentVaultPage({ onNavigate }) {
               </button>
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white truncate">{selectedDoc.title}</p>
-                <p className="text-[10px] text-gray-500">{getCategoryIcon(selectedDoc.category)}</p>
+                <p className="text-[10px] text-gray-500">{getCategoryIcon(selectedDoc.category, t)}</p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -738,25 +740,25 @@ export default function DocumentVaultPage({ onNavigate }) {
               ) : isPdfType(selectedDoc.fileType) ? (
                 <div className="flex flex-col items-center justify-center h-full min-h-[40vh] gap-4">
                   <FileText size={48} className="text-neon opacity-60" />
-                  <p className="text-sm text-gray-400">PDF preview not available on this device</p>
+                  <p className="text-sm text-gray-400">{t('documentVault.pdfPreviewUnavailable')}</p>
                   <button
                     onClick={() => handleOpenPdf(selectedDoc)}
                     className="py-2.5 px-6 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 transition-all flex items-center gap-2"
                   >
                     <ExternalLink size={16} />
-                    Open PDF
+                    {t('documentVault.openPdf')}
                   </button>
                 </div>
               ) : (
                 <div className="text-center text-gray-500">
                   <FileType size={48} className="mx-auto mb-3 opacity-40" />
-                  <p className="text-xs">Preview not available for this file type</p>
+                  <p className="text-xs">{t('documentVault.previewUnavailable')}</p>
                 </div>
               )
             ) : (
               <div className="text-center text-gray-500">
                 <FileText size={48} className="mx-auto mb-3 opacity-40" />
-                <p className="text-xs">No file attached</p>
+                <p className="text-xs">{t('documentVault.noFileAttached')}</p>
               </div>
             )}
           </div>
@@ -777,13 +779,13 @@ export default function DocumentVaultPage({ onNavigate }) {
                 </div>
               )}
               <div className="flex items-center gap-3 text-[10px] text-gray-600 w-full">
-                <span>Added {formatDate(new Date(selectedDoc.createdAt))}</span>
+                <span>{t('documentVault.added', { date: formatDate(new Date(selectedDoc.createdAt)) })}</span>
                 {selectedDoc.fileName && <span>{selectedDoc.fileName}</span>}
                 {selectedDoc.fileSize && (
-                  <span>{(selectedDoc.fileSize / 1024 / 1024).toFixed(1)} MB</span>
+                  <span>{t('documentVault.fileSizeMB', { size: (selectedDoc.fileSize / 1024 / 1024).toFixed(1) })}</span>
                 )}
                 {selectedDoc.relatedEntityType && (
-                  <span className="text-neon/60">Linked to {selectedDoc.relatedEntityType}</span>
+                  <span className="text-neon/60">{t('documentVault.linkedTo', { type: selectedDoc.relatedEntityType })}</span>
                 )}
               </div>
             </div>
@@ -800,18 +802,18 @@ export default function DocumentVaultPage({ onNavigate }) {
                 <CheckCircle2 size={20} className="text-neon" />
               </div>
               <div>
-                <h2 className="text-sm font-semibold text-white">Download Complete</h2>
-                <p className="text-[10px] text-gray-500">File saved successfully</p>
+                <h2 className="text-sm font-semibold text-white">{t('documentVault.downloadComplete')}</h2>
+                <p className="text-[10px] text-gray-500">{t('documentVault.fileSaved')}</p>
               </div>
             </div>
 
             <div className="space-y-2 mb-4">
               <div className="p-3 rounded-xl bg-white/[0.03]">
-                <p className="text-[10px] text-gray-500 mb-0.5">File Name</p>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('documentVault.fileName')}</p>
                 <p className="text-xs text-white font-medium break-all">{downloadResult.filename}</p>
               </div>
               <div className="p-3 rounded-xl bg-white/[0.03]">
-                <p className="text-[10px] text-gray-500 mb-0.5">Location</p>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('documentVault.location')}</p>
                 <p className="text-xs text-gray-300 font-mono">{downloadResult.path}</p>
               </div>
             </div>
@@ -828,14 +830,14 @@ export default function DocumentVaultPage({ onNavigate }) {
                   className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors flex items-center justify-center gap-2"
                 >
                   <ExternalLink size={14} />
-                  Open
+                  {t('documentVault.open')}
                 </button>
               )}
               <button
                 onClick={() => setShowDownloadInfo(false)}
                 className="flex-1 py-2.5 rounded-xl bg-neon/10 text-neon text-sm font-medium border border-neon/20 hover:bg-neon/20 transition-all"
               >
-                Done
+                {t('documentVault.done')}
               </button>
             </div>
           </div>

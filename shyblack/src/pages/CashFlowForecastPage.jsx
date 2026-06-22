@@ -3,6 +3,7 @@ import {
   TrendingUp, AlertTriangle, DollarSign, Settings,
   BarChart3, Activity, ChevronDown, ChevronUp,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import {
@@ -14,6 +15,7 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
 export default function CashFlowForecastPage() {
+  const { t } = useTranslation()
   const { transactions, budgets, recurring, emis, debts } = useFinance()
   const [showSettings, setShowSettings] = useState(false)
   const [config, setConfig] = useState(getForecastConfig)
@@ -73,7 +75,7 @@ export default function CashFlowForecastPage() {
           <div className="w-9 h-9 rounded-xl bg-cyan-500/10 flex items-center justify-center">
             <TrendingUp size={18} className="text-cyan-400" />
           </div>
-          <h1 className="text-xl font-bold">Cash Flow Forecast</h1>
+          <h1 className="text-xl font-bold">{t('cashflow.title')}</h1>
         </div>
         <button
           onClick={() => setShowSettings(!showSettings)}
@@ -86,10 +88,10 @@ export default function CashFlowForecastPage() {
       {/* Settings */}
       {showSettings && (
         <GlassCard className="mb-4 border-cyan-500/20">
-          <h3 className="text-xs font-bold mb-3">Forecast Settings</h3>
+          <h3 className="text-xs font-bold mb-3">{t('cashflow.settings')}</h3>
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] text-gray-500 block mb-1">Forecast Months</label>
+              <label className="text-[10px] text-gray-500 block mb-1">{t('cashflow.forecastMonths')}</label>
               <input
                 type="range"
                 min="1"
@@ -98,7 +100,7 @@ export default function CashFlowForecastPage() {
                 onChange={(e) => handleConfigChange('forecastMonths', Number(e.target.value))}
                 className="w-full accent-cyan-400"
               />
-              <span className="text-xs text-gray-400">{config.forecastMonths} months</span>
+              <span className="text-xs text-gray-400">{t('cashflow.months', { count: config.forecastMonths })}</span>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <label className="flex items-center gap-2 text-xs text-gray-500">
@@ -107,7 +109,7 @@ export default function CashFlowForecastPage() {
                   checked={config.includeRecurring}
                   onChange={(e) => handleConfigChange('includeRecurring', e.target.checked)}
                   className="accent-cyan-400"
-                /> Recurring
+                /> {t('cashflow.includeRecurring')}
               </label>
               <label className="flex items-center gap-2 text-xs text-gray-500">
                 <input
@@ -115,7 +117,7 @@ export default function CashFlowForecastPage() {
                   checked={config.includeEmis}
                   onChange={(e) => handleConfigChange('includeEmis', e.target.checked)}
                   className="accent-cyan-400"
-                /> EMIs
+                /> {t('cashflow.includeEmis')}
               </label>
               <label className="flex items-center gap-2 text-xs text-gray-500">
                 <input
@@ -123,7 +125,7 @@ export default function CashFlowForecastPage() {
                   checked={config.includeDebts}
                   onChange={(e) => handleConfigChange('includeDebts', e.target.checked)}
                   className="accent-cyan-400"
-                /> Debts
+                /> {t('cashflow.includeDebts')}
               </label>
             </div>
           </div>
@@ -136,15 +138,15 @@ export default function CashFlowForecastPage() {
           <div className="flex items-center justify-center gap-2 mb-1">
             <div className={`w-2 h-2 rounded-full ${hc.dot}`} />
             <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">
-              Financial Health
+              {t('cashflow.financialHealth')}
             </p>
           </div>
           <p className={`text-2xl font-extrabold tabular-nums ${hc.text}`}>
             {summary.overallHealth.charAt(0).toUpperCase() + summary.overallHealth.slice(1)}
           </p>
           <div className="flex items-center justify-center gap-4 mt-2 text-[10px]">
-            <span>{summary.savingsRate}% savings rate</span>
-            <span>{summary.forecastMonths}mo forecast</span>
+            <span>{t('cashflow.savingsRate', { rate: summary.savingsRate })}</span>
+            <span>{t('cashflow.forecastMonthsLabel', { count: summary.forecastMonths })}</span>
           </div>
         </div>
       </GlassCard>
@@ -152,17 +154,17 @@ export default function CashFlowForecastPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <GlassCard>
-          <p className="text-[10px] text-gray-500 mb-0.5">Current Cash</p>
+          <p className="text-[10px] text-gray-500 mb-0.5">{t('cashflow.currentCash')}</p>
           <p className="text-sm font-bold tabular-nums">{formatCurrency(summary.currentCash)}</p>
         </GlassCard>
         <GlassCard>
-          <p className="text-[10px] text-gray-500 mb-0.5">Avg Income</p>
+          <p className="text-[10px] text-gray-500 mb-0.5">{t('cashflow.avgIncome')}</p>
           <p className="text-sm font-bold tabular-nums text-emerald-400">
             {formatCurrency(summary.avgMonthlyIncome)}
           </p>
         </GlassCard>
         <GlassCard>
-          <p className="text-[10px] text-gray-500 mb-0.5">Avg Expenses</p>
+          <p className="text-[10px] text-gray-500 mb-0.5">{t('cashflow.avgExpenses')}</p>
           <p className="text-sm font-bold tabular-nums text-red-400">
             {formatCurrency(summary.avgMonthlyExpenses)}
           </p>
@@ -177,7 +179,7 @@ export default function CashFlowForecastPage() {
           <div className="flex items-center gap-1.5 mb-2">
             <AlertTriangle size={12} className="text-orange-400" />
             <span className="text-[10px] font-semibold text-orange-400 uppercase tracking-wider">
-              Risk Alerts ({summary.riskFlags.length})
+              {t('cashflow.riskAlerts', { count: summary.riskFlags.length })}
             </span>
           </div>
           <div className="space-y-1.5">
@@ -201,7 +203,7 @@ export default function CashFlowForecastPage() {
         <div className="flex items-center gap-1.5 mb-3">
           <BarChart3 size={12} className="text-cyan-400" />
           <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
-            Income vs Expenses
+            {t('cashflow.incomeVsExpenses')}
           </span>
         </div>
         <div className="flex items-end justify-between gap-1.5 h-32">
@@ -225,17 +227,17 @@ export default function CashFlowForecastPage() {
         </div>
         <div className="flex justify-center gap-3 mt-2 text-[10px] text-gray-500">
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-sm bg-emerald-400/70" /> Income
+            <span className="w-2 h-2 rounded-sm bg-emerald-400/70" /> {t('cashflow.income')}
           </span>
           <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-sm bg-red-400/70" /> Expenses
+            <span className="w-2 h-2 rounded-sm bg-red-400/70" /> {t('cashflow.expenses')}
           </span>
         </div>
       </GlassCard>
 
       {/* Monthly Detail */}
       <div className="space-y-2">
-        <h2 className="text-xs font-semibold text-gray-400 mb-2">Monthly Projections</h2>
+        <h2 className="text-xs font-semibold text-gray-400 mb-2">{t('cashflow.monthlyProjections')}</h2>
         {forecast.months.map((m, i) => (
           <GlassCard key={i}>
             <div className="flex items-center justify-between mb-2">
@@ -249,17 +251,17 @@ export default function CashFlowForecastPage() {
             <div className="flex items-center gap-3 text-[10px]">
               <div className="flex-1">
                 <div className="flex justify-between text-gray-500 mb-0.5">
-                  <span>Income</span>
+                  <span>{t('cashflow.income')}</span>
                   <span className="text-emerald-400 font-medium tabular-nums">{formatCurrency(m.income)}</span>
                 </div>
                 <div className="flex justify-between text-gray-500">
-                  <span>Expenses</span>
+                  <span>{t('cashflow.expenses')}</span>
                   <span className="text-red-400 font-medium tabular-nums">{formatCurrency(m.expenses)}</span>
                 </div>
               </div>
               <div className="w-px h-8 bg-white/[0.06]" />
               <div className="text-right">
-                <p className="text-gray-600">Balance</p>
+                <p className="text-gray-600">{t('cashflow.balance')}</p>
                 <p className={`text-xs font-semibold tabular-nums ${
                   m.runningBalance >= 0 ? 'text-emerald-400' : 'text-red-400'
                 }`}>
@@ -270,7 +272,7 @@ export default function CashFlowForecastPage() {
 
             {/* Mini range bar */}
             <div className="mt-2 flex items-center gap-2 text-[9px] text-gray-600">
-              <span>Pess.</span>
+              <span>{t('cashflow.pessimistic')}</span>
               <div className="flex-1 h-1 rounded-full bg-matte-200 overflow-hidden relative">
                 <div
                   className="absolute h-full rounded-full bg-gradient-to-r from-orange-400 to-emerald-400"
@@ -282,7 +284,7 @@ export default function CashFlowForecastPage() {
                   }}
                 />
               </div>
-              <span>Opt.</span>
+              <span>{t('cashflow.optimistic')}</span>
             </div>
           </GlassCard>
         ))}

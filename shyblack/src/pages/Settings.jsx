@@ -112,10 +112,10 @@ export default function Settings({ onNavigate }) {
   }, [biometricState.enabled, addToast])
 
   const handleSavingsSave = () => {
-    const t = parseFloat(target) || 0
+    const targetAmt = parseFloat(target) || 0
     const s = parseFloat(saved) || 0
-    updateSavings({ target: t, saved: s })
-    addToast('Savings goal updated!', 'success')
+    updateSavings({ target: targetAmt, saved: s })
+    addToast(t('notifications.savings_goal_updated'), 'success')
   }
 
   const handleExport = async () => {

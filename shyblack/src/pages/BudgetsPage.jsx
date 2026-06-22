@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { Target, X, TrendingUp, AlertTriangle, Check, Plus, Bell, BellOff, Calendar, ChevronDown, ChevronUp, Gauge } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
 import { getBudgetHealth, getAIBudgetSuggestions, updateBudgetLimit } from '../utils/budgets'
@@ -27,6 +28,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function BudgetsPage() {
+  const { t } = useTranslation()
   const { budgets, transactions, updateBudgetLimit: updateBudgetCtx } = useFinance()
   const { addToast } = useToast()
   const [editingCat, setEditingCat] = useState(null)
@@ -114,21 +116,21 @@ export default function BudgetsPage() {
     if (editingCat) {
       const limit = parseFloat(editValue) || 0
       updateBudgetCtx(editingCat, limit)
-      addToast('Budget updated!', 'success')
+      addToast(t('budgets.budget_updated'), 'success')
       setEditingCat(null)
     }
-  }, [editingCat, editValue, updateBudgetCtx, addToast])
+  }, [editingCat, editValue, updateBudgetCtx, addToast, t])
 
   const handleApplySuggestion = (cat, amount) => {
     updateBudgetCtx(cat, amount)
-    addToast(`Budget for ${cat} updated to ${formatCurrency(amount)}`, 'success')
+    addToast(t('budgets.suggestion_applied', { category: cat, amount: formatCurrency(amount) }), 'success')
   }
 
   const handleAddBudget = () => {
     const limit = parseFloat(newCatBudget.limit) || 0
-    if (limit <= 0) { addToast('Enter a valid budget limit', 'error'); return }
+    if (limit <= 0) { addToast(t('budgets.enter_valid_limit'), 'error'); return }
     updateBudgetCtx(newCatBudget.category, limit)
-    addToast('Budget created!', 'success')
+    addToast(t('budgets.budget_created'), 'success')
     setShowAddForm(false)
     setNewCatBudget({ category: EXPENSE_CATEGORIES.find((c) => !calculatedBudgets[c.id])?.id || '', limit: '' })
   }
@@ -144,13 +146,13 @@ export default function BudgetsPage() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Target size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Budgets</h1>
+          <h1 className="text-xl font-bold">{t('budgets.title')}</h1>
         </div>
         <div className="flex gap-1.5">
           <button
             onClick={() => setShowSuggestions(!showSuggestions)}
             className="p-2 rounded-xl bg-matte-100 text-gray-400 hover:text-neon hover:bg-neon/10 transition-all"
-            title="AI Suggestions"
+            title={t('budgets.ai_suggestions')}
           >
             <TrendingUp size={16} />
           </button>
@@ -160,7 +162,7 @@ export default function BudgetsPage() {
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all"
             >
               <Plus size={14} />
-              Add
+              {t('budgets.add')}
             </button>
           )}
         </div>
@@ -172,7 +174,7 @@ export default function BudgetsPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Gauge size={14} className="text-neon" />
-              <span className="text-xs font-semibold">Budget Health</span>
+              <span className="text-xs font-semibold">{t('budgets.health')}</span>
             </div>
             <span className={`text-sm font-bold ${
               health.health >= 80 ? 'text-neon' : health.health >= 50 ? 'text-yellow-400' : 'text-red-400'
@@ -194,9 +196,9 @@ export default function BudgetsPage() {
             />
           </div>
           <div className="flex gap-3 mt-2 text-[10px]">
-            <span className="text-gray-500">{budgetCount} budgets set</span>
-            {overCount > 0 && <span className="text-red-400 font-medium">{overCount} over</span>}
-            {warnCount > 0 && <span className="text-yellow-400 font-medium">{warnCount} near limit</span>}
+            <span className="text-gray-500">{t('budgets.set_count', { count: budgetCount })}</span>
+            {overCount > 0 && <span className="text-red-400 font-medium">{t('budgets.over_count', { count: overCount })}</span>}
+            {warnCount > 0 && <span className="text-yellow-400 font-medium">{t('budgets.near_limit_count', { count: warnCount })}</span>}
           </div>
         </GlassCard>
       )}
@@ -212,7 +214,7 @@ export default function BudgetsPage() {
                 viewMode === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
               }`}
             >
-              {v === 'current' ? 'Current Month' : 'Performance'}
+              {v === 'current' ? t('budgets.current_month') : t('budgets.performance')}
             </button>
           ))}
         </div>
@@ -224,7 +226,7 @@ export default function BudgetsPage() {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} className="text-neon" />
-              <h2 className="text-sm font-semibold">AI Budget Suggestions</h2>
+              <h2 className="text-sm font-semibold">{t('budgets.ai_suggestions')}</h2>
             </div>
             <button onClick={() => setShowSuggestions(false)} className="text-gray-500 hover:text-white">
               <X size={14} />
@@ -257,7 +259,7 @@ export default function BudgetsPage() {
       {showAddForm && inactiveCategories.length > 0 && (
         <GlassCard className="mb-4 border-neon/20">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold">Add Budget</h2>
+            <h2 className="text-sm font-semibold">{t('budgets.add')}</h2>
             <button onClick={() => setShowAddForm(false)} className="text-gray-500 hover:text-white">
               <X size={14} />
             </button>
@@ -277,10 +279,10 @@ export default function BudgetsPage() {
               inputMode="numeric"
               value={newCatBudget.limit}
               onChange={(e) => setNewCatBudget((f) => ({ ...f, limit: e.target.value.replace(/\D/g, '') }))}
-              placeholder="Monthly limit"
+              placeholder={t('budgets.monthly_limit')}
               className="input-field text-lg font-bold tabular-nums"
             />
-            <button onClick={handleAddBudget} className="w-full btn-primary text-sm">Create Budget</button>
+            <button onClick={handleAddBudget} className="w-full btn-primary text-sm">{t('budgets.create')}</button>
           </div>
         </GlassCard>
       )}
@@ -290,7 +292,7 @@ export default function BudgetsPage() {
         <GlassCard brand className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <Calendar size={14} className="text-neon" />
-            <h2 className="text-sm font-semibold">Monthly Performance</h2>
+            <h2 className="text-sm font-semibold">{t('budgets.monthly_performance')}</h2>
           </div>
           <div className="h-36 -mx-1">
             <ResponsiveContainer width="100%" height="100%">
@@ -298,14 +300,14 @@ export default function BudgetsPage() {
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 10 }} />
                 <YAxis hide />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                <Bar dataKey="budget" fill="#39ff14" radius={[3, 3, 0, 0]} maxBarSize={12} name="Budget" />
-                <Bar dataKey="actual" fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={12} name="Actual" />
+                <Bar dataKey="budget" fill="#39ff14" radius={[3, 3, 0, 0]} maxBarSize={12} name={t('budgets.budget_label')} />
+                <Bar dataKey="actual" fill="#ef4444" radius={[3, 3, 0, 0]} maxBarSize={12} name={t('budgets.actual_label')} />
               </BarChart>
             </ResponsiveContainer>
           </div>
           <div className="flex items-center justify-center gap-4 mt-2 text-[10px] text-gray-500">
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-neon" /> Budget</span>
-            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-400" /> Actual</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-neon" /> {t('budgets.budget_label')}</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded bg-red-400" /> {t('budgets.actual_label')}</span>
           </div>
         </GlassCard>
       )}
@@ -315,12 +317,12 @@ export default function BudgetsPage() {
         <GlassCard>
           <EmptyState
             icon={Target}
-            title="No budgets set"
-            description="Set spending limits for each expense category to stay on track"
+            title={t('budgets.no_budgets')}
+            description={t('budgets.no_budgets_desc')}
             action={
               inactiveCategories.length > 0 ? (
                 <button onClick={() => setShowAddForm(true)} className="btn-primary text-xs !px-4 !py-2">
-                  Create Budget
+                  {t('budgets.create')}
                 </button>
               ) : null
             }
@@ -370,7 +372,7 @@ export default function BudgetsPage() {
                           onClick={() => handleEdit(cat.id)}
                           className="text-xs text-gray-500 hover:text-white transition-colors"
                         >
-                          Edit
+                          {t('common.edit')}
                         </button>
                       )}
                     </div>
@@ -418,12 +420,12 @@ export default function BudgetsPage() {
                   )}
                   {budget.lastSpent > 0 && (
                     <span className="text-[10px] text-gray-600">
-                      Last month: {formatCurrency(budget.lastSpent)}
+                      {t('budgets.last_month_label', { amount: formatCurrency(budget.lastSpent) })}
                     </span>
                   )}
                   {budget.remaining > 0 && budget.limit > 0 && !budget.isOver && (
                     <span className="text-[10px] text-gray-600">
-                      {formatCurrency(budget.remaining)} left
+                      {t('budgets.remaining_label', { amount: formatCurrency(budget.remaining) })}
                     </span>
                   )}
                 </div>
@@ -433,7 +435,7 @@ export default function BudgetsPage() {
                   <div className="mt-3 pt-3 border-t border-glass-border space-y-2 animate-fade-in">
                     {budget.limit > 0 && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">Daily avg</span>
+                        <span className="text-gray-500">{t('budgets.daily_avg')}</span>
                         <span className="font-medium tabular-nums">
                           {formatCurrency(Math.round(budget.spent / Math.max(1, new Date().getDate())))}
                         </span>
@@ -442,30 +444,30 @@ export default function BudgetsPage() {
                     {budget.limit > 0 && budget.isOver && (
                       <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 rounded-lg p-2">
                         <AlertTriangle size={12} />
-                        <span>Over budget by {formatCurrency(budget.spent - budget.limit)}</span>
+                        <span>{t('budgets.over_by', { amount: formatCurrency(budget.spent - budget.limit) })}</span>
                       </div>
                     )}
                     {budget.limit > 0 && budget.isWarning && !budget.isOver && (
                       <div className="flex items-center gap-1.5 text-xs text-yellow-400 bg-yellow-500/10 rounded-lg p-2">
                         <Bell size={12} />
-                        <span>Only {formatCurrency(budget.remaining)} remaining ({Math.round(100 - budget.percent)}% left)</span>
+                        <span>{t('budgets.only_remaining', { amount: formatCurrency(budget.remaining), percent: Math.round(100 - budget.percent) })}</span>
                       </div>
                     )}
                     {budget.limit > 0 && !budget.isOver && !budget.isWarning && budget.remaining > 0 && (
                       <div className="flex items-center gap-1.5 text-xs text-neon/70 bg-neon/5 rounded-lg p-2">
                         <Check size={12} />
-                        <span>On track — {formatCurrency(budget.remaining)} remaining</span>
+                        <span>{t('budgets.on_track', { amount: formatCurrency(budget.remaining) })}</span>
                       </div>
                     )}
                     {budget.lastSpent > 0 && (
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-gray-500">vs last month</span>
+                        <span className="text-gray-500">{t('budgets.vs_last_month')}</span>
                         <span className={`font-medium tabular-nums ${
                           budget.spent <= budget.lastSpent ? 'text-neon' : 'text-red-400'
                         }`}>
                           {budget.lastSpent > 0
                             ? `${((budget.spent - budget.lastSpent) / budget.lastSpent * 100).toFixed(0)}%`
-                            : 'N/A'}
+                            : t('common.na')}
                         </span>
                       </div>
                     )}

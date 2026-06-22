@@ -3,6 +3,7 @@ import {
   TrendingUp, TrendingDown, BarChart3, Target,
   Activity, Heart, DollarSign, PieChart,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { getStoredNetWorthHistory } from '../utils/networth'
@@ -10,22 +11,23 @@ import { buildTimeline, getTimelineInsights, getPeriodTrend } from '../utils/fin
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
-const PERIODS = [
-  { id: '3m', label: '3M' },
-  { id: '6m', label: '6M' },
-  { id: '1y', label: '1Y' },
+const PERIODS = (t) => [
+  { id: '3m', label: t('timeline.period3m') },
+  { id: '6m', label: t('timeline.period6m') },
+  { id: '1y', label: t('timeline.period1y') },
 ]
 
-const TABS = [
-  { id: 'netWorth', label: 'Net Worth', icon: BarChart3, color: 'text-neon' },
-  { id: 'income', label: 'Income vs Expenses', icon: Activity, color: 'text-emerald-400' },
-  { id: 'health', label: 'Health Score', icon: Heart, color: 'text-pink-400' },
-  { id: 'savings', label: 'Savings Rate', icon: DollarSign, color: 'text-blue-400' },
-  { id: 'debt', label: 'Debt', icon: TrendingDown, color: 'text-red-400' },
-  { id: 'goals', label: 'Goals', icon: Target, color: 'text-purple-400' },
+const TABS = (t) => [
+  { id: 'netWorth', label: t('timeline.tabNetWorth'), icon: BarChart3, color: 'text-neon' },
+  { id: 'income', label: t('timeline.tabIncomeVsExpenses'), icon: Activity, color: 'text-emerald-400' },
+  { id: 'health', label: t('timeline.tabHealthScore'), icon: Heart, color: 'text-pink-400' },
+  { id: 'savings', label: t('timeline.tabSavingsRate'), icon: DollarSign, color: 'text-blue-400' },
+  { id: 'debt', label: t('timeline.tabDebt'), icon: TrendingDown, color: 'text-red-400' },
+  { id: 'goals', label: t('timeline.tabGoals'), icon: Target, color: 'text-purple-400' },
 ]
 
 export default function FinancialTimelinePage() {
+  const { t } = useTranslation()
   const { transactions, debts, goals, savingsGoal, budgets } = useFinance()
   const [activeTab, setActiveTab] = useState('netWorth')
   const [period, setPeriod] = useState('1y')
@@ -69,7 +71,9 @@ export default function FinancialTimelinePage() {
     return Math.max(1, ...chartData.map((d) => Math.abs(d.value || 0)))
   }, [chartData, activeTab])
 
-  const colors = TABS.find((t) => t.id === activeTab)?.color || 'text-neon'
+  const tabs = useMemo(() => TABS(t), [t])
+  const periods = useMemo(() => PERIODS(t), [t])
+  const colors = tabs.find((tab) => tab.id === activeTab)?.color || 'text-neon'
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -77,7 +81,7 @@ export default function FinancialTimelinePage() {
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-neon/20 to-purple-500/20 flex items-center justify-center">
           <PieChart size={18} className="text-neon" />
         </div>
-        <h1 className="text-xl font-bold">Financial Timeline</h1>
+        <h1 className="text-xl font-bold">{t('timeline.title')}</h1>
       </div>
 
       {/* Insights Cards */}
@@ -96,7 +100,7 @@ export default function FinancialTimelinePage() {
 
       {/* Period Selector */}
       <div className="flex bg-matte-100 rounded-lg p-0.5 mb-4">
-        {PERIODS.map((p) => (
+        {periods.map((p) => (
           <button
             key={p.id}
             onClick={() => setPeriod(p.id)}
@@ -111,7 +115,7 @@ export default function FinancialTimelinePage() {
 
       {/* Tab Selector */}
       <div className="flex gap-1.5 mb-4 overflow-x-auto scrollbar-none">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
@@ -130,14 +134,14 @@ export default function FinancialTimelinePage() {
       {/* Bar Chart */}
       <GlassCard className="mb-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-xs font-semibold">{TABS.find((t) => t.id === activeTab)?.label || activeTab}</h2>
+          <h2 className="text-xs font-semibold">{tabs.find((tab) => tab.id === activeTab)?.label || activeTab}</h2>
         </div>
 
         {chartData.length === 0 ? (
           <EmptyState
             icon={BarChart3}
-            title="No data yet"
-            description="Add transactions to see your financial timeline"
+            title={t('timeline.noDataYet')}
+            description={t('timeline.noDataDescription')}
           />
         ) : (
           <>
@@ -189,8 +193,8 @@ export default function FinancialTimelinePage() {
             {/* Legend for income tab */}
             {activeTab === 'income' && (
               <div className="flex justify-center gap-3 mt-2 text-[10px] text-gray-500">
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400/70" /> Income</span>
-                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400/70" /> Expenses</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-emerald-400/70" /> {t('timeline.income')}</span>
+                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm bg-red-400/70" /> {t('timeline.expenses')}</span>
               </div>
             )}
           </>
@@ -199,10 +203,10 @@ export default function FinancialTimelinePage() {
 
       {/* Data Table */}
       <div className="space-y-1.5">
-        <h2 className="text-xs font-semibold text-gray-400 mb-2">Monthly Breakdown</h2>
+        <h2 className="text-xs font-semibold text-gray-400 mb-2">{t('timeline.monthlyBreakdown')}</h2>
         {chartData.length === 0 ? (
           <GlassCard>
-            <EmptyState icon={BarChart3} title="No data" description="Add transactions to populate" />
+            <EmptyState icon={BarChart3} title={t('timeline.noData')} description={t('timeline.addTransactionsToPopulate')} />
           </GlassCard>
         ) : (
           chartData.map((d, i) => (

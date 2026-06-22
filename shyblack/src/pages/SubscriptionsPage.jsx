@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react'
 import { Repeat2, Plus, Trash2, Smartphone, CheckCircle2, XCircle, Calendar, AlertTriangle, ChevronRight } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
@@ -10,18 +11,19 @@ import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
 import Modal from '../components/Modal'
 
-const BILLING_CYCLES = [
-  { id: 'monthly', label: 'Monthly' },
-  { id: 'yearly', label: 'Yearly' },
-  { id: 'weekly', label: 'Weekly' },
-]
-
 export default function SubscriptionsPage() {
+  const { t } = useTranslation()
   const { recurring, addRecurring, removeRecurring, transactions } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [form, setForm] = useState({ name: '', amount: '', category: 'subscription', billingCycle: 'monthly', renewalDate: '', autoDebit: true })
+
+  const BILLING_CYCLES = [
+    { id: 'monthly', label: t('subscriptions.monthly') },
+    { id: 'yearly', label: t('subscriptions.yearly') },
+    { id: 'weekly', label: t('subscriptions.weekly') },
+  ]
 
   const summary = useMemo(() => getSubscriptionSummary(recurring), [recurring])
 
@@ -36,8 +38,8 @@ export default function SubscriptionsPage() {
   const handleSave = useCallback(() => {
     const name = form.name.trim()
     const amount = parseFloat(form.amount)
-    if (!name) { addToast('Enter a subscription name', 'error'); return }
-    if (!amount || amount <= 0) { addToast('Enter a valid amount', 'error'); return }
+    if (!name) { addToast(t('subscriptions.toastNameRequired'), 'error'); return }
+    if (!amount || amount <= 0) { addToast(t('subscriptions.toastAmountRequired'), 'error'); return }
 
     addRecurring({
       type: 'expense',
@@ -54,9 +56,9 @@ export default function SubscriptionsPage() {
       autoDebit: form.autoDebit,
     })
 
-    addToast('Subscription added', 'success')
+    addToast(t('subscriptions.toastAdded'), 'success')
     setShowAddModal(false)
-  }, [form, addRecurring, addToast])
+  }, [form, addRecurring, addToast, t])
 
   const subscriptions = useMemo(() => {
     return recurring.filter((r) => r.source === 'subscription' || r.subscriptionName)
@@ -68,9 +70,9 @@ export default function SubscriptionsPage() {
   const toggleActive = useCallback((id, current) => {
     removeRecurring(id)
     if (current !== false) {
-      addToast('Subscription paused', 'info')
+      addToast(t('subscriptions.toastPaused'), 'info')
     }
-  }, [removeRecurring, addToast])
+  }, [removeRecurring, addToast, t])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -79,22 +81,22 @@ export default function SubscriptionsPage() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Repeat2 size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Subscriptions</h1>
+          <h1 className="text-xl font-bold">{t('subscriptions.title')}</h1>
         </div>
         <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all">
           <Plus size={14} />
-          Add
+          {t('subscriptions.add')}
         </button>
       </div>
 
       {subscriptions.length > 0 && (
         <div className="grid grid-cols-2 gap-2.5 mb-5">
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Active</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('subscriptions.active')}</p>
             <p className="text-lg font-extrabold tabular-nums">{summary.activeSubs}</p>
           </GlassCard>
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Monthly Total</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('subscriptions.monthlyTotal')}</p>
             <p className="text-lg font-extrabold text-neon tabular-nums">{formatCurrency(summary.totalMonthly)}</p>
           </GlassCard>
         </div>
@@ -103,15 +105,15 @@ export default function SubscriptionsPage() {
       {subscriptions.length === 0 && (
         <EmptyState
           icon={Repeat2}
-          title="No subscriptions"
-          description="Track Netflix, Spotify, gym, and other recurring payments"
-          action={<button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">Add First Subscription</button>}
+          title={t('subscriptions.emptyTitle')}
+          description={t('subscriptions.emptyDescription')}
+          action={<button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">{t('subscriptions.addFirst')}</button>}
         />
       )}
 
       {activeSubs.length > 0 && (
         <div className="space-y-2">
-          <h2 className="text-xs font-semibold text-gray-500 mb-2">Active</h2>
+          <h2 className="text-xs font-semibold text-gray-500 mb-2">{t('subscriptions.active')}</h2>
           {activeSubs.map((s) => (
             <GlassCard key={s.id}>
               <div className="flex items-center gap-3">
@@ -122,15 +124,15 @@ export default function SubscriptionsPage() {
                   <p className="text-sm font-semibold">{s.subscriptionName || s.note || s.category}</p>
                   <p className="text-xs text-gray-500">
                     {formatCurrency(s.amount)}/{s.billingCycle || s.frequency}
-                    {s.autoDebit && ' · Auto-debit'}
-                    {s.renewalDate && ` · Next: ${new Date(s.renewalDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
+                    {s.autoDebit && ` · ${t('subscriptions.autoDebit')}`}
+                    {s.renewalDate && ` · ${t('subscriptions.next')} ${new Date(s.renewalDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`}
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => toggleActive(s.id, s.active)} className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all" title="Pause">
+                  <button onClick={() => toggleActive(s.id, s.active)} className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all" title={t('subscriptions.pause')}>
                     <XCircle size={14} />
                   </button>
-                  <button onClick={() => setDeleteTarget(s.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title="Delete">
+                  <button onClick={() => setDeleteTarget(s.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title={t('subscriptions.delete')}>
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -144,7 +146,7 @@ export default function SubscriptionsPage() {
         <div className="space-y-2 mt-5">
           <h2 className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1.5">
             <AlertTriangle size={12} />
-            Inactive
+            {t('subscriptions.inactive')}
           </h2>
           {inactiveSubs.map((s) => (
             <GlassCard key={s.id} className="opacity-60">
@@ -165,18 +167,18 @@ export default function SubscriptionsPage() {
         </div>
       )}
 
-      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Subscription">
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title={t('subscriptions.addSubscriptionModal')}>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Subscription Name</label>
-            <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder="e.g. Netflix, Spotify..." className="input-field" maxLength={50} autoFocus />
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('subscriptions.name')}</label>
+            <input type="text" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} placeholder={t('subscriptions.namePlaceholder')} className="input-field" maxLength={50} autoFocus />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Amount</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('subscriptions.amount')}</label>
             <input type="text" inputMode="numeric" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value.replace(/\D/g, '') }))} placeholder="0" className="input-field text-lg font-bold tabular-nums" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Billing Cycle</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('subscriptions.billingCycle')}</label>
             <div className="flex gap-2">
               {BILLING_CYCLES.map((bc) => (
                 <button
@@ -193,7 +195,7 @@ export default function SubscriptionsPage() {
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Next Renewal Date</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('subscriptions.nextRenewal')}</label>
             <input type="date" value={form.renewalDate} onChange={(e) => setForm((f) => ({ ...f, renewalDate: e.target.value }))} className="input-field" />
           </div>
           <div className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03]">
@@ -205,13 +207,13 @@ export default function SubscriptionsPage() {
               <Smartphone size={16} />
             </button>
             <div className="flex-1">
-              <p className="text-xs font-medium">Auto-debit</p>
-              <p className="text-[11px] text-gray-500">Amount is auto-debited each cycle</p>
+              <p className="text-xs font-medium">{t('subscriptions.autoDebit')}</p>
+              <p className="text-[11px] text-gray-500">{t('subscriptions.autoDebitDescription')}</p>
             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!form.name.trim() || !form.amount} className="flex-1 btn-primary text-sm">Add</button>
-            <button onClick={() => setShowAddModal(false)} className="flex-1 btn-secondary text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={!form.name.trim() || !form.amount} className="flex-1 btn-primary text-sm">{t('subscriptions.add')}</button>
+            <button onClick={() => setShowAddModal(false)} className="flex-1 btn-secondary text-sm">{t('subscriptions.cancel')}</button>
           </div>
         </div>
       </Modal>
@@ -219,11 +221,11 @@ export default function SubscriptionsPage() {
       <ConfirmationModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => { removeRecurring(deleteTarget); addToast('Deleted', 'info'); setDeleteTarget(null) }}
-        title="Delete Subscription?"
-        description="This will permanently remove this subscription."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        onConfirm={() => { removeRecurring(deleteTarget); addToast(t('subscriptions.toastDeleted'), 'info'); setDeleteTarget(null) }}
+        title={t('subscriptions.deleteConfirmTitle')}
+        description={t('subscriptions.deleteConfirmDescription')}
+        confirmLabel={t('subscriptions.delete')}
+        cancelLabel={t('subscriptions.cancel')}
         danger
       />
     </div>

@@ -4,6 +4,7 @@ import {
   ChevronRight, TrendingUp, TrendingDown, FolderOpen, Wallet,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
 import { getArchivedTransactions, getArchiveStats } from '../utils/archiveEngine'
@@ -15,14 +16,14 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
 const SEARCH_TABS = [
-  { id: 'all', label: 'All' },
-  { id: 'transactions', label: 'Transactions' },
-  { id: 'debts', label: 'Debts' },
-  { id: 'goals', label: 'Goals' },
-  { id: 'emis', label: 'EMIs' },
-  { id: 'transfers', label: 'Transfers' },
-  { id: 'documents', label: 'Documents' },
-  { id: 'accounts', label: 'Accounts' },
+  { id: 'all', label: 'search.tabAll' },
+  { id: 'transactions', label: 'search.tabTransactions' },
+  { id: 'debts', label: 'search.tabDebts' },
+  { id: 'goals', label: 'search.tabGoals' },
+  { id: 'emis', label: 'search.tabEmis' },
+  { id: 'transfers', label: 'search.tabTransfers' },
+  { id: 'documents', label: 'search.tabDocuments' },
+  { id: 'accounts', label: 'search.tabAccounts' },
 ]
 
 function useDebounce(value, delay) {
@@ -35,6 +36,7 @@ function useDebounce(value, delay) {
 }
 
 export default function SearchPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { transactions, debts, goals } = useFinance()
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
@@ -154,13 +156,13 @@ export default function SearchPage({ onNavigate }) {
         <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
           <Search size={18} className="text-blue-400" />
         </div>
-        <h1 className="text-xl font-bold">Search</h1>
+        <h1 className="text-xl font-bold">{t('search.title')}</h1>
       </div>
 
       {archiveStats.count > 0 && (
         <GlassCard className="mb-3 !p-2">
           <p className="text-[10px] text-gray-500 text-center">
-            {archiveStats.count} archived transactions available in search
+            {t('search.archivedCount', { count: archiveStats.count })}
           </p>
         </GlassCard>
       )}
@@ -170,7 +172,7 @@ export default function SearchPage({ onNavigate }) {
         <input
           ref={inputRef}
           type="text"
-          placeholder="Search transactions, debts, goals..."
+          placeholder={t('search.placeholder')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           className="w-full bg-matte-200 rounded-xl pl-9 pr-9 py-2.5 text-sm placeholder-gray-600 border border-white/[0.06] focus:border-blue-400/30 focus:outline-none transition-all"
@@ -192,56 +194,56 @@ export default function SearchPage({ onNavigate }) {
           }`}
         >
           <Filter size={12} />
-          Filters
+          {t('search.filters')}
         </button>
         {hasActiveFilters && (
           <button onClick={clearFilters} className="text-[10px] text-gray-600 hover:text-white transition-all">
-            Clear all
+            {t('search.clearAll')}
           </button>
         )}
-        <span className="text-[10px] text-gray-600 ml-auto">{searchResults.total} results</span>
+        <span className="text-[10px] text-gray-600 ml-auto">{t('search.results', { count: searchResults.total })}</span>
       </div>
 
       {showFilters && (
         <GlassCard className="mb-3 border-blue-500/20 !p-3">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Date From</label>
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.dateFrom')}</label>
               <input type="date" value={filters.dateFrom} onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
             </div>
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Date To</label>
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.dateTo')}</label>
               <input type="date" value={filters.dateTo} onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
             </div>
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Type</label>
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.type')}</label>
               <select value={filters.type} onChange={(e) => setFilters({ ...filters, type: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none">
-                <option value="">All</option>
-                <option value="income">Income</option>
-                <option value="expense">Expense</option>
+                <option value="">{t('search.all')}</option>
+                <option value="income">{t('search.income')}</option>
+                <option value="expense">{t('search.expense')}</option>
               </select>
             </div>
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Category</label>
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.category')}</label>
               <select value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none">
-                <option value="">All</option>
+                <option value="">{t('search.all')}</option>
                 {ALL_CATEGORIES.map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Min Amount</label>
-              <input type="number" placeholder="0" value={filters.minAmount} onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.minAmount')}</label>
+              <input type="number" placeholder={t('search.minPlaceholder')} value={filters.minAmount} onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
             </div>
             <div>
-              <label className="text-[9px] text-gray-600 block mb-0.5">Max Amount</label>
-              <input type="number" placeholder="∞" value={filters.maxAmount} onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
+              <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.maxAmount')}</label>
+              <input type="number" placeholder={t('search.maxPlaceholder')} value={filters.maxAmount} onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
             </div>
           </div>
@@ -259,24 +261,24 @@ export default function SearchPage({ onNavigate }) {
                 : 'text-gray-500 hover:text-white'
             }`}
           >
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
 
       {searchResults.total === 0 && debouncedQuery ? (
         <GlassCard>
-          <EmptyState icon={Search} title="No results" description="Try different search terms or filters" />
+          <EmptyState icon={Search} title={t('search.noResults')} description={t('search.noResultsHint')} />
         </GlassCard>
       ) : searchResults.total === 0 && !debouncedQuery ? (
         <GlassCard>
-          <EmptyState icon={Search} title="Search all your data" description="Type to search transactions, debts, goals, EMIs, transfers, documents, and accounts" />
+          <EmptyState icon={Search} title={t('search.searchAll')} description={t('search.searchAllHint')} />
         </GlassCard>
       ) : (
         <div className="space-y-2">
           {(activeTab === 'all' || activeTab === 'transactions') && searchResults.transactions.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">Transactions</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider">{t('search.sectionTransactions')}</p>}
               {searchResults.transactions.map((t) => (
                 <GlassCard key={t.id}>
                   <div className="flex items-center gap-3">
@@ -298,7 +300,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'debts') && searchResults.debts.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Debts</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionDebts')}</p>}
               {searchResults.debts.map((d) => (
                 <GlassCard key={d.id}>
                   <div className="flex items-center gap-3">
@@ -311,7 +313,7 @@ export default function SearchPage({ onNavigate }) {
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold tabular-nums">{formatCurrency(d.remainingAmount)}</p>
-                      <p className="text-[10px] text-gray-600">of {formatCurrency(d.amount)}</p>
+                      <p className="text-[10px] text-gray-600">{t('search.of', { amount: formatCurrency(d.amount) })}</p>
                     </div>
                   </div>
                 </GlassCard>
@@ -321,7 +323,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'goals') && searchResults.goals.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Goals</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionGoals')}</p>}
               {searchResults.goals.map((g) => (
                 <GlassCard key={g.id}>
                   <div className="flex items-center gap-3">
@@ -330,11 +332,11 @@ export default function SearchPage({ onNavigate }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{g.name}</p>
-                      <p className="text-[10px] text-gray-500">{g.category || 'Goal'}</p>
+                      <p className="text-[10px] text-gray-500">{g.category || t('search.defaultGoal')}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-xs font-semibold tabular-nums">{formatCurrency(g.saved || 0)}</p>
-                      <p className="text-[10px] text-gray-600">of {formatCurrency(g.target)}</p>
+                      <p className="text-[10px] text-gray-600">{t('search.of', { amount: formatCurrency(g.target) })}</p>
                     </div>
                   </div>
                 </GlassCard>
@@ -344,7 +346,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'emis') && searchResults.emis.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">EMIs</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionEmis')}</p>}
               {searchResults.emis.map((e) => (
                 <GlassCard key={e.id}>
                   <div className="flex items-center gap-3">
@@ -353,9 +355,9 @@ export default function SearchPage({ onNavigate }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{e.name}</p>
-                      <p className="text-[10px] text-gray-500">{e.lender || 'EMI'} · {e.remainingMonths || 0}mo left</p>
+                      <p className="text-[10px] text-gray-500">{e.lender || t('search.defaultEmi')} · {t('search.monthsLeft', { count: e.remainingMonths || 0 })}</p>
                     </div>
-                    <p className="text-xs font-semibold tabular-nums">{formatCurrency(e.amount)}/mo</p>
+                    <p className="text-xs font-semibold tabular-nums">{formatCurrency(e.amount)}{t('search.perMonth')}</p>
                   </div>
                 </GlassCard>
               ))}
@@ -364,7 +366,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'transfers') && searchResults.transfers.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Transfers</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionTransfers')}</p>}
               {searchResults.transfers.map((t) => (
                 <GlassCard key={t.id}>
                   <div className="flex items-center gap-3">
@@ -372,7 +374,7 @@ export default function SearchPage({ onNavigate }) {
                       <ArrowUpDown size={14} className="text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{t.fromName || 'Account'} → {t.toName || 'Account'}</p>
+                      <p className="text-xs font-medium truncate">{t.fromName || t('search.defaultAccount')} → {t.toName || t('search.defaultAccount')}</p>
                       <p className="text-[10px] text-gray-500">{formatDate(t.date)}</p>
                     </div>
                     <p className="text-xs font-semibold tabular-nums text-amber-400">{formatCurrency(t.amount)}</p>
@@ -384,7 +386,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'documents') && searchResults.documents.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Documents</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionDocuments')}</p>}
               {searchResults.documents.map((d) => (
                 <GlassCard key={d.id}>
                   <div className="flex items-center gap-3">
@@ -393,7 +395,7 @@ export default function SearchPage({ onNavigate }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{d.title}</p>
-                      <p className="text-[10px] text-gray-500">{d.category || 'Document'} · {d.type || 'file'}</p>
+                      <p className="text-[10px] text-gray-500">{d.category || t('search.defaultDocument')} · {d.type || t('search.defaultFile')}</p>
                     </div>
                     <p className="text-[10px] text-gray-500">{formatDate(d.date || d.createdAt)}</p>
                   </div>
@@ -404,7 +406,7 @@ export default function SearchPage({ onNavigate }) {
 
           {(activeTab === 'all' || activeTab === 'accounts') && searchResults.accounts.length > 0 && (
             <>
-              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">Accounts</p>}
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionAccounts')}</p>}
               {searchResults.accounts.map((a) => (
                 <GlassCard key={a.id}>
                   <div className="flex items-center gap-3">
@@ -413,7 +415,7 @@ export default function SearchPage({ onNavigate }) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-medium truncate">{a.name}</p>
-                      <p className="text-[10px] text-gray-500">{a.type || 'Account'} · {a.institution || ''}</p>
+                      <p className="text-[10px] text-gray-500">{a.type || t('search.defaultAccount')} · {a.institution || ''}</p>
                     </div>
                     <p className="text-xs font-semibold tabular-nums text-cyan-400">{formatCurrency(a.balance || 0)}</p>
                   </div>
