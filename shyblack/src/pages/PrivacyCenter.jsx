@@ -1,10 +1,15 @@
-import { Shield, ChevronRight } from 'lucide-react'
+import { Shield, ChevronLeft, ChevronRight } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 
-export default function PrivacyCenter() {
+export default function PrivacyCenter({ onNavigate }) {
   return (
     <div className="p-4 max-w-lg mx-auto pb-24">
       <div className="flex items-center gap-3 mb-5">
+        {onNavigate && (
+          <button onClick={() => onNavigate('settings')} className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.05] transition-all">
+            <ChevronLeft size={18} />
+          </button>
+        )}
         <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
           <Shield size={18} className="text-neon" />
         </div>

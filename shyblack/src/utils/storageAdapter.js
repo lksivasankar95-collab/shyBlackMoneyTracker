@@ -40,7 +40,13 @@ class LocalStorageAdapter {
   }
 
   set(key, value) {
-    const serialized = JSON.stringify(value)
+    let serialized
+    try {
+      serialized = JSON.stringify(value)
+    } catch (err) {
+      console.error('[StorageAdapter] Serialization failed for key', key, err)
+      return false
+    }
     try {
       localStorage.setItem(this._prefixKey(key), serialized)
       return true
@@ -99,14 +105,11 @@ class LocalStorageAdapter {
   }
 
   _getAllPrefixedKeys() {
-    const result = []
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i)
-      if (key && key.startsWith(this._prefix)) {
-        result.push(key)
-      }
+    try {
+      return Object.keys(localStorage).filter((k) => k && k.startsWith(this._prefix))
+    } catch {
+      return []
     }
-    return result
   }
 
   _isQuotaError(error) {
@@ -118,11 +121,10 @@ class LocalStorageAdapter {
 
   _handleQuotaError(skipKey, serialized) {
     // Only purge fully-rebuildable cache data. Never purge user-created data
-    // (tags, templates) or critical backup data.
+    // (tags, templates), critical backup data, or the snapshot recovery chain.
     const purgeOrder = [
       `${this._prefix}search_idx`,
       `${this._prefix}budget_notif`,
-      `${this._prefix}snapshot_chain`,
     ]
     const targetKey = this._prefixKey(skipKey)
     for (const purgeKey of purgeOrder) {

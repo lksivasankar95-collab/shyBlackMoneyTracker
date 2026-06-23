@@ -36,7 +36,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
   }, [])
 
   useEffect(() => {
-    if (bioAvailable && !bioAttempted) {
+    if (bioAvailable && !bioAttempted && !requiresReset && cooldown === 0) {
       setBioAttempted(true)
       tryBiometricUnlock().then((result) => {
         if (result.unlocked) {
@@ -45,7 +45,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         }
       })
     }
-  }, [bioAvailable, bioAttempted, onUnlock])
+  }, [bioAvailable, bioAttempted, requiresReset, cooldown, onUnlock])
 
   const handleBiometricUnlock = useCallback(async () => {
     const result = await tryBiometricUnlock()

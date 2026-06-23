@@ -251,16 +251,18 @@ export default function DebtsPage({ onNavigate }) {
             </button>
           )}
         </div>
-        <select
-          value={sortKey}
-          onChange={(e) => setSortKey(e.target.value)}
-          className="bg-matte-200 rounded-lg px-2 py-2 text-xs border border-white/[0.06] focus:border-neon/30 focus:outline-none transition-all appearance-none"
-        >
-          <ArrowUpDown size={13} className="text-gray-600" />
-          {SORT_OPTIONS_LIST.map((o) => (
-            <option key={o.id} value={o.id}>{t(o.label)}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <ArrowUpDown size={13} className="text-gray-600 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value)}
+            className="bg-matte-200 rounded-lg pl-6 pr-2 py-2 text-xs border border-white/[0.06] focus:border-neon/30 focus:outline-none transition-all appearance-none"
+          >
+            {SORT_OPTIONS_LIST.map((o) => (
+              <option key={o.id} value={o.id}>{t(o.label)}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Type + Status filter chips */}
@@ -484,7 +486,7 @@ export default function DebtsPage({ onNavigate }) {
               value={payModal.amount}
               onChange={(e) => {
                 const v = e.target.value
-                if (v === '' || /^\d+$/.test(v)) setPayModal({ ...payModal, amount: v })
+                if (v === '' || /^\d*\.?\d*$/.test(v)) setPayModal({ ...payModal, amount: v })
               }}
               placeholder={t('debts.enter_amount')}
               className="input-field text-lg font-bold tabular-nums mb-2"

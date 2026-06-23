@@ -22,7 +22,7 @@ export default function BottomNav({ active, onNavigate }) {
             return (
               <button
                 key={item.id}
-                onClick={() => onNavigate(item.id)}
+                onClick={() => onNavigate?.(item.id)}
                 className="relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all duration-200 min-w-[64px] min-h-[44px] justify-center group"
               >
                 {isActive && (

@@ -119,13 +119,13 @@ export function runMigrations() {
     try {
       SCHEMA_MIGRATIONS[version]()
       lastVersion = version
+      setSchemaVersion(version)
     } catch (error) {
       return { migrated: false, from: currentVersion, to: lastVersion, error: error.message }
     }
   }
 
-  setSchemaVersion(APP_SCHEMA_VERSION)
-  return { migrated: migrationKeys.length > 0, from: currentVersion, to: APP_SCHEMA_VERSION }
+  return { migrated: migrationKeys.length > 0, from: currentVersion, to: lastVersion }
 }
 
 export function isMigrationNeeded() {

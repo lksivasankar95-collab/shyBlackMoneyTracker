@@ -146,7 +146,7 @@ export function calculateCashFlowForecast({
     })
   }
 
-  const avgNet = months.reduce((s, m) => s + m.netCashflow, 0) / months.length
+  const avgNet = months.length > 0 ? months.reduce((s, m) => s + m.netCashflow, 0) / months.length : 0
   let overallHealth = 'stable'
   if (months.some((m) => m.runningBalance < 0)) {
     overallHealth = 'critical'

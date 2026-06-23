@@ -12,7 +12,7 @@ const MERCHANT_MAP = [
 ]
 
 const CURRENCY_PATTERN = /(?:Rs\.?\s*|₹\s*|INR\s*|INR\.?\s*)?(\d+(?:,\d{3})*(?:\.\d{1,2})?|\d+\.\d{2})/gi
-const DATE_PATTERN = /(\d{1,2}[/-]\d{1,2}[/-]\d{2,4})|(\d{4}[/-]\d{1,2}[/-]\d{1,2})/g
+const DATE_PATTERN_SRC = '(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})|(\\d{4}[/-]\\d{1,2}[/-]\\d{1,2})'
 const EMAIL_PATTERN = /[\w.+-]+@[\w-]+\.[\w.]+/gi
 const PHONE_PATTERN = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g
 const GST_PATTERN = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/gi
@@ -104,6 +104,7 @@ export function extractAmount(text) {
 }
 
 export function extractDate(text) {
+  const DATE_PATTERN = new RegExp(DATE_PATTERN_SRC, 'g')
   const matches = []
   let match
   while ((match = DATE_PATTERN.exec(text)) !== null) {

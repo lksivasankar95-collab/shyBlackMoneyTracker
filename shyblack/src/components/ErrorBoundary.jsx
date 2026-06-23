@@ -41,7 +41,7 @@ export default class ErrorBoundary extends Component {
   handleResetData = () => {
     this.setState({ isResetting: true })
     try {
-      const keysToPreserve = []
+      const keysToPreserve = ['shyblack_backups', 'shyblack_backup_health', 'shyblack_onboarding']
       const keysToRemove = []
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i)

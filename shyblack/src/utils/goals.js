@@ -29,7 +29,9 @@ export function createGoal(data) {
 export function updateGoal(id, updates) {
   const goals = getGoals().map((g) => {
     if (g.id !== id) return g
-    return { ...g, ...updates, updatedAt: Date.now(), achievedAt: updates.saved >= g.target ? Date.now() : null }
+    const merged = { ...g, ...updates }
+    const isAchieved = merged.saved >= merged.target
+    return { ...merged, updatedAt: Date.now(), achievedAt: isAchieved ? (g.achievedAt || Date.now()) : null }
   })
   saveGoals(goals)
   return goals.find((g) => g.id === id)

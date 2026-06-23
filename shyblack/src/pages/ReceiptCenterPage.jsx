@@ -8,6 +8,7 @@ import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency, formatDate, EXPENSE_CATEGORIES } from '../utils/helpers'
 import { scanReceipt } from '../utils/receiptParser'
+import * as privacy from '../utils/privacy'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -46,7 +47,8 @@ export default function ReceiptCenterPage({ onNavigate }) {
   const handleFile = useCallback(async (file) => {
     if (!file) return
     if (file.size > 10 * 1024 * 1024) { addToast('Image must be under 10MB', 'error'); return }
-    if (!file.type.startsWith('image/')) { addToast('Please select an image file', 'error'); return }
+    const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/bmp']
+    if (!ALLOWED_TYPES.includes(file.type)) { addToast('Please select a JPEG, PNG, WebP, or BMP image', 'error'); return }
 
     setScanning(true)
     setProgress(0)
@@ -137,13 +139,13 @@ export default function ReceiptCenterPage({ onNavigate }) {
             <p className="text-xs text-gray-500 text-center">Scan a receipt or bill to auto-create an expense</p>
             <div className="flex gap-3">
               <button
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={() => { privacy.suppressLockForTransition(10000); cameraInputRef.current?.click() }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all"
               >
                 <Camera size={14} /> Take Photo
               </button>
               <button
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => { privacy.suppressLockForTransition(10000); fileInputRef.current?.click() }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] text-gray-300 text-xs font-semibold hover:bg-white/[0.1] transition-all"
               >
                 <Upload size={14} /> Choose Image
@@ -282,7 +284,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
                 {!r.transactionId && (
                   <button
                     onClick={() => {
-                      const { transaction, receipt } = createTransactionFromReceipt(r)
+                      createTransactionFromReceipt(r)
                       addToast('Expense created: ' + formatCurrency(r.amount), 'success')
                     }}
                     className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1"

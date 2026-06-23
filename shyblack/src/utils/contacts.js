@@ -43,6 +43,9 @@ export async function pickContact() {
 
   try {
     const { Contacts } = await import('@capacitor-community/contacts')
+    if (typeof Contacts.pickContact !== 'function') {
+      return { success: false, error: 'Contact picker not supported on this device' }
+    }
     const result = await Contacts.pickContact()
     if (!result?.contact) return { success: false, error: 'No contact selected' }
 

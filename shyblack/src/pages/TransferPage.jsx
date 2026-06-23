@@ -12,7 +12,7 @@ import EmptyState from '../components/EmptyState'
 
 export default function TransferPage({ onNavigate }) {
   const { t } = useTranslation()
-  const accounts = useMemo(() => getAccounts(), [])
+  const accounts = useMemo(() => getAccounts(), [refreshKey])
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')
   const [amount, setAmount] = useState('')

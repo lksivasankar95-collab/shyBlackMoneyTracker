@@ -39,12 +39,18 @@ export function setBiometricEnabled(enabled) {
 export async function authenticateWithBiometric(reason) {
   try {
     const { NativeBiometric } = await import('@aparajita/capacitor-biometric-auth')
-    const result = await NativeBiometric.verifyIdentity({
-      reason: reason || 'Unlock ShyBlack Finance',
-      title: 'Unlock ShyBlack',
-      subtitle: 'Use biometric to unlock',
-      negativeButtonText: 'Use PIN instead',
-    })
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('biometric-timeout')), 30000)
+    )
+    const result = await Promise.race([
+      NativeBiometric.verifyIdentity({
+        reason: reason || 'Unlock ShyBlack Finance',
+        title: 'Unlock ShyBlack',
+        subtitle: 'Use biometric to unlock',
+        negativeButtonText: 'Use PIN instead',
+      }),
+      timeout,
+    ])
     return result.verified === true
   } catch {
     return false
@@ -56,7 +62,7 @@ export async function tryBiometricUnlock() {
 
   const available = await checkBiometricAvailability()
   if (!available.available) {
-    setBiometricEnabled(false)
+    // Transient unavailability (device restart, sensor busy) — do NOT permanently disable
     return { unlocked: false, reason: 'not-available' }
   }
 

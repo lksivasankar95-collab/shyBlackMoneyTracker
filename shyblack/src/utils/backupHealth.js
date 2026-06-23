@@ -1,6 +1,6 @@
 import { safeStorage } from './safeStorage'
 
-const BACKUP_HEALTH_KEY = 'shyblack_backup_health'
+const BACKUP_HEALTH_KEY = 'backup_health'
 const BACKUP_RECOMMEND_DAYS = 7
 const BACKUP_WARN_DAYS = 14
 const BACKUP_CRITICAL_DAYS = 30

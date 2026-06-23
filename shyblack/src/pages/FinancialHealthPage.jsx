@@ -226,7 +226,7 @@ export default function FinancialHealthPage() {
                     </div>
                     <p className="text-xs text-gray-400 mt-1">{formatCategoryDetail(cat.detail)}</p>
                     <div className="w-full h-2 bg-matte-200 rounded-full overflow-hidden mt-2">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${(cat.score / cat.max) * 100}%`, backgroundColor: color }} />
+                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${cat.max > 0 ? (cat.score / cat.max) * 100 : 0}%`, backgroundColor: color }} />
                     </div>
                   </div>
                 </div>

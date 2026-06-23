@@ -99,22 +99,27 @@ export function advanceNextDate(dateStr, frequency) {
   } else {
     const origDay = d.getDate()
     d.setMonth(d.getMonth() + 1)
-    const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()
-    if (origDay > lastDay) {
-      d.setDate(lastDay)
+    if (d.getDate() !== origDay) {
+      d.setDate(0)
     }
   }
-  return d.toISOString().split('T')[0]
+  const y = d.getFullYear(), m = d.getMonth() + 1, day = d.getDate()
+  return `${y}-${String(m).padStart(2, '0')}-${String(day).padStart(2, '0')}`
 }
 
 export function autoExecuteDueRecurring(recurring, executeFn) {
   const due = getDueRecurringTransactions(recurring)
-  const today = new Date().toISOString().split('T')[0]
   let executedCount = 0
+
+  const toLocalDate = (ts) => {
+    const d = new Date(ts)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }
+  const today = toLocalDate(Date.now())
 
   due.forEach((item) => {
     if (item.lastExecutedAt) {
-      const lastExecDate = new Date(item.lastExecutedAt).toISOString().split('T')[0]
+      const lastExecDate = toLocalDate(item.lastExecutedAt)
       if (lastExecDate === today) return
     }
     executeFn(item)

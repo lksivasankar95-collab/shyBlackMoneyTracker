@@ -80,7 +80,7 @@ export default function TimelinePage() {
       {insights.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-2 mb-4 scrollbar-none -mx-1 px-1">
           {insights.map((insight, i) => {
-            const Icon = INSIGHT_ICONS[insight.type]
+            const Icon = INSIGHT_ICONS[insight.type] || History
             return (
               <div
                 key={i}
@@ -180,7 +180,7 @@ export default function TimelinePage() {
                             </p>
                           )}
                           <p className="text-[10px] text-gray-600 mt-0.5">
-                            {formatDate(new Date(entry.timestamp).toISOString().split('T')[0])}
+                            {entry.timestamp ? formatDate(new Date(entry.timestamp).toISOString().split('T')[0]) : '—'}
                           </p>
                         </div>
                       </div>

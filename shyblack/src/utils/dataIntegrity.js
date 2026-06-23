@@ -19,8 +19,8 @@ export function validateTransactions(raw) {
       needsRepair = true
     }
     if (!fixed.type || (fixed.type !== 'income' && fixed.type !== 'expense')) {
-      if (fixed.amount > 0) fixed.type = 'expense'
-      else fixed.type = 'income'
+      if (fixed.amount > 0) fixed.type = 'income'
+      else fixed.type = 'expense'
       needsRepair = true
     }
     if (typeof fixed.amount !== 'number' || isNaN(fixed.amount)) {

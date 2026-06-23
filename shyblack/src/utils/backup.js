@@ -64,7 +64,7 @@ export function collectBackupInclude(includeModules) {
     'transactions', 'debts', 'savingsGoal', 'budgets', 'recurring',
     'tags', 'emis', 'accounts', 'transfers', 'goals', 'templates',
     'documents', 'documentFiles', 'relationships', 'archive',
-    'budgetsV2', 'receipts', 'wealthAssets', 'emis',
+    'budgetsV2', 'receipts', 'wealthAssets',
   ]
   const data = {}
   if (modules.includes('schemaVersion')) {
@@ -162,7 +162,7 @@ export function validateBackupForRestore(backup) {
   const errors = []
   if (!backup) return { valid: false, errors: ['No backup data'] }
   if (backup.version > BACKUP_SCHEMA_VERSION) errors.push('Backup version is newer than app version')
-  if (backup.appVersion > APP_SCHEMA_VERSION) errors.push('Backup was created by a newer app version')
+  if (typeof backup.appVersion === 'number' && backup.appVersion > APP_SCHEMA_VERSION) errors.push('Backup was created by a newer app version')
   if (!backup.modules || backup.modules.length === 0) errors.push('Backup has no data modules')
   return { valid: errors.length === 0, errors }
 }
@@ -339,6 +339,7 @@ export async function exportEncryptedBackup(password) {
   const encryptedObj = await encryptBackup(backup, password)
   const json = JSON.stringify(encryptedObj)
   const filename = `shyblack_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
+  let exported = false
 
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem')
@@ -348,18 +349,25 @@ export async function exportEncryptedBackup(password) {
       directory: Directory.Documents,
       recursive: true,
     })
+    exported = true
   } catch {
-    const blob = new Blob([json], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    setTimeout(() => URL.revokeObjectURL(url), 5000)
+    try {
+      const blob = new Blob([json], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      setTimeout(() => URL.revokeObjectURL(url), 5000)
+      exported = true
+    } catch {
+      exported = false
+    }
   }
-  recordBackupEvent('encrypted_export', true)
+  recordBackupEvent('encrypted_export', exported)
+  return exported
 }
 
 export async function parseAndValidateEncryptedBackup(jsonString, password) {

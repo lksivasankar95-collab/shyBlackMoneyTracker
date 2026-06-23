@@ -46,12 +46,11 @@ export default function SearchPage({ onNavigate }) {
 
   const debouncedQuery = useDebounce(query, 200)
 
-  const emis = useMemo(() => getEmis(), [])
-  const transfers = useMemo(() => getTransfers(), [])
-
   useEffect(() => { inputRef.current?.focus() }, [])
 
   const searchResults = useMemo(() => {
+    const emis = getEmis()
+    const transfers = getTransfers()
     const q = debouncedQuery.toLowerCase().trim()
     const results = { transactions: [], debts: [], goals: [], emis: [], transfers: [], documents: [], accounts: [], total: 0 }
 
@@ -367,17 +366,17 @@ export default function SearchPage({ onNavigate }) {
           {(activeTab === 'all' || activeTab === 'transfers') && searchResults.transfers.length > 0 && (
             <>
               {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionTransfers')}</p>}
-              {searchResults.transfers.map((t) => (
-                <GlassCard key={t.id}>
+              {searchResults.transfers.map((transfer) => (
+                <GlassCard key={transfer.id}>
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0">
                       <ArrowUpDown size={14} className="text-amber-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium truncate">{t.fromName || t('search.defaultAccount')} → {t.toName || t('search.defaultAccount')}</p>
-                      <p className="text-[10px] text-gray-500">{formatDate(t.date)}</p>
+                      <p className="text-xs font-medium truncate">{transfer.fromName || t('search.defaultAccount')} → {transfer.toName || t('search.defaultAccount')}</p>
+                      <p className="text-[10px] text-gray-500">{formatDate(transfer.date)}</p>
                     </div>
-                    <p className="text-xs font-semibold tabular-nums text-amber-400">{formatCurrency(t.amount)}</p>
+                    <p className="text-xs font-semibold tabular-nums text-amber-400">{formatCurrency(transfer.amount)}</p>
                   </div>
                 </GlassCard>
               ))}

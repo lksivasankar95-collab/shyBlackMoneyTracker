@@ -125,6 +125,12 @@ export async function scheduleDailyReminder(message, transactions, debts) {
 
   if (hasActivityToday(transactions, debts)) return { scheduled: false, reason: 'activity-exists' }
 
+  const perm = await checkNotificationPermission()
+  if (!perm.granted) {
+    const req = await requestNotificationPermission()
+    if (!req.granted) return { scheduled: false, reason: 'permission-denied' }
+  }
+
   try {
     await ensureDailyReminderChannel()
     await cancelAllReminders()

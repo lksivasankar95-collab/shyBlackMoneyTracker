@@ -76,7 +76,7 @@ export default function GoalsPage() {
 
     if (!name) { addToast(t('goals.enter_goal_name'), 'error'); return }
     if (!target || target <= 0) { addToast(t('goals.enter_valid_target'), 'error'); return }
-    if (saved >= target) { addToast(t('goals.saved_meets_target'), 'error'); return }
+    if (!editTarget && saved >= target) { addToast(t('goals.saved_meets_target'), 'error'); return }
 
     if (editTarget) {
       editGoal(editTarget.id, { name, target, saved, monthlyContribution, targetDate })

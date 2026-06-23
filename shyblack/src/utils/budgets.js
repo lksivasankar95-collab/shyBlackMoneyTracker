@@ -1,6 +1,8 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getMonthlyData, getCategoryBreakdown } from './analytics'
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+
 export function createDefaultBudgets() {
   return {
     food: { limit: 5000, spent: 0, rollover: 0 },
@@ -68,8 +70,6 @@ export function getAIBudgetSuggestions(transactions) {
 
   return suggestions
 }
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function rolloverBudgets(transactions, budgets) {
   const updated = { ...budgets }

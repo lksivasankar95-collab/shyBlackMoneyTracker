@@ -5,7 +5,7 @@ import { useTranslation } from '../i18n'
 
 export default function AndroidBackHandler({ canGoBack, onGoBack }) {
   const { t } = useTranslation()
-  const lastBackTime = useRef(0)
+  const lastBackTime = useRef(-Infinity)
   const [showExitHint, setShowExitHint] = useState(false)
 
   useEffect(() => {

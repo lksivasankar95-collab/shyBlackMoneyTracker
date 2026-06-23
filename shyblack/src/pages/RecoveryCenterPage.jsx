@@ -140,7 +140,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in">
       <div className="flex items-center gap-3 mb-4">
-        <button onClick={() => onNavigate('dashboard')} className="p-2 rounded-xl hover:bg-white/[0.06] transition-colors">
+        <button onClick={() => onNavigate?.('dashboard')} className="p-2 rounded-xl hover:bg-white/[0.06] transition-colors">
           <ArrowLeft size={20} className="text-gray-400" />
         </button>
         <div className="flex-1">
@@ -191,7 +191,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {activeTab === 0 && (
         <div>
           {backups.length === 0 ? (
-            <EmptyState icon={Shield} title="No backups" message="Create your first backup to protect your data" />
+            <EmptyState icon={Shield} title="No backups" description="Create your first backup to protect your data" />
           ) : (
             <div className="space-y-2">
               {backups.map((b) => {
@@ -257,7 +257,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {activeTab === 1 && (
         <div>
           {snapshots.length === 0 ? (
-            <EmptyState icon={Clock} title="No snapshots" message="Snapshots are auto-created before imports & migrations" />
+            <EmptyState icon={Clock} title="No snapshots" description="Snapshots are auto-created before imports & migrations" />
           ) : (
             <div className="space-y-2">
               {snapshots.map((s) => {
@@ -387,7 +387,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {deleteTarget && (
         <ConfirmationModal
           title="Delete Backup"
-          message="Delete this backup permanently?"
+          description="Delete this backup permanently?"
           confirmLabel="Delete"
           onConfirm={handleDelete}
           onCancel={() => setDeleteTarget(null)}
@@ -397,7 +397,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {snapshotRestoreTarget && (
         <ConfirmationModal
           title="Restore Snapshot"
-          message="Restore data from this snapshot? Current data will be overwritten."
+          description="Restore data from this snapshot? Current data will be overwritten."
           confirmLabel="Restore"
           onConfirm={handleSnapshotRestore}
           onCancel={() => setSnapshotRestoreTarget(null)}

@@ -42,9 +42,12 @@ export function getSnapshotChain() {
 export function saveSnapshot(transactions, savingsGoal) {
   try {
     const chain = getSnapshotChain()
+    const isTruncated = transactions.length > 200
     const snapshot = {
       ts: Date.now(),
       transactions: transactions.slice(0, 200),
+      totalTransactionCount: transactions.length,
+      truncated: isTruncated,
       savingsGoal: savingsGoal || { target: 0, saved: 0 },
     }
     chain.unshift(snapshot)
@@ -79,6 +82,8 @@ export function getRecoveryChainSummary() {
       age: Date.now() - s.ts,
       ageDays: Math.round((Date.now() - s.ts) / 86400000),
       txCount: s.transactions.length,
+      totalTransactionCount: s.totalTransactionCount ?? s.transactions.length,
+      truncated: s.truncated || false,
       valid: isValidSnapshot(s),
     })),
     newest: chain.length > 0 ? chain[0].ts : null,

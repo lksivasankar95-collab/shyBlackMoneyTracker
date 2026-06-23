@@ -176,6 +176,20 @@ export function FinanceProvider({ children }) {
     return () => { if (txPersistTimer.current) clearTimeout(txPersistTimer.current) }
   }, [transactions])
 
+  // Flush pending transaction persist on unmount to prevent data loss
+  useEffect(() => {
+    return () => {
+      if (txPersistTimer.current) {
+        clearTimeout(txPersistTimer.current)
+        txPersistTimer.current = null
+        try {
+          safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactionsRef.current)
+          saveSnapshot(transactionsRef.current, savingsGoalRef.current)
+        } catch {}
+      }
+    }
+  }, [])
+
   // Flush + snapshot + archive on app background to prevent Android lifecycle data loss
   useEffect(() => {
     const handleVisibility = () => {
@@ -322,7 +336,7 @@ export function FinanceProvider({ children }) {
       createdAt: Date.now(),
     }
     const allTx = [newTx, ...transactionsRef.current]
-    setState((prev) => ({ ...prev, transactions: allTx }))
+    setState((prev) => ({ ...prev, transactions: [newTx, ...prev.transactions] }))
 
     if (transaction.type === 'expense' && transaction.category) {
       checkAndNotifyBudget(budgetsRef.current, allTx, transaction.category).catch(() => {})
@@ -665,13 +679,20 @@ export function FinanceProvider({ children }) {
       transactions: [],
       savingsGoal: { target: 0, saved: 0 },
       budgets: {},
+      budgetsV2: [],
       recurring: [],
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
       debts: [],
       emis: [],
+      goals: [],
+      templates: [],
+      documents: [],
+      receipts: [],
       accounts: [],
       wealthAssets: [],
+      _migrationResult: null,
+      _recoverySnapshot: null,
     })
   }, [])
 
@@ -714,6 +735,7 @@ export function FinanceProvider({ children }) {
 
   const [debouncedInsights, setDebouncedInsights] = useState({
     score: { score: 0, level: 'N/A', factors: [] },
+    scoreBreakdown: null,
     overspend: null, recommendations: [], habits: [], health: null,
     scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
   })
@@ -748,6 +770,7 @@ export function FinanceProvider({ children }) {
       } catch {
         setDebouncedInsights({
           score: { score: 0, level: 'N/A', factors: [] },
+          scoreBreakdown: null,
           overspend: null, recommendations: [], habits: [], health: null,
           scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
         })
@@ -759,7 +782,7 @@ export function FinanceProvider({ children }) {
   const insights = debouncedInsights
 
   const transactionIndex = useMemo(() => {
-    try { return buildIndexes(transactions) } catch { return null }
+    try { return buildIndexes(transactions) } catch { return { byId: {}, byDate: {}, byCategory: {}, byType: {}, byPerson: new Map() } }
   }, [transactions])
 
   const cashflowForecast = useMemo(() => {
@@ -776,18 +799,21 @@ export function FinanceProvider({ children }) {
 
   const addGoal = useCallback((data) => {
     const goal = createGoal(data)
-    setState((prev) => ({ ...prev, goals: getGoals() }))
+    const goals = getGoals()
+    setState((prev) => ({ ...prev, goals }))
     return goal
   }, [])
 
   const editGoal = useCallback((id, updates) => {
     updateGoal(id, updates)
-    setState((prev) => ({ ...prev, goals: getGoals() }))
+    const goals = getGoals()
+    setState((prev) => ({ ...prev, goals }))
   }, [])
 
   const removeGoal = useCallback((id) => {
     deleteGoal(id)
-    setState((prev) => ({ ...prev, goals: getGoals() }))
+    const goals = getGoals()
+    setState((prev) => ({ ...prev, goals }))
   }, [])
 
   const addTemplate = useCallback((tx) => {
@@ -800,7 +826,10 @@ export function FinanceProvider({ children }) {
     setState((prev) => ({ ...prev, templates: getTemplates() }))
   }, [])
 
-  const recentTemplates = useMemo(() => getRecentTemplates(), [templates])
+  const recentTemplates = useMemo(
+    () => [...templates].sort((a, b) => (b.uses || 0) - (a.uses || 0)).slice(0, 5),
+    [templates]
+  )
 
   const addEmi = useCallback((data) => {
     const newEmi = createEmi(data)
@@ -841,21 +870,22 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const reopenEmi = useCallback((id) => {
+    let updatedEmi = null
     setState((prev) => {
       const emi = prev.emis.find((e) => e.id === id)
       if (!emi || emi.status !== EMI_STATUS.CLOSED) return prev
-      const originalRemaining = emi.principalAmount - emi.totalPaid
-      const originalRemainingMonths = emi.tenureMonths - emi.totalPaidCount
-      const updated = {
+      const originalRemaining = (emi.principalAmount ?? emi.amount ?? 0) - (emi.totalPaid || 0)
+      const originalRemainingMonths = (emi.tenureMonths || 0) - (emi.totalPaidCount || 0)
+      updatedEmi = {
         ...emi,
         status: EMI_STATUS.ACTIVE,
         remainingAmount: Math.max(0, originalRemaining),
         remainingMonths: Math.max(0, originalRemainingMonths),
         updatedAt: Date.now(),
       }
-      scheduleEmiNotifications(updated).catch(() => {})
-      return { ...prev, emis: prev.emis.map((e) => (e.id === id ? updated : e)) }
+      return { ...prev, emis: prev.emis.map((e) => (e.id === id ? updatedEmi : e)) }
     })
+    if (updatedEmi) scheduleEmiNotifications(updatedEmi).catch(() => {})
   }, [])
 
   const pauseEmi = useCallback((id) => {
@@ -927,7 +957,8 @@ export function FinanceProvider({ children }) {
       }
 
       const principalPaid = Math.min(emiAmount, emi.remainingAmount || 0)
-      const newRemainingMonths = Math.max(0, (emi.remainingMonths || emi.tenureMonths || 0) - 1)
+      const currentRemainingMonths = emi.remainingMonths !== undefined ? emi.remainingMonths : (emi.tenureMonths || 0)
+      const newRemainingMonths = Math.max(0, currentRemainingMonths - 1)
       const newRemainingAmount = Math.max(0, (emi.remainingAmount || 0) - principalPaid)
       const isCompleted = newRemainingMonths === 0 || newRemainingAmount <= 0
 
@@ -1005,14 +1036,16 @@ export function FinanceProvider({ children }) {
 
   const addDocument = useCallback((data) => {
     const doc = createDocument(data)
-    setState((prev) => ({ ...prev, documents: getDocuments() }))
+    const documents = getDocuments()
+    setState((prev) => ({ ...prev, documents }))
     return doc
   }, [])
 
   const editDocument = useCallback((id, updates) => {
     const result = updateDocument(id, updates)
     if (result) {
-      setState((prev) => ({ ...prev, documents: getDocuments() }))
+      const documents = getDocuments()
+      setState((prev) => ({ ...prev, documents }))
     }
     return result
   }, [])
@@ -1020,7 +1053,8 @@ export function FinanceProvider({ children }) {
   const removeDocument = useCallback((id) => {
     const ok = deleteDocument(id)
     if (ok) {
-      setState((prev) => ({ ...prev, documents: getDocuments() }))
+      const documents = getDocuments()
+      setState((prev) => ({ ...prev, documents }))
     }
     return ok
   }, [])
@@ -1198,7 +1232,7 @@ export function FinanceProvider({ children }) {
     pendingRecurring, dataQuality, reviewSummary,
     budgetsV2, addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2,
     spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, financialScore,
-    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts,
+    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts, overspentCategories,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, updateRecurring, toggleRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
@@ -1224,7 +1258,7 @@ export function FinanceProvider({ children }) {
     pendingRecurring, dataQuality, reviewSummary,
     budgetsV2, addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2,
     spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, financialScore,
-    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts,
+    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts, overspentCategories,
     addTransaction, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
     addRecurring, updateRecurring, toggleRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,

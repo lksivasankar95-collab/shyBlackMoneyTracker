@@ -151,13 +151,14 @@ export function forecastCashflow({
 
 export function forecastGoal(goal) {
   if (!goal || !goal.target || goal.target <= 0) return null
-  const remaining = Math.max(0, goal.target - goal.saved)
+  const savedAmt = goal.saved || 0
+  const remaining = Math.max(0, goal.target - savedAmt)
   const monthly = goal.monthlyContribution || 0
 
   const monthsToGoal = monthly > 0 ? Math.ceil(remaining / monthly) : null
   const targetDate = monthsToGoal !== null ? monthsFromNow(monthsToGoal) : null
 
-  const progress = goal.target > 0 ? Math.min(100, (goal.saved / goal.target) * 100) : 0
+  const progress = goal.target > 0 ? Math.min(100, (savedAmt / goal.target) * 100) : 0
   return {
     remaining,
     progress,
@@ -239,18 +240,18 @@ export function forecastEmiPayoff(emi, extraMonthly = 0) {
   const rate = (emi.interestRate || 0) / 100 / 12
   const remainingMonths = emi.remainingMonths || 0
 
-  const currentMonths = rate > 0
+  const currentMonths = rate > 0 && monthlyEmi > rate * remaining
     ? Math.ceil(Math.log(monthlyEmi / (monthlyEmi - rate * remaining)) / Math.log(1 + rate))
-    : Math.ceil(remaining / monthlyEmi)
+    : Math.ceil(remaining / Math.max(monthlyEmi, 1))
   const currentClosureDate = monthsFromNow(currentMonths)
 
   const totalWithCurrent = currentMonths * monthlyEmi
   const interestWithCurrent = Math.max(0, totalWithCurrent - remaining)
 
   const acceleratedMonthly = monthlyEmi + extraMonthly
-  const acceleratedMonths = rate > 0
+  const acceleratedMonths = rate > 0 && acceleratedMonthly > rate * remaining
     ? Math.ceil(Math.log(acceleratedMonthly / (acceleratedMonthly - rate * remaining)) / Math.log(1 + rate))
-    : Math.ceil(remaining / acceleratedMonthly)
+    : Math.ceil(remaining / Math.max(acceleratedMonthly, 1))
   const acceleratedClosureDate = monthsFromNow(acceleratedMonths)
 
   const totalWithAccelerated = acceleratedMonths * acceleratedMonthly

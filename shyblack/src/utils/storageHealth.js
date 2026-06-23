@@ -18,14 +18,15 @@ export function analyzeStorageSize() {
 export function checkDuplicateIds(data, idField = 'id') {
   const seen = new Map()
   const duplicates = []
-  for (const item of data) {
+  for (let i = 0; i < data.length; i++) {
+    const item = data[i]
     if (!item) continue
     const id = item[idField]
     if (id === undefined || id === null) continue
     if (seen.has(id)) {
       duplicates.push({ id, firstIndex: seen.get(id), detail: `Duplicate ${idField}: ${id}` })
     } else {
-      seen.set(id, data.indexOf(item))
+      seen.set(id, i)
     }
   }
   return duplicates

@@ -258,21 +258,32 @@ export default function App() {
     debug('session unlocked')
   }, [])
 
+  const isLockedRef = useRef(isLocked)
+  useEffect(() => { isLockedRef.current = isLocked }, [isLocked])
+  const resumeHandled = useRef(false)
+
   useEffect(() => {
-    debug('visibility effect mounted, isLocked=', isLocked)
+    debug('visibility effect mounted')
+
+    const handleResume = () => {
+      if (resumeHandled.current) return
+      resumeHandled.current = true
+      setTimeout(() => { resumeHandled.current = false }, 200)
+      const shouldLock = privacy.shouldLockOnResume()
+      debug('shouldLockOnResume result', shouldLock)
+      if (shouldLock !== isLockedRef.current) {
+        debug('updating isLocked to', shouldLock)
+        setIsLocked(shouldLock)
+      }
+    }
 
     const handleVisibility = () => {
       if (document.hidden) {
         debug('app backgrounded (visibilitychange)')
         privacy.onAppBackground()
       } else {
-        debug('app resumed (visibilitychange), checking lock state')
-        const shouldLock = privacy.shouldLockOnResume()
-        debug('shouldLockOnResume result', shouldLock)
-        if (shouldLock !== isLocked) {
-          debug('updating isLocked from', isLocked, 'to', shouldLock)
-          setIsLocked(shouldLock)
-        }
+        debug('app resumed (visibilitychange)')
+        handleResume()
       }
     }
 
@@ -281,12 +292,8 @@ export default function App() {
     let capListener = null
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        debug('app resumed (Capacitor), checking lock state')
-        const shouldLock = privacy.shouldLockOnResume()
-        debug('shouldLockOnResume result', shouldLock)
-        if (shouldLock !== isLocked) {
-          setIsLocked(shouldLock)
-        }
+        debug('app resumed (Capacitor)')
+        handleResume()
       } else {
         debug('app backgrounded (Capacitor)')
         privacy.onAppBackground()
@@ -298,7 +305,7 @@ export default function App() {
       document.removeEventListener('visibilitychange', handleVisibility)
       if (capListener) capListener.remove()
     }
-  }, [isLocked])
+  }, [])
 
   if (!isOnboarded) {
     return <Onboarding onComplete={handleOnboardingComplete} />

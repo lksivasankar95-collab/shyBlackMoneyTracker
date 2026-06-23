@@ -16,19 +16,6 @@ export function saveSecuritySettings(settings) {
   safeStorage.set(STORAGE_KEYS.SETTINGS, settings)
 }
 
-export function setPin(pin) {
-  const settings = getSecuritySettings()
-  settings.pinEnabled = true
-  settings.pinCode = btoa(pin)
-  saveSecuritySettings(settings)
-}
-
-export function verifyPin(pin) {
-  const settings = getSecuritySettings()
-  if (!settings.pinEnabled || !settings.pinCode) return true
-  return settings.pinCode === btoa(pin)
-}
-
 export function togglePrivacyMode() {
   const settings = getSecuritySettings()
   settings.privacyMode = !settings.privacyMode

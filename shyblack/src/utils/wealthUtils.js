@@ -57,7 +57,7 @@ export function calculateNetWorth(wealthAssets, accounts, emis, debts) {
   const accountBalances = (accounts || []).reduce((s, a) => s + (a.balance || 0), 0)
   const cash = wealthAssets.filter((a) => a.assetType === 'cash').reduce((s, a) => s + (a.currentValue || 0), 0)
 
-  const emiLiabilities = (emis || []).reduce((s, e) => s + ((e.remainingAmount ?? e.principalAmount ?? e.totalAmount ?? 0) - (e.paidAmount || 0)), 0)
+  const emiLiabilities = (emis || []).reduce((s, e) => s + Math.max(0, (e.remainingAmount ?? e.principalAmount ?? e.totalAmount ?? 0) - (e.paidAmount || 0)), 0)
   const debtLiabilities = (debts || []).filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
   const totalLiabilities = emiLiabilities + debtLiabilities
 
@@ -108,7 +108,7 @@ export function getPortfolioSummary(wealthAssets) {
   const totalInvested = wealthAssets.reduce((s, a) => s + (a.investedAmount || 0), 0)
   const totalCurrent = wealthAssets.reduce((s, a) => s + (a.currentValue || 0), 0)
   const totalProfitLoss = totalCurrent - totalInvested
-  const profitLossPercent = totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100) : 0
+  const profitLossPercent = totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100) : (totalCurrent > 0 ? 100 : 0)
   return { totalInvested, totalCurrent, totalProfitLoss, profitLossPercent }
 }
 

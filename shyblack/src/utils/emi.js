@@ -85,12 +85,18 @@ export function calculateEMI(principal, annualRate, tenureMonths) {
     return { emi: Math.round(emi), totalInterest: 0, totalPayment: principal }
   }
   const factor = Math.pow(1 + rate, tenureMonths)
+  if (!isFinite(factor) || factor <= 1) {
+    return { emi: 0, totalInterest: 0, totalPayment: 0 }
+  }
   const emi = principal * rate * factor / (factor - 1)
+  if (!isFinite(emi) || isNaN(emi)) {
+    return { emi: 0, totalInterest: 0, totalPayment: 0 }
+  }
   const totalPayment = emi * tenureMonths
   const totalInterest = totalPayment - principal
   return {
     emi: Math.round(emi),
-    totalInterest: Math.round(totalInterest),
+    totalInterest: Math.round(Math.max(0, totalInterest)),
     totalPayment: Math.round(totalPayment),
   }
 }
@@ -266,8 +272,9 @@ export function recordEmiPayment(emiId, extraAmount = 0) {
   const paymentAmount = emi.emiAmount + extraAmount
   const now = Date.now()
   const monthlyRate = emi.interestRate / 100 / 12
-  const interest = monthlyRate > 0 ? Math.round(emi.remainingAmount * monthlyRate) : 0
-  const principal = Math.min(paymentAmount - interest, emi.remainingAmount)
+  const interest = monthlyRate > 0 ? Math.round((emi.remainingAmount || 0) * monthlyRate) : 0
+  const rawPrincipal = paymentAmount - interest
+  const principal = Math.max(0, Math.min(rawPrincipal, emi.remainingAmount || 0))
 
   const payment = {
     id: generateId(),
@@ -424,7 +431,7 @@ export function getEnhancedEmiSummary(emis) {
 export function getEmiAmortizationSchedule(emi) {
   const schedule = []
   const monthlyRate = emi.interestRate / 100 / 12
-  let balance = emi.principalAmount || emi.totalAmount || 0
+  let balance = emi.remainingAmount || emi.principalAmount || emi.totalAmount || 0
   let installment = (emi.totalPaidCount || 0) + 1
   const emiAmt = emi.emiAmount || emi.amount || 0
   const remaining = emi.remainingMonths || 0

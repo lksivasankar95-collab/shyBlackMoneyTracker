@@ -146,7 +146,7 @@ export default function NetWorthPage() {
       </div>
 
       {/* Net Worth Trend */}
-      {history.length > 0 && (
+      {history.length >= 2 && (
         <GlassCard brand className="mb-4">
           <div className="flex items-center gap-2 mb-3">
             <TrendingUp size={14} className="text-neon" />
@@ -306,7 +306,11 @@ export default function NetWorthPage() {
               type="text"
               inputMode="numeric"
               value={form.balance}
-              onChange={(e) => setForm((f) => ({ ...f, balance: e.target.value.replace(/[^0-9.]/g, '') }))}
+              onChange={(e) => {
+                const v = e.target.value.replace(/[^0-9.]/g, '')
+                const parts = v.split('.')
+                setForm((f) => ({ ...f, balance: parts.length > 2 ? parts[0] + '.' + parts.slice(1).join('') : v }))
+              }}
               placeholder="0"
               className="input-field text-lg font-bold tabular-nums"
             />
