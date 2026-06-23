@@ -59,6 +59,14 @@ const AccountCenterPage = lazy(() => import('./pages/AccountCenterPage'))
 const DataQualityPage = lazy(() => import('./pages/DataQualityPage'))
 const ReviewCenterPage = lazy(() => import('./pages/ReviewCenterPage'))
 const TrendsPage = lazy(() => import('./pages/TrendsPage'))
+const RecurringTransactionsPage = lazy(() => import('./pages/RecurringTransactionsPage'))
+const BudgetCenterPage = lazy(() => import('./pages/BudgetCenterPage'))
+const ReceiptCenterPage = lazy(() => import('./pages/ReceiptCenterPage'))
+const WealthCenterPage = lazy(() => import('./pages/WealthCenterPage'))
+const RecoveryCenterPage = lazy(() => import('./pages/RecoveryCenterPage'))
+const ForecastCenterPage = lazy(() => import('./pages/ForecastCenterPage'))
+const AppInfoPage = lazy(() => import('./pages/AppInfoPage'))
+const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'))
 
 const pages = {
   dashboard: Dashboard,
@@ -77,6 +85,8 @@ const pages = {
   calendar: FinancialCalendar,
   'emi-center': EmiCenter,
   networth: NetWorthPage,
+  'budget-center': BudgetCenterPage,
+  'receipt-center': ReceiptCenterPage,
   'financial-health': FinancialHealthPage,
   'statement-export': StatementExportPage,
   transfers: TransferPage,
@@ -92,6 +102,12 @@ const pages = {
   'data-quality': DataQualityPage,
   review: ReviewCenterPage,
   trends: TrendsPage,
+  'recurring-transactions': RecurringTransactionsPage,
+  'wealth-center': WealthCenterPage,
+  'recovery-center': RecoveryCenterPage,
+  'forecast-center': ForecastCenterPage,
+  'app-info': AppInfoPage,
+  'privacy-center': PrivacyCenter,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']

@@ -3,7 +3,7 @@ import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
-  Calendar, Zap, Sparkles, Smartphone,
+  Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -574,6 +574,28 @@ export default function Settings({ onNavigate }) {
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
 
+          <button onClick={() => onNavigate('budget-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/20 transition-colors">
+              <Target size={16} className="text-teal-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Budget Center</p>
+              <p className="text-xs text-gray-500">Advanced budgets with smart alerts</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-teal-400 transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('wealth-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+              <BarChart3 size={16} className="text-amber-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Wealth Center</p>
+              <p className="text-xs text-gray-500">Assets, net worth & portfolio health</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-amber-400 transition-colors" />
+          </button>
+
           <button onClick={() => onNavigate('debts')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
               <Handshake size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
@@ -628,6 +650,17 @@ export default function Settings({ onNavigate }) {
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
+
+          <button onClick={() => onNavigate('recurring-transactions')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Repeat2 size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Recurring Transactions</p>
+              <p className="text-xs text-gray-500">Automate income and expense entries</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
         </div>
       </GlassCard>
 
@@ -665,6 +698,17 @@ export default function Settings({ onNavigate }) {
               <p className="text-xs text-gray-500">{t('settings.calendar_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('receipt-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+              <ReceiptIcon size={16} className="text-blue-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Receipt Scanner</p>
+              <p className="text-xs text-gray-500">Scan bills & auto-create expenses</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
           </button>
 
           <button onClick={() => onNavigate('review')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
@@ -743,10 +787,42 @@ export default function Settings({ onNavigate }) {
         </div>
       </GlassCard>
 
+      {/* Forecast Center */}
+      <GlassCard className="mb-4">
+        <div className="space-y-1">
+          <button onClick={() => onNavigate('forecast-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+              <Zap size={16} className="text-amber-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Forecast Center</p>
+              <p className="text-xs text-gray-500">Cashflow, goals, EMI, wealth & retirement</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+        </div>
+      </GlassCard>
+
+      {/* Backup & Recovery Center */}
+      <GlassCard className="mb-4">
+        <div className="space-y-1">
+          <button onClick={() => onNavigate('recovery-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+              <ShieldCheck size={16} className="text-neon" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Backup & Recovery Center</p>
+              <p className="text-xs text-gray-500">Generations, snapshots, rollback & health</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+        </div>
+      </GlassCard>
+
       {/* Data Management */}
       <GlassCard className="mb-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center">
             <Database size={16} className="text-neon" />
           </div>
           <h2 className="text-sm font-semibold">{t('settings.data_management')}</h2>
@@ -1092,6 +1168,32 @@ export default function Settings({ onNavigate }) {
         typedConfirm
         typedConfirmWord="DELETE"
       />
+
+      {/* About & Privacy */}
+      <GlassCard className="mb-4">
+        <div className="space-y-1">
+          <button onClick={() => onNavigate('app-info')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center group-hover:bg-neon/20 transition-colors">
+              <Info size={16} className="text-neon" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">About</p>
+              <p className="text-xs text-gray-500">Version, build, release notes</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+          <button onClick={() => onNavigate('privacy-center')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+              <Shield size={16} className="text-blue-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Privacy Center</p>
+              <p className="text-xs text-gray-500">Data ownership, security & local storage</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+        </div>
+      </GlassCard>
     </div>
   )
 }

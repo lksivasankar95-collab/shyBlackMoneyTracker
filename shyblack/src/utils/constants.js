@@ -25,6 +25,30 @@ export const TRANSACTION_TYPES = {
   EXPENSE: 'expense',
 }
 
+export const ASSET_TYPES = [
+  { id: 'cash', label: 'Cash', icon: 'Banknote' },
+  { id: 'bank_account', label: 'Bank Account', icon: 'Building2' },
+  { id: 'fixed_deposit', label: 'Fixed Deposit', icon: 'Landmark' },
+  { id: 'gold', label: 'Gold', icon: 'CircleDot' },
+  { id: 'silver', label: 'Silver', icon: 'CircleDot' },
+  { id: 'stocks', label: 'Stocks', icon: 'TrendingUp' },
+  { id: 'mutual_funds', label: 'Mutual Funds', icon: 'PieChart' },
+  { id: 'crypto', label: 'Crypto', icon: 'Bitcoin' },
+  { id: 'real_estate', label: 'Real Estate', icon: 'Building2' },
+  { id: 'other', label: 'Other', icon: 'HelpCircle' },
+]
+
+export const CRYPTO_COINS = [
+  { id: 'BTC', label: 'Bitcoin (BTC)' },
+  { id: 'ETH', label: 'Ethereum (ETH)' },
+  { id: 'BNB', label: 'BNB' },
+  { id: 'SOL', label: 'Solana (SOL)' },
+  { id: 'XRP', label: 'XRP' },
+  { id: 'ADA', label: 'Cardano (ADA)' },
+  { id: 'DOGE', label: 'Dogecoin (DOGE)' },
+  { id: 'custom', label: 'Custom Coin' },
+]
+
 export const PAYMENT_METHODS = [
   { id: 'gpay', label: 'GPay', icon: 'Smartphone' },
   { id: 'phonepe', label: 'PhonePe', icon: 'Smartphone' },

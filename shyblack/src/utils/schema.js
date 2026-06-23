@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
-export const APP_SCHEMA_VERSION = 7
+export const APP_SCHEMA_VERSION = 10
 export const SCHEMA_VERSION_KEY = STORAGE_KEYS.SCHEMA
 
 const SCHEMA_MIGRATIONS = {
@@ -74,6 +74,24 @@ const SCHEMA_MIGRATIONS = {
     const rels = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, null)
     if (rels === null) {
       safeStorage.set(STORAGE_KEYS.RELATIONSHIPS, [])
+    }
+  },
+  8: () => {
+    const bv2 = safeStorage.get(STORAGE_KEYS.BUDGETS_V2, null)
+    if (bv2 === null) {
+      safeStorage.set(STORAGE_KEYS.BUDGETS_V2, [])
+    }
+  },
+  9: () => {
+    const rs = safeStorage.get(STORAGE_KEYS.RECEIPT_SCANS, null)
+    if (rs === null) {
+      safeStorage.set(STORAGE_KEYS.RECEIPT_SCANS, [])
+    }
+  },
+  10: () => {
+    const wa = safeStorage.get(STORAGE_KEYS.WEALTH_ASSETS, null)
+    if (wa === null) {
+      safeStorage.set(STORAGE_KEYS.WEALTH_ASSETS, [])
     }
   },
 }

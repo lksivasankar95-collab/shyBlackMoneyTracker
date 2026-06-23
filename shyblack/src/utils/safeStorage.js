@@ -30,6 +30,11 @@ export const STORAGE_KEYS = {
   DOCUMENTS: `${STORAGE_PREFIX}documents`,
   DOCUMENT_FILES: `${STORAGE_PREFIX}document_files`,
   RELATIONSHIPS: `${STORAGE_PREFIX}relationships`,
+  EMI_TRACKER: `${STORAGE_PREFIX}emi_tracker`,
+  BUDGETS_V2: `${STORAGE_PREFIX}budgets_v2`,
+  RECEIPT_SCANS: `${STORAGE_PREFIX}receipt_scans`,
+  WEALTH_ASSETS: `${STORAGE_PREFIX}wealth_assets`,
+  BACKUPS: `${STORAGE_PREFIX}backups`,
 }
 
 function getAdapter() {

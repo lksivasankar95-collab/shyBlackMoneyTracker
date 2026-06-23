@@ -37,7 +37,7 @@ function formatCategoryDetail(detail) {
 
 export default function FinancialHealthPage() {
   const { t } = useTranslation()
-  const { transactions, budgets, debts, goals } = useFinance()
+  const { transactions, budgets, debts, goals, budgetsV2, financialScore, smartRecommendations, spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, budgetHealthV2, overspentCategories } = useFinance()
   const [activeTab, setActiveTab] = useState('overview')
 
   const health = useMemo(
@@ -51,6 +51,10 @@ export default function FinancialHealthPage() {
   )
 
   const velocity = useMemo(() => getScoreVelocity(history), [history])
+
+  const allInsights = useMemo(() => {
+    return [...spendingInsights, ...emiInsightsData, ...debtInsightsData, ...recurringInsightsData]
+  }, [spendingInsights, emiInsightsData, debtInsightsData, recurringInsightsData])
 
   const hasData = transactions.length > 0
   const hasHistory = history.some((h) => h.score !== null)
@@ -234,7 +238,78 @@ export default function FinancialHealthPage() {
 
       {activeTab === 'recommendations' && (
         <div className="space-y-2">
-          {health.recommendations.length === 0 ? (
+          {allInsights.length > 0 && (
+            <GlassCard>
+              <h3 className="text-xs font-semibold text-amber-400 mb-2 flex items-center gap-1.5">
+                <BarChart3 size={12} /> Insights
+              </h3>
+              <div className="space-y-1.5">
+                {allInsights.map((ins, i) => (
+                  <div key={i} className={`flex items-start gap-2 p-2 rounded-lg text-[10px] ${
+                    ins.severity === 'high' ? 'bg-red-500/10 text-red-400' :
+                    ins.severity === 'medium' ? 'bg-amber-500/10 text-amber-400' :
+                    ins.severity === 'positive' ? 'bg-neon/10 text-neon' :
+                    'bg-white/[0.03] text-gray-400'
+                  }`}>
+                    <Lightbulb size={12} className="shrink-0 mt-0.5" />
+                    <div>
+                      <p>{ins.message}</p>
+                      <p className="text-gray-600 mt-0.5">{ins.detail}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
+          {overspentCategories.length > 0 && (
+            <GlassCard>
+              <h3 className="text-xs font-semibold text-red-400 mb-2">Overspent Budgets</h3>
+              <div className="space-y-1">
+                {overspentCategories.slice(0, 5).map((b) => (
+                  <div key={b.id} className="flex items-center justify-between text-[10px] bg-red-500/5 rounded-lg px-2.5 py-1.5">
+                    <span className="text-gray-400">{b.name}</span>
+                    <span className="text-red-400 font-semibold">+{formatCurrency(b.spent - b.amount)}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
+
+          {budgetHealthV2.warning > 0 && (
+            <GlassCard>
+              <h3 className="text-xs font-semibold text-amber-400 mb-2">Budgets at Warning Level</h3>
+              <p className="text-[10px] text-gray-500">{budgetHealthV2.warning} budget(s) have reached 80%+ of their limit</p>
+            </GlassCard>
+          )}
+
+          {smartRecommendations.map((rec, i) => (
+            <GlassCard key={i} className={rec.priority === 'high' ? 'border-red-500/20' : rec.priority === 'medium' ? 'border-amber-500/20' : ''}>
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  rec.type.includes('budget') ? 'bg-teal-500/10 text-teal-400' :
+                  rec.type.includes('savings') ? 'bg-yellow-500/10 text-yellow-400' :
+                  rec.type.includes('debt') ? 'bg-orange-500/10 text-orange-400' :
+                  rec.type.includes('food') ? 'bg-green-500/10 text-green-400' :
+                  'bg-blue-500/10 text-blue-400'
+                }`}>
+                  <Lightbulb size={15} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-300">{rec.action}</p>
+                  <span className={`text-[10px] font-medium mt-1 inline-block ${
+                    rec.priority === 'high' ? 'text-red-400' :
+                    rec.priority === 'medium' ? 'text-amber-400' :
+                    'text-gray-500'
+                  }`}>
+                    {rec.priority === 'high' ? 'High Priority' : rec.priority === 'medium' ? 'Medium' : 'Suggestion'}
+                  </span>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+
+          {health.recommendations.length === 0 && smartRecommendations.length === 0 && (
             <GlassCard>
               <EmptyState
                 icon={CheckCircle}
@@ -242,32 +317,6 @@ export default function FinancialHealthPage() {
                 description={t('health.doing_great_desc')}
               />
             </GlassCard>
-          ) : (
-            health.recommendations.map((rec, i) => (
-              <GlassCard key={i} className={rec.impact === 'high' ? 'border-neon/20' : ''}>
-                <div className="flex items-start gap-3">
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                    rec.type === 'saving' ? 'bg-yellow-500/10 text-yellow-400' :
-                    rec.type === 'spending' ? 'bg-red-500/10 text-red-400' :
-                    rec.type === 'debt' ? 'bg-orange-500/10 text-orange-400' :
-                    rec.type === 'goal' ? 'bg-purple-500/10 text-purple-400' :
-                    'bg-blue-500/10 text-blue-400'
-                  }`}>
-                    <Lightbulb size={15} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-300">{rec.text}</p>
-                    {rec.impact && (
-                      <span className={`text-[10px] font-medium mt-1 inline-block ${
-                        rec.impact === 'high' ? 'text-neon' : 'text-gray-500'
-                      }`}>
-                        {rec.impact === 'high' ? t('health.high_priority') : t('health.nice_to_have')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </GlassCard>
-            ))
           )}
         </div>
       )}

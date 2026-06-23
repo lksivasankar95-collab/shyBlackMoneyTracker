@@ -1,8 +1,265 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { APP_SCHEMA_VERSION } from './schema'
 import { recordBackupEvent } from './backupHealth'
+import { generateId } from './helpers'
 
 export const BACKUP_SCHEMA_VERSION = 1
+export const MAX_BACKUP_GENERATIONS = 10
+const BACKUP_STORAGE_KEY = STORAGE_KEYS.BACKUPS
+
+/* ── Backup Types ── */
+export const BACKUP_TYPES = {
+  MANUAL: 'manual',
+  SCHEDULED: 'scheduled',
+  EMERGENCY: 'emergency',
+  PRE_IMPORT: 'pre_import',
+  PRE_MIGRATION: 'pre_migration',
+}
+
+/* ── Backup Generation Management ── */
+
+export function getBackupGenerations() {
+  const data = safeStorage.get(BACKUP_STORAGE_KEY, [])
+  return Array.isArray(data) ? data : []
+}
+
+function saveBackupGenerations(backups) {
+  safeStorage.set(BACKUP_STORAGE_KEY, backups)
+}
+
+function rotateBackups(backups) {
+  const sorted = [...backups].sort((a, b) => b.createdAt - a.createdAt)
+  return sorted.slice(0, MAX_BACKUP_GENERATIONS)
+}
+
+/* ── Checksum ── */
+
+export async function generateChecksum(data) {
+  const str = typeof data === 'string' ? data : JSON.stringify(data)
+  try {
+    const enc = new TextEncoder().encode(str)
+    const hashBuffer = await crypto.subtle.digest('SHA-256', enc)
+    const hashArray = Array.from(new Uint8Array(hashBuffer))
+    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  } catch {
+    return computeSimpleChecksum(str)
+  }
+}
+
+export function computeSimpleChecksum(data) {
+  const str = typeof data === 'string' ? data : JSON.stringify(data)
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const ch = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + ch
+    hash = hash & hash
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0')
+}
+
+/* ── Collect Backup Data ── */
+
+export function collectBackupInclude(includeModules) {
+  const modules = includeModules || [
+    'transactions', 'debts', 'savingsGoal', 'budgets', 'recurring',
+    'tags', 'emis', 'accounts', 'transfers', 'goals', 'templates',
+    'documents', 'documentFiles', 'relationships', 'archive',
+    'budgetsV2', 'receipts', 'wealthAssets', 'emis',
+  ]
+  const data = {}
+  if (modules.includes('schemaVersion')) {
+    const schema = safeStorage.get(STORAGE_KEYS.SCHEMA, { version: 0 })
+    data.schemaVersion = schema && typeof schema.version === 'number' ? schema.version : 0
+  }
+  const keyMap = {
+    transactions: STORAGE_KEYS.TRANSACTIONS,
+    debts: STORAGE_KEYS.DEBTS,
+    savingsGoal: STORAGE_KEYS.SAVINGS,
+    budgets: STORAGE_KEYS.BUDGETS,
+    recurring: STORAGE_KEYS.RECURRING,
+    tags: STORAGE_KEYS.TAGS,
+    emis: STORAGE_KEYS.EMIS,
+    accounts: STORAGE_KEYS.NET_WORTH_ACCOUNTS,
+    transfers: STORAGE_KEYS.TRANSFERS,
+    goals: STORAGE_KEYS.GOALS,
+    templates: STORAGE_KEYS.TEMPLATES,
+    documents: STORAGE_KEYS.DOCUMENTS,
+    documentFiles: STORAGE_KEYS.DOCUMENT_FILES,
+    relationships: STORAGE_KEYS.RELATIONSHIPS,
+    archive: STORAGE_KEYS.ARCHIVE,
+    budgetsV2: STORAGE_KEYS.BUDGETS_V2,
+    receipts: STORAGE_KEYS.RECEIPT_SCANS,
+    wealthAssets: STORAGE_KEYS.WEALTH_ASSETS,
+  }
+  for (const mod of modules) {
+    if (keyMap[mod]) {
+      data[mod] = safeStorage.get(keyMap[mod], Array.isArray(safeStorage.get(keyMap[mod], [])) ? [] : {})
+    }
+  }
+  const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
+  data.security = rawSecurity && typeof rawSecurity === 'object'
+    ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
+    : {}
+  return data
+}
+
+/* ── Create Backup Record ── */
+
+export async function createBackupRecord(type = BACKUP_TYPES.MANUAL, includeModules) {
+  const backupData = collectBackupInclude(includeModules)
+  const checksum = await generateChecksum(backupData)
+  const backupStr = JSON.stringify(backupData)
+  const size = typeof Blob !== 'undefined' ? new Blob([backupStr]).size : backupStr.length
+  const backups = getBackupGenerations()
+  const record = {
+    id: generateId(),
+    type,
+    version: BACKUP_SCHEMA_VERSION,
+    createdAt: Date.now(),
+    appVersion: APP_SCHEMA_VERSION,
+    size,
+    checksum,
+    encrypted: false,
+    modules: Object.keys(backupData),
+    data: backupData,
+  }
+  backups.unshift(record)
+  const rotated = rotateBackups(backups)
+  saveBackupGenerations(rotated)
+  recordBackupEvent(type === BACKUP_TYPES.ENCRYPTED ? 'encrypted_export' : 'export', true)
+  return record
+}
+
+export function getBackupById(id) {
+  return getBackupGenerations().find((b) => b.id === id) || null
+}
+
+export function deleteBackup(id) {
+  const backups = getBackupGenerations().filter((b) => b.id !== id)
+  saveBackupGenerations(backups)
+}
+
+export function clearAllBackups() {
+  saveBackupGenerations([])
+}
+
+/* ── Verify & Validate ── */
+
+export async function verifyBackupIntegrity(backup) {
+  if (!backup || !backup.data) return { valid: false, errors: ['Backup record missing data'] }
+  if (!backup.checksum) return { valid: false, errors: ['Backup missing checksum'] }
+  const computed = await generateChecksum(backup.data)
+  if (computed !== backup.checksum) {
+    return { valid: false, errors: [`Checksum mismatch: expected ${backup.checksum}, got ${computed}`] }
+  }
+  const errors = []
+  if (!Array.isArray(backup.data.transactions)) errors.push('transactions must be an array')
+  if (!Array.isArray(backup.data.debts)) errors.push('debts must be an array')
+  return { valid: errors.length === 0, errors }
+}
+
+export function validateBackupForRestore(backup) {
+  const errors = []
+  if (!backup) return { valid: false, errors: ['No backup data'] }
+  if (backup.version > BACKUP_SCHEMA_VERSION) errors.push('Backup version is newer than app version')
+  if (backup.appVersion > APP_SCHEMA_VERSION) errors.push('Backup was created by a newer app version')
+  if (!backup.modules || backup.modules.length === 0) errors.push('Backup has no data modules')
+  return { valid: errors.length === 0, errors }
+}
+
+/* ── Selective Restore ── */
+
+export function restoreSelectedModules(backupData, selectedModules) {
+  const results = { restored: [], failed: [], skipped: [] }
+  const keyMap = {
+    transactions: STORAGE_KEYS.TRANSACTIONS,
+    debts: STORAGE_KEYS.DEBTS,
+    savingsGoal: STORAGE_KEYS.SAVINGS,
+    budgets: STORAGE_KEYS.BUDGETS,
+    recurring: STORAGE_KEYS.RECURRING,
+    tags: STORAGE_KEYS.TAGS,
+    emis: STORAGE_KEYS.EMIS,
+    accounts: STORAGE_KEYS.NET_WORTH_ACCOUNTS,
+    transfers: STORAGE_KEYS.TRANSFERS,
+    goals: STORAGE_KEYS.GOALS,
+    templates: STORAGE_KEYS.TEMPLATES,
+    archive: STORAGE_KEYS.ARCHIVE,
+    documents: STORAGE_KEYS.DOCUMENTS,
+    documentFiles: STORAGE_KEYS.DOCUMENT_FILES,
+    relationships: STORAGE_KEYS.RELATIONSHIPS,
+    budgetsV2: STORAGE_KEYS.BUDGETS_V2,
+    receipts: STORAGE_KEYS.RECEIPT_SCANS,
+    wealthAssets: STORAGE_KEYS.WEALTH_ASSETS,
+  }
+  for (const mod of selectedModules) {
+    if (mod in backupData) {
+      const storageKey = keyMap[mod]
+      if (storageKey) {
+        const ok = safeStorage.set(storageKey, backupData[mod])
+        if (ok) results.restored.push(mod)
+        else results.failed.push(mod)
+      } else {
+        results.skipped.push(mod)
+      }
+    } else {
+      results.skipped.push(mod)
+    }
+  }
+  recordBackupEvent('restore', results.failed.length === 0)
+  return results
+}
+
+/* ── Rollback ── */
+
+export function getRollbackTarget(backups) {
+  const sorted = [...backups].sort((a, b) => b.createdAt - a.createdAt)
+  return sorted.length > 1 ? sorted[1] : null
+}
+
+export function rollbackToPrevious(backups) {
+  const target = getRollbackTarget(backups)
+  if (!target || !target.data) return { success: false, error: 'No rollback target available' }
+  const validation = validateBackupForRestore(target)
+  if (!validation.valid) return { success: false, error: `Rollback target invalid: ${validation.errors.join('; ')}` }
+  const result = restoreSelectedModules(target.data, target.modules || Object.keys(target.data))
+  return { success: result.failed.length === 0, result, backup: target }
+}
+
+/* ── Backup Health Score ── */
+
+export function getBackupHealthScore(backups) {
+  if (backups.length === 0) return { score: 0, grade: 'F', message: 'No backups exist', status: 'critical' }
+  const now = Date.now()
+  const sorted = [...backups].sort((a, b) => b.createdAt - a.createdAt)
+  const latest = sorted[0]
+  const daysSince = Math.floor((now - latest.createdAt) / 86400000)
+  const count = backups.length
+  const hasRecent = daysSince <= 7
+  const hasMultiple = count >= 3
+  const hasEncrypted = backups.some((b) => b.encrypted)
+  const totalSize = backups.reduce((s, b) => s + (b.size || 0), 0)
+
+  let score = 0
+  if (hasRecent) score += 30
+  else if (daysSince <= 14) score += 15
+  else if (daysSince <= 30) score += 5
+  if (count >= 10) score += 30
+  else if (count >= 5) score += 25
+  else if (count >= 3) score += 15
+  else if (count >= 1) score += 5
+  if (hasEncrypted) score += 20
+  if (totalSize > 0) score += 10
+  if (hasMultiple && hasRecent) score += 10
+
+  let grade, status, message
+  if (score >= 90) { grade = 'A+'; status = 'excellent'; message = 'Fully protected' }
+  else if (score >= 75) { grade = 'A'; status = 'good'; message = 'Well protected' }
+  else if (score >= 55) { grade = 'B'; status = 'adequate'; message = 'Adequate coverage' }
+  else if (score >= 30) { grade = 'C'; status = 'weak'; message = 'Needs improvement' }
+  else { grade = 'D'; status = 'critical'; message = 'Data at risk' }
+
+  return { score: Math.min(100, score), grade, status, message, backupCount: count, daysSince, latestBackupAt: latest.createdAt }
+}
 
 // ── Encrypted backup helpers (AES-256-GCM + PBKDF2) ──────────────────────────
 

@@ -3,12 +3,13 @@ import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
   AlertCircle, RefreshCw, Repeat2, RotateCcw, SkipForward, Sparkles, Target, Heart, FileText, BarChart3,
   Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award, FolderOpen, FileDown, Users, Wallet,
-  ShieldCheck, Printer, Bell, Smartphone,
+  ShieldCheck, Printer, Bell, Smartphone, Clock, Receipt as ReceiptIcon, Zap,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
-import { formatCurrency } from '../utils/helpers'
+import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
+import { getUpcomingRecurringTransactions } from '../utils/recurring'
 import { getCategorySummary } from '../utils/categoryDrilldown'
 import { setCategoryDetailId } from '../pages/CategoryDetail'
 import { calculateNetWorth, getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
@@ -36,6 +37,9 @@ export default function Dashboard({ onNavigate }) {
     goals, goalsProjections,
     emiSummary, documents, documentStats,
     dataQuality, reviewSummary,
+    receiptStats,
+    wealthDashboardStats,
+    backupDashboardStats,
   } = useFinance()
 
   const accounts = useMemo(() => getAccounts(), [])
@@ -195,6 +199,45 @@ export default function Dashboard({ onNavigate }) {
         </div>
       )}
 
+      {/* ── Upcoming Recurring ─────────────────────── */}
+      {(() => {
+        const upcoming = getUpcomingRecurringTransactions(recurring, 5)
+        if (upcoming.length === 0) return null
+        return (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                <Clock size={12} className="text-neon" />
+                Upcoming Recurring
+              </h2>
+              <button onClick={() => onNavigate('recurring-transactions')} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
+                Manage <ChevronRight size={12} className="inline" />
+              </button>
+            </div>
+            <GlassCard>
+              <div className="divide-y divide-glass-border">
+                {upcoming.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className={`w-2 h-2 rounded-full ${item.type === 'income' ? 'bg-neon' : 'bg-red-400'} shrink-0`} />
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium truncate">{item.note || item.category}</p>
+                        <p className="text-[10px] text-gray-500">{formatDate(item.nextDate)}</p>
+                      </div>
+                    </div>
+                    <span className={`text-xs font-semibold tabular-nums shrink-0 ml-2 ${
+                      item.type === 'income' ? 'text-neon' : 'text-red-400'
+                    }`}>
+                      {formatCurrency(item.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          </div>
+        )
+      })()}
+
       {/* ── 4. Quick Actions ────────────────────────── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2.5">
@@ -245,6 +288,56 @@ export default function Dashboard({ onNavigate }) {
             </GlassCard>
           </button>
         )}
+        {receiptStats.total > 0 && (
+          <button onClick={() => onNavigate('receipt-center')} className="text-left">
+            <GlassCard className="!p-3">
+              <ReceiptIcon size={14} className="text-blue-400 mb-1" />
+              <p className="text-lg font-bold text-white tabular-nums">{receiptStats.thisMonth}</p>
+              <p className="text-[10px] text-gray-500">Receipts (Month)</p>
+            </GlassCard>
+          </button>
+        )}
+        {wealthDashboardStats.assetCount > 0 && (
+          <button onClick={() => onNavigate('wealth-center')} className="text-left">
+            <GlassCard className="!p-3">
+              <BarChart3 size={14} className="text-amber-400 mb-1" />
+              <p className="text-lg font-bold text-white tabular-nums">{wealthDashboardStats.wealthGrade !== 'N/A' ? wealthDashboardStats.wealthGrade : '-'}</p>
+              <p className="text-[10px] text-gray-500">Wealth Score</p>
+            </GlassCard>
+          </button>
+        )}
+        {wealthDashboardStats.netWorth !== 0 && (
+          <button onClick={() => onNavigate('wealth-center')} className="text-left">
+            <GlassCard className="!p-3">
+              <TrendingUp size={14} className="text-neon mb-1" />
+              <p className={`text-lg font-bold tabular-nums ${wealthDashboardStats.netWorth >= 0 ? 'text-neon' : 'text-red-400'}`}>{formatCurrency(wealthDashboardStats.netWorth)}</p>
+              <p className="text-[10px] text-gray-500">Net Worth</p>
+            </GlassCard>
+          </button>
+        )}
+        {backupDashboardStats.backupCount > 0 && (
+          <button onClick={() => onNavigate('recovery-center')} className="text-left">
+            <GlassCard className="!p-3">
+              <ShieldCheck size={14} className={`mb-1 ${backupDashboardStats.healthStatus === 'excellent' || backupDashboardStats.healthStatus === 'good' ? 'text-neon' : 'text-amber-400'}`} />
+              <p className={`text-lg font-bold tabular-nums ${backupDashboardStats.healthGrade !== 'F' ? 'text-neon' : 'text-amber-400'}`}>{backupDashboardStats.healthGrade}</p>
+              <p className="text-[10px] text-gray-500">Backup Health</p>
+            </GlassCard>
+          </button>
+        )}
+        <button onClick={() => onNavigate('forecast-center')} className="text-left">
+          <GlassCard className="!p-3">
+            <Zap size={14} className="text-amber-400 mb-1" />
+            <p className="text-lg font-bold text-white tabular-nums">{transactions.length > 0 ? '✓' : '-'}</p>
+            <p className="text-[10px] text-gray-500">Forecast</p>
+          </GlassCard>
+        </button>
+        <button onClick={() => onNavigate('diagnostics')} className="text-left">
+          <GlassCard className="!p-3">
+            <Activity size={14} className="text-cyan-400 mb-1" />
+            <p className="text-lg font-bold text-white tabular-nums">{dataQuality?.total || 0 > 0 ? (dataQuality.total > 0 ? '⚠' : '✓') : '-'}</p>
+            <p className="text-[10px] text-gray-500">Health</p>
+          </GlassCard>
+        </button>
         {goals.length > 0 && (
           <button onClick={() => onNavigate('goals')} className="text-left">
             <GlassCard className="!p-3">
@@ -277,6 +370,18 @@ export default function Dashboard({ onNavigate }) {
       {/* ── 7. More Features ────────────────────────── */}
       <GlassCard className="mb-4 !p-3">
         <div className="grid grid-cols-3 gap-2">
+          <button onClick={() => onNavigate('wealth-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
+            <BarChart3 size={16} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-gray-400">Wealth Center</span>
+          </button>
+          <button onClick={() => onNavigate('recovery-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
+            <ShieldCheck size={16} className="text-neon" />
+            <span className="text-[10px] font-medium text-gray-400">Backup</span>
+          </button>
+          <button onClick={() => onNavigate('budget-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
+            <Target size={16} className="text-teal-400" />
+            <span className="text-[10px] font-medium text-gray-400">Budget Center</span>
+          </button>
           <button onClick={() => onNavigate('networth')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <BarChart3 size={16} className="text-neon" />
             <span className="text-[10px] font-medium text-gray-400">{t('nav.networth')}</span>
@@ -309,6 +414,10 @@ export default function Dashboard({ onNavigate }) {
             <CreditCard size={16} className="text-purple-400" />
             <span className="text-[10px] font-medium text-gray-400">{t('nav.emis')}</span>
           </button>
+          <button onClick={() => onNavigate('forecast-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
+            <Zap size={16} className="text-amber-400" />
+            <span className="text-[10px] font-medium text-gray-400">Forecast</span>
+          </button>
           <button onClick={() => onNavigate('cash-flow-forecast')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Activity size={16} className="text-cyan-400" />
             <span className="text-[10px] font-medium text-gray-400">{t('nav.forecast')}</span>
@@ -332,6 +441,10 @@ export default function Dashboard({ onNavigate }) {
           <button onClick={() => onNavigate('people')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Users size={16} className="text-blue-400" />
             <span className="text-[10px] font-medium text-gray-400">{t('nav.people')}</span>
+          </button>
+          <button onClick={() => onNavigate('receipt-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
+            <ReceiptIcon size={16} className="text-blue-400" />
+            <span className="text-[10px] font-medium text-gray-400">Receipt Scanner</span>
           </button>
           <button onClick={() => onNavigate('account-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Wallet size={16} className="text-cyan-400" />

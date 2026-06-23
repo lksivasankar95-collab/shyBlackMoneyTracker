@@ -229,8 +229,8 @@ export function validateEmis(raw) {
 export function detectOrphanedReferences(data) {
   const issues = []
 
-  const accountIds = new Set((data.accounts || []).map((a) => a.id))
-  const transactionIds = new Set((data.transactions || []).map((t) => t.id))
+  const accountIds = new Set((data.accounts || []).filter(Boolean).map((a) => a.id))
+  const transactionIds = new Set((data.transactions || []).filter(Boolean).map((t) => t.id))
 
   for (const tx of data.transfers || []) {
     if (tx.fromAccountId && !accountIds.has(tx.fromAccountId)) {
