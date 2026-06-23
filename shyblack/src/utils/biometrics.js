@@ -37,11 +37,12 @@ export function setBiometricEnabled(enabled) {
 }
 
 export async function authenticateWithBiometric(reason) {
+  let timeoutId
   try {
     const { NativeBiometric } = await import('@aparajita/capacitor-biometric-auth')
-    const timeout = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('biometric-timeout')), 30000)
-    )
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error('biometric-timeout')), 30000)
+    })
     const result = await Promise.race([
       NativeBiometric.verifyIdentity({
         reason: reason || 'Unlock ShyBlack Finance',
@@ -51,8 +52,10 @@ export async function authenticateWithBiometric(reason) {
       }),
       timeout,
     ])
+    clearTimeout(timeoutId)
     return result.verified === true
   } catch {
+    clearTimeout(timeoutId)
     return false
   }
 }

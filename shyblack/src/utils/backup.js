@@ -23,7 +23,7 @@ export function getBackupGenerations() {
   return Array.isArray(data) ? data : []
 }
 
-function saveBackupGenerations(backups) {
+export function saveBackupGenerations(backups) {
   safeStorage.set(BACKUP_STORAGE_KEY, backups)
 }
 
@@ -276,7 +276,10 @@ async function deriveKey(password, salt) {
 }
 
 function toBase64(bytes) {
-  return btoa(String.fromCharCode(...new Uint8Array(bytes)))
+  const uint8 = new Uint8Array(bytes)
+  let binary = ''
+  for (let i = 0; i < uint8.length; i++) binary += String.fromCharCode(uint8[i])
+  return btoa(binary)
 }
 
 function fromBase64(str) {
@@ -297,7 +300,7 @@ async function ensureCrypto() {
   }
   if (typeof process !== 'undefined' && process.versions?.node) {
     try {
-      const mod = await import('node:crypto')
+      const mod = await import(/* @vite-ignore */ 'node:crypto')
       _crypto = mod.webcrypto || mod.default
       return !!_crypto
     } catch {
@@ -443,6 +446,9 @@ export function collectBackupData() {
   data.documentFiles = safeStorage.get(STORAGE_KEYS.DOCUMENT_FILES, {})
   data.relationships = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, [])
   data.archive = safeStorage.get(STORAGE_KEYS.ARCHIVE, { version: 1, transactions: [] })
+  data.budgetsV2 = safeStorage.get(STORAGE_KEYS.BUDGETS_V2, [])
+  data.receipts = safeStorage.get(STORAGE_KEYS.RECEIPT_SCANS, [])
+  data.wealthAssets = safeStorage.get(STORAGE_KEYS.WEALTH_ASSETS, [])
   const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
   data.security = rawSecurity && typeof rawSecurity === 'object'
     ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }

@@ -7,6 +7,10 @@ export default function AndroidBackHandler({ canGoBack, onGoBack }) {
   const { t } = useTranslation()
   const lastBackTime = useRef(-Infinity)
   const [showExitHint, setShowExitHint] = useState(false)
+  const canGoBackRef = useRef(canGoBack)
+  const onGoBackRef = useRef(onGoBack)
+  useEffect(() => { canGoBackRef.current = canGoBack }, [canGoBack])
+  useEffect(() => { onGoBackRef.current = onGoBack }, [onGoBack])
 
   useEffect(() => {
     let cancelled = false
@@ -16,8 +20,8 @@ export default function AndroidBackHandler({ canGoBack, onGoBack }) {
     App.addListener('backButton', () => {
       if (cancelled) return
 
-      if (canGoBack) {
-        onGoBack()
+      if (canGoBackRef.current) {
+        onGoBackRef.current()
       } else {
         const now = Date.now()
         if (now - lastBackTime.current > 0 && now - lastBackTime.current < 2000) {
@@ -43,7 +47,7 @@ export default function AndroidBackHandler({ canGoBack, onGoBack }) {
       setShowExitHint(false)
       if (handler) handler.remove()
     }
-  }, [canGoBack, onGoBack])
+  }, [])
 
   if (!showExitHint) return null
 

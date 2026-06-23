@@ -1,3 +1,6 @@
+const { Blob } = require('buffer')
+global.Blob = Blob
+
 // Node 16 polyfill — global.crypto and crypto.getRandomValues not available until Node 19
 const nodeCrypto = require('crypto')
 if (typeof nodeCrypto.getRandomValues !== 'function') {

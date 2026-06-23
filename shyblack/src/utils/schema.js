@@ -121,6 +121,7 @@ export function runMigrations() {
       lastVersion = version
       setSchemaVersion(version)
     } catch (error) {
+      console.error('[schema] migration v' + version + ' failed:', error)
       return { migrated: false, from: currentVersion, to: lastVersion, error: error.message }
     }
   }

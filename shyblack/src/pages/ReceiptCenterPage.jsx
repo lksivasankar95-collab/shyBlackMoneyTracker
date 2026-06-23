@@ -36,6 +36,12 @@ export default function ReceiptCenterPage({ onNavigate }) {
   const [filter, setFilter] = useState('all')
   const fileInputRef = useRef(null)
   const cameraInputRef = useRef(null)
+  const mountedRef = useRef(true)
+
+  useEffect(() => {
+    mountedRef.current = true
+    return () => { mountedRef.current = false }
+  }, [])
 
   const reset = useCallback(() => {
     setParsed(null)
@@ -53,7 +59,8 @@ export default function ReceiptCenterPage({ onNavigate }) {
     setScanning(true)
     setProgress(0)
     try {
-      const result = await scanReceipt(file, (p) => setProgress(p))
+      const result = await scanReceipt(file, (p) => { if (mountedRef.current) setProgress(p) })
+      if (!mountedRef.current) return
       setParsed(result)
       setEditParsed({
         merchant: result.merchant,
@@ -64,6 +71,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
         confidence: result.confidence,
       })
     } catch (err) {
+      if (!mountedRef.current) return
       addToast('OCR failed: ' + (err.message || 'Unknown error'), 'error')
       reset()
     }

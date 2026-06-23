@@ -106,7 +106,12 @@ class LocalStorageAdapter {
 
   _getAllPrefixedKeys() {
     try {
-      return Object.keys(localStorage).filter((k) => k && k.startsWith(this._prefix))
+      const keys = []
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i)
+        if (k && k.startsWith(this._prefix)) keys.push(k)
+      }
+      return keys
     } catch {
       return []
     }

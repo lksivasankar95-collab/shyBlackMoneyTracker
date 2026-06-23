@@ -1,5 +1,4 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
-import { Share as CapShare } from '@capacitor/share'
 import * as privacy from './privacy'
 
 export function dataUriToBlob(dataUri) {
@@ -172,35 +171,32 @@ export async function shareBlob(blob, filename, title) {
     }
   }
 
-  if (typeof CapShare !== 'undefined') {
+  try {
+    const { Share: CapShare } = await import('@capacitor/share')
     privacy.suppressLockForTransition(5000)
 
-    try {
-      const base64 = await blobToBase64(blob)
-      const savedFile = await Filesystem.writeFile({
-        path: `ShyBlackFinance/_share/${filename}`,
-        data: base64,
-        directory: Directory.Cache,
-        recursive: true,
-      })
+    const base64 = await blobToBase64(blob)
+    const savedFile = await Filesystem.writeFile({
+      path: `ShyBlackFinance/_share/${filename}`,
+      data: base64,
+      directory: Directory.Cache,
+      recursive: true,
+    })
 
-      await CapShare.share({
-        title: title || filename,
-        text: title || filename,
-        url: savedFile.uri,
-        dialogTitle: 'Share via',
-      })
+    await CapShare.share({
+      title: title || filename,
+      text: title || filename,
+      url: savedFile.uri,
+      dialogTitle: 'Share via',
+    })
 
-      return { shared: true, method: 'capacitor' }
-    } catch (err) {
-      if (err.message?.includes?.('canceled') || err.message?.includes?.('abort') || err.message?.includes?.('AbortError')) {
-        return { shared: false, method: 'cancelled' }
-      }
-      return { shared: false, method: 'error', error: err.message }
+    return { shared: true, method: 'capacitor' }
+  } catch (err) {
+    if (err.message?.includes?.('canceled') || err.message?.includes?.('abort') || err.message?.includes?.('AbortError')) {
+      return { shared: false, method: 'cancelled' }
     }
+    return { shared: false, method: 'error', error: err.message }
   }
-
-  return { shared: false, method: 'unsupported' }
 }
 
 export async function openFileNative(blob, filename) {

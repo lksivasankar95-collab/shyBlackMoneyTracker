@@ -1,13 +1,16 @@
-import { defineConfig } from 'vite'
+import { defineConfig, createLogger } from 'vite'
 import react from '@vitejs/plugin-react'
 
+const logger = createLogger()
+const loggerWarn = logger.warn.bind(logger)
+logger.warn = (msg, options) => {
+  if (msg.includes('"node:crypto"') || msg.includes("'node:crypto'")) return
+  loggerWarn(msg, options)
+}
+
 export default defineConfig({
+  customLogger: logger,
   plugins: [react()],
-  resolve: {
-    alias: {
-      'node:crypto': 'crypto',
-    },
-  },
   build: {
     target: 'es2020',
     rollupOptions: {

@@ -34,6 +34,9 @@
     "recharts": "^3.8.1",
     "tesseract.js": "^7.0.0"
   },
+  "engines": {
+    "node": ">=20"
+  },
   "devDependencies": {
     "@capacitor/assets": "^3.0.0",
     "@types/react": "^18.2.37",

@@ -75,13 +75,12 @@ export function getDueRecurringTransactions(recurring) {
 }
 
 export function getUpcomingRecurringTransactions(recurring, count = 5) {
-  const now = new Date()
+  const todayStr = new Date().toISOString().split('T')[0]
   const upcoming = recurring
     .filter((r) => {
       const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
       if (!r.nextDate || !isActive) return false
-      const next = new Date(r.nextDate + 'T00:00:00')
-      return next > now
+      return r.nextDate > todayStr
     })
     .sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate))
     .slice(0, count)
@@ -111,15 +110,13 @@ export function autoExecuteDueRecurring(recurring, executeFn) {
   const due = getDueRecurringTransactions(recurring)
   let executedCount = 0
 
-  const toLocalDate = (ts) => {
-    const d = new Date(ts)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  }
-  const today = toLocalDate(Date.now())
+  const today = new Date().toISOString().split('T')[0]
 
   due.forEach((item) => {
     if (item.lastExecutedAt) {
-      const lastExecDate = toLocalDate(item.lastExecutedAt)
+      const lastExecDate = typeof item.lastExecutedAt === 'number'
+        ? new Date(item.lastExecutedAt).toISOString().split('T')[0]
+        : String(item.lastExecutedAt).slice(0, 10)
       if (lastExecDate === today) return
     }
     executeFn(item)

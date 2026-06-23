@@ -149,6 +149,7 @@ export function FinanceProvider({ children }) {
   const { transactions, savingsGoal, budgets, budgetsV2, receipts, wealthAssets, recurring, tags, security, debts, goals, templates, emis, accounts, documents, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
+  const [backupVersion, setBackupVersion] = useState(0)
   const overspendTimer = useRef(null)
   const txPersistTimer = useRef(null)
 
@@ -712,6 +713,12 @@ export function FinanceProvider({ children }) {
       ...(data.emis ? { emis: data.emis } : {}),
       ...(accts ? { accounts: accts } : {}),
       ...(wa ? { wealthAssets: wa } : {}),
+      ...(Array.isArray(data.goals) ? { goals: data.goals } : {}),
+      ...(Array.isArray(data.tags) ? { tags: data.tags } : {}),
+      ...(Array.isArray(data.templates) ? { templates: data.templates } : {}),
+      ...(Array.isArray(data.budgetsV2) ? { budgetsV2: data.budgetsV2 } : {}),
+      ...(Array.isArray(data.receipts) ? { receipts: data.receipts } : {}),
+      ...(Array.isArray(data.documents) ? { documents: data.documents } : {}),
     }))
     if (data.emis) {
       rescheduleAllEmiNotifications(data.emis).catch(() => {})
@@ -1016,11 +1023,11 @@ export function FinanceProvider({ children }) {
 
   const snapshotDiagnostics = useMemo(() => {
     try { return getRecoveryChainSummary() } catch { return null }
-  }, [])
+  }, [transactions])
 
   const storageCorruptionReport = useMemo(() => {
     try { return detectCorruption() } catch { return [] }
-  }, [])
+  }, [transactions])
 
   const backupHealth = useMemo(() => {
     try { return getBackupHealth() } catch { return { status: 'unknown', message: '' } }
@@ -1153,7 +1160,7 @@ export function FinanceProvider({ children }) {
   const dataQuality = useMemo(() => {
     try {
       const rels = safeStorage.get(STORAGE_KEYS.RELATIONSHIPS, [])
-      const transfers = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, []).filter((t) => t.type === 'transfer')
+      const transfers = transactions.filter((t) => t.type === 'transfer')
       return runAllDataChecks(transactions, documents, debts, emis, accounts, rels, transfers)
     } catch { return { issues: [], total: 0, bySeverity: {}, byCheck: {} } }
   }, [transactions, documents, debts, emis, accounts])
@@ -1217,10 +1224,14 @@ export function FinanceProvider({ children }) {
 
   const backupDashboardStats = useMemo(() => {
     try { return getBackupDashboardStats() } catch { return { backupCount: 0, latestBackupAt: null, healthScore: 0, healthGrade: 'F', healthStatus: 'critical', totalSize: 0 } }
-  }, [])
+  }, [backupVersion])
 
   const handleCreateBackup = useCallback(async () => {
-    try { return await createManualBackup() } catch { return null }
+    try {
+      const result = await createManualBackup()
+      setBackupVersion((v) => v + 1)
+      return result
+    } catch { return null }
   }, [])
 
   const value = useMemo(() => ({

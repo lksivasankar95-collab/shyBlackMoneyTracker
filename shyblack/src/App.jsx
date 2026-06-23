@@ -17,7 +17,7 @@ import QuickActionCenter from './components/QuickActionCenter'
 import ScrollRestoration from './components/ScrollRestoration'
 import { App as CapApp } from '@capacitor/app'
 
-const DEBUG = true
+const DEBUG = import.meta.env.DEV
 const debug = (msg, data) => {
   if (DEBUG) console.log(`[App] ${msg}`, data !== undefined ? data : '')
 }

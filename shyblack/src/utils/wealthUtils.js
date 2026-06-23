@@ -108,7 +108,7 @@ export function getPortfolioSummary(wealthAssets) {
   const totalInvested = wealthAssets.reduce((s, a) => s + (a.investedAmount || 0), 0)
   const totalCurrent = wealthAssets.reduce((s, a) => s + (a.currentValue || 0), 0)
   const totalProfitLoss = totalCurrent - totalInvested
-  const profitLossPercent = totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100) : (totalCurrent > 0 ? 100 : 0)
+  const profitLossPercent = totalInvested > 0 ? ((totalProfitLoss / totalInvested) * 100) : 0
   return { totalInvested, totalCurrent, totalProfitLoss, profitLossPercent }
 }
 
