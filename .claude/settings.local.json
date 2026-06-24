@@ -13,7 +13,11 @@
       "Bash(npm run *)",
       "Bash(npm test *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(xargs cat)",
+      "Bash(npx cap *)",
+      "Bash(Get-ChildItem -Path \"E:\\\\Siva Current Work Backup File\\\\New folder\\\\New folder\\\\tracker\\\\shyblack\\\\src\" -Recurse -File)",
+      "Bash(Select-Object FullName)"
     ]
   }
 }
