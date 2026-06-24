@@ -1,11 +1,21 @@
-import { useMemo } from 'react'
-import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone, FolderOpen, Link2, Wallet, Activity, AlertCircle } from 'lucide-react'
+import { useMemo, useState, useEffect } from 'react'
+import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone, FolderOpen, Link2, Wallet, Activity, AlertCircle, Bell } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { getActiveAdapterType } from '../utils/storageAdapter'
 import GlassCard from '../components/GlassCard'
+import { checkNotificationPermission, getReminderPreference } from '../utils/reminders'
+
+async function getNotifPlugin() {
+  try {
+    const mod = await import('@capacitor/local-notifications')
+    return mod.LocalNotifications
+  } catch {
+    return null
+  }
+}
 
 function Row({ label, value, mono = false }) {
   return (
@@ -52,6 +62,38 @@ export default function DiagnosticsPage({ onNavigate }) {
 
   const docFileSize = documents.reduce((s, d) => s + (d.fileSize || d.size || 0), 0)
   const docFileSizeKB = docFileSize > 0 ? (docFileSize / 1024).toFixed(1) : '0'
+
+  const [notifDiag, setNotifDiag] = useState(null)
+
+  useEffect(() => {
+    let mounted = true
+    async function load() {
+      const plugin = await getNotifPlugin()
+      const pref = getReminderPreference()
+      const perm = await checkNotificationPermission()
+      let pending = null
+      let nextSchedule = null
+      if (perm.granted && plugin) {
+        try {
+          const result = await plugin.getPending()
+          pending = result.notifications.length
+          const daily = result.notifications.find(n => n.id === 1)
+          if (daily?.schedule?.on) {
+            const h = String(daily.schedule.on.hour).padStart(2, '0')
+            const m = String(daily.schedule.on.minute).padStart(2, '0')
+            nextSchedule = `${h}:${m} daily`
+          } else if (daily?.schedule?.at) {
+            nextSchedule = new Date(daily.schedule.at).toLocaleString()
+          }
+        } catch {}
+      }
+      if (mounted) {
+        setNotifDiag({ permission: perm, reminderEnabled: pref, pendingCount: pending, nextSchedule, platformAvailable: !!plugin })
+      }
+    }
+    load()
+    return () => { mounted = false }
+  }, [])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -180,6 +222,18 @@ export default function DiagnosticsPage({ onNavigate }) {
         {ANDROID_STRESS_SCENARIOS.map((s) => (
           <Row key={s.id} label={s.label} value={s.status === 'pass' ? t('diagnostics.protected') : t('diagnostics.untested')} mono />
         ))}
+      </GlassCard>
+
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Bell size={13} className="text-purple-400" />
+          <span className="text-xs font-semibold">{t('diagnostics.notifications')}</span>
+        </div>
+        <Row label={t('diagnostics.notif_permission')} value={notifDiag ? (notifDiag.permission.granted ? t('common.yes') : notifDiag.permission.reason) : '…'} mono />
+        <Row label={t('diagnostics.notif_reminder_enabled')} value={notifDiag ? (notifDiag.reminderEnabled ? t('common.yes') : t('common.no')) : '…'} mono />
+        <Row label={t('diagnostics.notif_pending_count')} value={notifDiag ? (notifDiag.pendingCount !== null ? notifDiag.pendingCount : t('common.error')) : '…'} mono />
+        <Row label={t('diagnostics.notif_next_schedule')} value={notifDiag ? (notifDiag.nextSchedule || '—') : '…'} mono />
+        <Row label={t('diagnostics.notif_platform')} value={notifDiag ? (notifDiag.platformAvailable ? t('common.yes') : t('common.no')) : '…'} mono />
       </GlassCard>
 
       <p className="text-[10px] text-gray-700 text-center mt-2">

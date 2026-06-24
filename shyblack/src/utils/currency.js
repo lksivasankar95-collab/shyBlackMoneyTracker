@@ -19,6 +19,7 @@ function getActiveCurrencyConfig() {
 }
 
 export function formatCurrency(amount) {
+  if (amount == null || typeof amount !== 'number' || isNaN(amount)) return '₹0'
   const { locale, code } = getActiveCurrencyConfig()
   try {
     return new Intl.NumberFormat(locale, {
@@ -28,7 +29,7 @@ export function formatCurrency(amount) {
       maximumFractionDigits: 0,
     }).format(amount)
   } catch {
-    return `${CURRENCY_CONFIG.INR.symbol}${Math.round(amount).toLocaleString()}`
+    return `₹${Math.round(amount).toLocaleString()}`
   }
 }
 

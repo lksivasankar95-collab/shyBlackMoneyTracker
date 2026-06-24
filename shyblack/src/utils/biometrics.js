@@ -15,10 +15,10 @@ function saveData(data) {
 
 export async function checkBiometricAvailability() {
   try {
-    const { NativeBiometric } = await import('@aparajita/capacitor-biometric-auth')
-    const result = await NativeBiometric.isAvailable()
+    const { BiometricAuth } = await import('@aparajita/capacitor-biometric-auth')
+    const result = await BiometricAuth.checkBiometry()
     biometricAvailable = result.isAvailable
-    biometricType = result.biometryType || null
+    biometricType = result.biometryType ?? null
     return { available: biometricAvailable, type: biometricType }
   } catch {
     biometricAvailable = false
@@ -39,21 +39,22 @@ export function setBiometricEnabled(enabled) {
 export async function authenticateWithBiometric(reason) {
   let timeoutId
   try {
-    const { NativeBiometric } = await import('@aparajita/capacitor-biometric-auth')
+    const { BiometricAuth } = await import('@aparajita/capacitor-biometric-auth')
     const timeout = new Promise((_, reject) => {
       timeoutId = setTimeout(() => reject(new Error('biometric-timeout')), 30000)
     })
-    const result = await Promise.race([
-      NativeBiometric.verifyIdentity({
+    await Promise.race([
+      BiometricAuth.authenticate({
         reason: reason || 'Unlock ShyBlack Finance',
-        title: 'Unlock ShyBlack',
-        subtitle: 'Use biometric to unlock',
-        negativeButtonText: 'Use PIN instead',
+        androidTitle: 'Unlock ShyBlack',
+        androidSubtitle: 'Use biometric to unlock',
+        cancelTitle: 'Use PIN instead',
+        allowDeviceCredential: true,
       }),
       timeout,
     ])
     clearTimeout(timeoutId)
-    return result.verified === true
+    return true
   } catch {
     clearTimeout(timeoutId)
     return false
@@ -74,8 +75,9 @@ export async function tryBiometricUnlock() {
 }
 
 export function getBiometricTypeLabel() {
-  if (biometricType === 'fingerprint') return 'Fingerprint'
-  if (biometricType === 'face') return 'Face Unlock'
-  if (biometricType === 'iris') return 'Iris'
+  const type = biometricType
+  if (type === 'fingerprintAuthentication' || type === 3 || type === 'touchId' || type === 1) return 'Fingerprint'
+  if (type === 'faceAuthentication' || type === 4 || type === 'faceId' || type === 2) return 'Face Unlock'
+  if (type === 'irisAuthentication' || type === 5) return 'Iris'
   return 'Biometric'
 }

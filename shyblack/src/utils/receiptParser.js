@@ -19,6 +19,9 @@ const GST_PATTERN = /\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}[Z]{1}[A-Z\d]{1}/gi
 
 export function compressImage(file, maxWidth = 1200, quality = 0.7) {
   return new Promise((resolve, reject) => {
+    const timeout = setTimeout(() => reject(new Error('Image compression timed out')), 30000)
+    const done = (fn) => (val) => { clearTimeout(timeout); fn(val) }
+
     const reader = new FileReader()
     reader.onload = (e) => {
       const img = new Image()
@@ -29,15 +32,15 @@ export function compressImage(file, maxWidth = 1200, quality = 0.7) {
         canvas.width = w; canvas.height = h
         const ctx = canvas.getContext('2d')
         ctx.drawImage(img, 0, 0, w, h)
-        canvas.toBlob((blob) => {
+        canvas.toBlob(done((blob) => {
           if (blob) resolve(blob)
           else reject(new Error('Canvas toBlob failed'))
-        }, 'image/jpeg', quality)
+        }), 'image/jpeg', quality)
       }
-      img.onerror = () => reject(new Error('Image load failed'))
+      img.onerror = done(() => reject(new Error('Image load failed')))
       img.src = e.target.result
     }
-    reader.onerror = () => reject(new Error('FileReader failed'))
+    reader.onerror = done(() => reject(new Error('FileReader failed')))
     reader.readAsDataURL(file)
   })
 }
@@ -47,10 +50,13 @@ async function runOCR(imageBlob, onProgress) {
     logger: (m) => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress) },
   })
   try {
-    const { data } = await worker.recognize(imageBlob)
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('OCR processing timed out after 60 seconds')), 60000)
+    )
+    const { data } = await Promise.race([worker.recognize(imageBlob), timeoutPromise])
     return { text: data.text.trim(), words: data.words || [], confidence: Math.round(data.confidence * 100) / 100 }
   } finally {
-    await worker.terminate()
+    try { await worker.terminate() } catch (_) { /* ignore termination errors */ }
   }
 }
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef, useCallback } from 'react'
+import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
   Camera, Upload, CheckCircle2, X, Trash2, Search, FileText,
   Loader2, AlertCircle, Scan, Receipt, Clock, Calendar,

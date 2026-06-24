@@ -12,7 +12,7 @@ import { ALL_CATEGORIES } from '../utils/constants'
 import { getUpcomingRecurringTransactions } from '../utils/recurring'
 import { getCategorySummary } from '../utils/categoryDrilldown'
 import { setCategoryDetailId } from '../pages/CategoryDetail'
-import { calculateNetWorth, getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
+import { getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
 import TransactionItem from '../components/TransactionItem'
@@ -31,6 +31,7 @@ export default function Dashboard({ onNavigate }) {
     transactions, getBalance, getMonthlySummary, savingsGoal,
     deleteTransaction, insights, notification, dismissNotification,
     security, updateSecurity, debtsSummary, debts,
+    recurring,
     pendingRecurring, executeAllRecurring, skipAllRecurring,
     executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
@@ -43,7 +44,6 @@ export default function Dashboard({ onNavigate }) {
   } = useFinance()
 
   const accounts = useMemo(() => getAccounts(), [])
-  const netWorthData = useMemo(() => calculateNetWorth(transactions, debts, accounts), [transactions, debts, accounts])
   const netWorthTrend = useMemo(() => getNetWorthTrend(getStoredNetWorthHistory(), '30d'), [])
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
@@ -52,9 +52,11 @@ export default function Dashboard({ onNavigate }) {
   const monthly = useMemo(() => getMonthlySummary(now.getFullYear(), now.getMonth()), [getMonthlySummary, now])
   const balance = useMemo(() => getBalance(), [transactions])
 
-  const netWorth = useMemo(() => {
-    return balance + debtsSummary.pendingReceivables - debtsSummary.pendingPayables
-  }, [balance, debtsSummary])
+  const totalCash = useMemo(() => transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0), [transactions])
+  const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + (a.balance || 0), 0), [accounts])
+  const lentDebts = useMemo(() => debts.filter((d) => d.type === 'lent' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
+  const borrowedDebts = useMemo(() => debts.filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
+  const netWorth = useMemo(() => totalCash + totalAccountBal + lentDebts - borrowedDebts, [totalCash, totalAccountBal, lentDebts, borrowedDebts])
 
   const recentTx = useMemo(() => transactions.slice(0, 3), [transactions])
 
@@ -91,19 +93,19 @@ export default function Dashboard({ onNavigate }) {
         <h1 className="text-4xl font-extrabold text-gradient-brand mt-1 tracking-tight glow-neon-sm">
           {hideBalance ? '••••••' : <AnimatedNumber value={netWorth} format={formatCurrency} />}
         </h1>
-        {netWorthData && (
+        {transactions.length > 0 || accounts.length > 0 || debts.length > 0 ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="flex items-center gap-1 text-[11px]">
               <span className="text-neon/60">{t('dashboard.assets')}</span>
-              <span className="text-neon font-medium">{hideBalance ? '••••' : formatCurrency(netWorthData.totalAssets)}</span>
+              <span className="text-neon font-medium">{hideBalance ? '••••' : formatCurrency(Math.max(0, totalCash + totalAccountBal) + lentDebts)}</span>
             </span>
             <span className="text-gray-700">|</span>
             <span className="flex items-center gap-1 text-[11px]">
               <span className="text-red-400/60">{t('dashboard.liabilities')}</span>
-              <span className="text-red-400 font-medium">{hideBalance ? '••••' : formatCurrency(netWorthData.totalLiabilities)}</span>
+              <span className="text-red-400 font-medium">{hideBalance ? '••••' : formatCurrency(Math.max(0, -(totalCash + totalAccountBal)) + borrowedDebts)}</span>
             </span>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* ── Snapshot recovery ───────────────────────── */}

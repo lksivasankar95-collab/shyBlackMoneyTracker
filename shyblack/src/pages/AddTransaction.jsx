@@ -223,23 +223,23 @@ export default function AddTransaction({ onNavigate }) {
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       {/* Type Selector */}
       <div className="flex gap-2 mb-5">
-        {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((t) => {
-          const Icon = TYPE_ICONS[t]
-          const isActive = purpose === t
+        {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((txType) => {
+          const Icon = TYPE_ICONS[txType]
+          const isActive = purpose === txType
           return (
             <button
-              key={t}
-              onClick={() => { setPurpose(t); setCategory(lastCategoryByType[t] || ''); setError('') }}
+              key={txType}
+              onClick={() => { setPurpose(txType); setCategory(lastCategoryByType[txType] || ''); setError('') }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all duration-200 ${
                 isActive
-                  ? t === TRANSACTION_TYPES.INCOME
+                  ? txType === TRANSACTION_TYPES.INCOME
                     ? 'bg-green-500/15 text-green-400 border-green-500/30'
                     : 'bg-red-500/15 text-red-400 border-red-500/30'
                   : 'bg-matte-100 text-gray-500 border-transparent hover:text-white'
               }`}
             >
               <Icon size={20} />
-              {t === TRANSACTION_TYPES.INCOME ? t('transactions.income') : t('transactions.expense')}
+              {txType === TRANSACTION_TYPES.INCOME ? t('transactions.income') : t('transactions.expense')}
             </button>
           )
         })}

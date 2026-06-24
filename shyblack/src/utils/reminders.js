@@ -38,26 +38,6 @@ async function ensureDailyReminderChannel() {
   }
 }
 
-function hasActivityToday(transactions, debts) {
-  const today = new Date()
-  const todayStr = today.toISOString().split('T')[0]
-
-  const hasTx = transactions.some((t) => {
-    if (!t.date) return false
-    return t.date === todayStr
-  })
-
-  const hasDebtToday = debts.some((d) => {
-    return d.createdAt && new Date(d.createdAt).toISOString().split('T')[0] === todayStr
-  })
-
-  const hasRepaymentToday = debts.some((d) => {
-    return d.updatedAt && new Date(d.updatedAt).toISOString().split('T')[0] === todayStr
-  })
-
-  return hasTx || hasDebtToday || hasRepaymentToday
-}
-
 async function getContextualMessage(transactions, debts) {
   const t = await getNotifT()
   const msgs = [
@@ -68,15 +48,6 @@ async function getContextualMessage(transactions, debts) {
   const hasPendingDebts = debts.some((d) => d.status === 'pending' && d.remainingAmount > 0)
   if (hasPendingDebts) return msgs[1]
   return msgs[Math.floor(Math.random() * msgs.length)]
-}
-
-function getTomorrowAt(hour, minute) {
-  const now = new Date()
-  const target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hour, minute, 0, 0)
-  if (target <= now) {
-    target.setDate(target.getDate() + 1)
-  }
-  return target
 }
 
 export function getReminderPreference() {
@@ -123,8 +94,6 @@ export async function scheduleDailyReminder(message, transactions, debts) {
 
   if (!getReminderPreference()) return { scheduled: false, reason: 'disabled' }
 
-  if (hasActivityToday(transactions, debts)) return { scheduled: false, reason: 'activity-exists' }
-
   const perm = await checkNotificationPermission()
   if (!perm.granted) {
     const req = await requestNotificationPermission()
@@ -135,7 +104,6 @@ export async function scheduleDailyReminder(message, transactions, debts) {
     await ensureDailyReminderChannel()
     await cancelAllReminders()
 
-    const fireDate = getTomorrowAt(REMINDER_HOUR, REMINDER_MINUTE)
     const t = await getNotifT()
     const contextualMessage = message || await getContextualMessage(transactions, debts)
 
@@ -145,7 +113,7 @@ export async function scheduleDailyReminder(message, transactions, debts) {
           id: REMINDER_NOTIFICATION_ID,
           title: t('notifications.app_name'),
           body: contextualMessage,
-          schedule: { at: fireDate, allowWhileIdle: true },
+          schedule: { on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE }, allowWhileIdle: true },
           sound: null,
           smallIcon: 'ic_stat_shyblack',
           iconColor: '#39ff14',
@@ -156,7 +124,7 @@ export async function scheduleDailyReminder(message, transactions, debts) {
       ],
     })
 
-    return { scheduled: true, fireDate: fireDate.toISOString() }
+    return { scheduled: true }
   } catch (error) {
     return { scheduled: false, reason: error.message || 'schedule-error' }
   }
@@ -185,12 +153,7 @@ export async function refreshReminderSchedule(transactions, debts) {
   }
 
   const result = await scheduleDailyReminder(null, transactions, debts)
-  return result
-}
-
-export function shouldShowReminderToday(transactions, debts) {
-  if (!getReminderPreference()) return false
-  return !hasActivityToday(transactions, debts)
+  return { active: result.scheduled, scheduled: result.scheduled, reason: result.reason }
 }
 
 function getMonthlyRecapSentKey() {

@@ -98,7 +98,7 @@ export function generateEmiStatement(emi, paymentHistory) {
   let y = 25
   y = drawSectionHeader(doc, 'EMI Details', y)
   const freqLabel = getFrequencyLabel(emi.frequency)
-  const totalPaid = (emi.paymentHistory || []).reduce((s, p) => s + p.amount, 0)
+  const totalPaid = (emi.paymentHistory || []).reduce((s, p) => s + (p.amount || 0), 0)
   const totalPayable = emi.amount * (emi.tenure || 0)
   const details = [
     ['Loan Name', emi.name || '-'],
@@ -208,7 +208,7 @@ export function generateLedgerStatement(ledger, payments) {
 
   let y = 25
   y = drawSectionHeader(doc, 'Ledger Details', y)
-  const totalRepaid = (payments || []).reduce((s, p) => s + p.amount, 0)
+  const totalRepaid = (payments || []).reduce((s, p) => s + (p.amount || 0), 0)
   const balance = (ledger.currentBalance ?? ledger.originalAmount ?? 0)
   const details = [
     ['Person', ledger.personName || '-'],
@@ -246,7 +246,7 @@ export function generateLedgerStatement(ledger, payments) {
   } else {
     let runningBalance = ledger.originalAmount || 0
     const rows = sortedPayments.map((p) => {
-      runningBalance -= p.amount
+      runningBalance -= (p.amount || 0)
       return [
         formatDate(new Date(p.createdAt || p.paidAt || Date.now())),
         fmt(p.amount),
@@ -318,8 +318,8 @@ export function generateMonthlyStatement(transactions, year, month) {
   const lastDay = new Date(year, month + 1, 0).getDate()
   const monthEnd = `${year}-${String(month + 1).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`
   const filtered = transactions.filter((t) => t.date >= monthStart && t.date <= monthEnd)
-  const totalIncome = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
-  const totalExpense = filtered.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const totalIncome = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0)
+  const totalExpense = filtered.filter((t) => t.type === 'expense').reduce((s, t) => s + (t.amount || 0), 0)
   const savings = totalIncome - totalExpense
   const savingsRate = totalIncome > 0 ? (savings / totalIncome) * 100 : 0
 
@@ -350,7 +350,7 @@ export function generateMonthlyStatement(transactions, year, month) {
 
   const expByCat = {}
   filtered.filter((t) => t.type === 'expense').forEach((t) => {
-    expByCat[t.category] = (expByCat[t.category] || 0) + t.amount
+    expByCat[t.category] = (expByCat[t.category] || 0) + (t.amount || 0)
   })
   const catEntries = Object.entries(expByCat).sort((a, b) => b[1] - a[1])
 
@@ -460,19 +460,20 @@ export function generateNetWorthStatement(accounts, debts, transactions) {
   pageNum++
   addNewPage(doc, pageNum, 0)
 
-  const totalCash = transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0)
+  const totalCash = transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0)
   const totalAccountBal = (accounts || []).reduce((s, a) => s + (a.balance || 0), 0)
   const totalAssets = totalCash + totalAccountBal
-  const totalDebtBal = (debts || []).filter((d) => d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
-  const netWorth = totalAssets - totalDebtBal
+  const lentDebts = (debts || []).filter((d) => d.type === 'lent' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const borrowedDebts = (debts || []).filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const netWorth = totalAssets + lentDebts - borrowedDebts
 
   let y = 25
   y = drawSectionHeader(doc, 'Net Worth Overview', y)
   const cardW = (CW - 6) / 2
   const cardH = 28
   const nw = [
-    { label: 'Total Assets', value: fmt(totalAssets), color: COL_INCOME },
-    { label: 'Total Debts', value: fmt(totalDebtBal), color: COL_EXPENSE },
+    { label: 'Total Assets', value: fmt(totalAssets + lentDebts), color: COL_INCOME },
+    { label: 'Total Debts', value: fmt(borrowedDebts), color: COL_EXPENSE },
     { label: 'Net Worth', value: fmt(netWorth), color: netWorth >= 0 ? COL_NEON : COL_EXPENSE },
     { label: 'Accounts', value: String(accounts.length), color: COL_HEADING },
   ]

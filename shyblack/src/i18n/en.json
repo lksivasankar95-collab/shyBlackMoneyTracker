@@ -833,7 +833,7 @@
     "ledger_desc": "Person-wise ledger with running balance and payments",
     "monthly_desc": "Income, expenses, savings, and category breakdown",
     "networth_desc": "Assets, accounts, debts, and total net worth",
-    "transactionsThisMonth": "{count} transactions this month",
+    "transactionsThisMonth": "{n} transactions this month",
     "net": "Net",
     "noTransactions": "No transactions this month",
     "noTransactionsDesc": "Select a month with data to generate a statement",
@@ -1052,7 +1052,13 @@
     "untested": "○ Untested",
     "valid": "valid",
     "corrupt": "corrupt",
-    "footer_note": "Tap logo 5× on any screen to open · Not shown in production builds"
+    "footer_note": "Tap logo 5× on any screen to open · Not shown in production builds",
+    "notifications": "Notifications",
+    "notif_permission": "Permission",
+    "notif_reminder_enabled": "Reminder enabled",
+    "notif_pending_count": "Pending notifications",
+    "notif_next_schedule": "Next schedule",
+    "notif_platform": "Plugin available"
   },
 
   "errors": {

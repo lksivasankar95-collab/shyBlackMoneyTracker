@@ -133,7 +133,7 @@ export default function StatementExportPage() {
             </div>
           </div>
           <div className="flex items-center justify-between text-xs text-gray-500">
-            <span>{t('statements.transactionsThisMonth', { count: monthlySummary.count })}</span>
+            <span>{t('statements.transactionsThisMonth', { n: monthlySummary.count })}</span>
             <span className={`font-semibold ${monthlySummary.income - monthlySummary.expense >= 0 ? 'text-neon' : 'text-red-400'}`}>
               {t('statements.net')}: {formatCurrency(monthlySummary.income - monthlySummary.expense)}
             </span>

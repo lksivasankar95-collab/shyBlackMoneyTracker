@@ -254,10 +254,8 @@ export default function Settings({ onNavigate }) {
         const result = await refreshReminderSchedule(transactions, debts)
         if (result.active) {
           addToast(t('settings.reminder_on'), 'success')
-        } else if (result.reason === 'activity-exists') {
-          addToast(t('settings.reminder_delayed'), 'info')
         } else {
-          addToast(t('settings.reminder_enabled'), 'success')
+          addToast(t('settings.reminder_enabled'), 'info')
         }
       } else {
         if (perm.reason === 'denied' || perm.reason === 'prompt-with-rationale') {

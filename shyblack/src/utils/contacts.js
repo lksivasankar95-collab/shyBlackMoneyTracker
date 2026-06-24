@@ -46,23 +46,24 @@ export async function pickContact() {
     if (typeof Contacts.pickContact !== 'function') {
       return { success: false, error: 'Contact picker not supported on this device' }
     }
-    const result = await Contacts.pickContact()
+    const result = await Contacts.pickContact({ projection: { name: true, phones: true, emails: true } })
     if (!result?.contact) return { success: false, error: 'No contact selected' }
 
     const c = result.contact
-    const displayName = c.displayName || ''
-    const givenName = c.givenName || ''
-    const familyName = c.familyName || ''
+    const nameObj = c.name || {}
+    const displayName = nameObj.display || ''
+    const givenName = nameObj.given || ''
+    const familyName = nameObj.family || ''
     const name = displayName || [givenName, familyName].filter(Boolean).join(' ') || 'Unknown'
 
-    const phones = (c.phoneNumbers || []).map((p) => {
+    const phones = (c.phones || []).map((p) => {
       if (typeof p === 'string') return p
       return p.number || p.value || ''
     }).filter(Boolean)
 
     const emails = (c.emails || []).map((e) => {
       if (typeof e === 'string') return e
-      return e.email || e.value || ''
+      return e.address || ''
     }).filter(Boolean)
 
     return {
@@ -93,21 +94,22 @@ export async function getContacts(searchQuery = '') {
 
   try {
     const { Contacts } = await import('@capacitor-community/contacts')
-    const projection = { name: true, phoneNumbers: true, emails: true }
+    const projection = { name: true, phones: true, emails: true }
     const result = await Contacts.getContacts({ projection })
 
     let list = (result.contacts || []).map((c) => {
-      const displayName = c.displayName || ''
-      const givenName = c.givenName || ''
-      const familyName = c.familyName || ''
+      const nameObj = c.name || {}
+      const displayName = nameObj.display || ''
+      const givenName = nameObj.given || ''
+      const familyName = nameObj.family || ''
       const name = displayName || [givenName, familyName].filter(Boolean).join(' ') || 'Unknown'
-      const phones = (c.phoneNumbers || []).map((p) => {
+      const phones = (c.phones || []).map((p) => {
         if (typeof p === 'string') return p
         return p.number || p.value || ''
       }).filter(Boolean)
       const emails = (c.emails || []).map((e) => {
         if (typeof e === 'string') return e
-        return e.email || e.value || ''
+        return e.address || ''
       }).filter(Boolean)
       return { name, phoneNumbers: phones, primaryPhone: phones[0] || '', emails, primaryEmail: emails[0] || '' }
     })
