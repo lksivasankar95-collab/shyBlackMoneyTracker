@@ -1,22 +1,14 @@
 import { getNextEmiDueDate, getEmiDueDate, EMI_STATUS } from './emi'
 import { getNotifT } from './notificationI18n'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 const EMI_CHANNEL_ID = 'shyblack-emi-reminders'
 const EMI_NOTIF_BASE = 500
 const EMI_NOTIF_SLOTS = 5
 const EMI_HASH_MOD = 350
 
-let CapacitorLocalNotifications = null
-
-async function getPlugin() {
-  if (CapacitorLocalNotifications) return CapacitorLocalNotifications
-  try {
-    const mod = await import('@capacitor/local-notifications')
-    CapacitorLocalNotifications = mod.LocalNotifications
-    return CapacitorLocalNotifications
-  } catch {
-    return null
-  }
+function getPlugin() {
+  return LocalNotifications
 }
 
 function hashEmiId(id) {
@@ -34,7 +26,7 @@ function getNotificationIds(emiId) {
 }
 
 export async function ensureEmiNotificationChannel() {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
   try {
     await plugin.createChannel({
@@ -56,7 +48,7 @@ export async function ensureEmiNotificationChannel() {
 export async function scheduleEmiNotifications(emi, referenceDate) {
   if (!emi || emi.status !== EMI_STATUS.ACTIVE || emi.remainingMonths <= 0) return false
 
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
 
   try {
@@ -92,7 +84,6 @@ export async function scheduleEmiNotifications(emi, referenceDate) {
       body: `${emi.name}\n₹${emi.amount.toLocaleString()}`,
       schedule: { at: fireDate, allowWhileIdle: true },
       sound: null,
-      smallIcon: 'ic_stat_shyblack',
       iconColor: '#39ff14',
       channelId: EMI_CHANNEL_ID,
       extra: { source: 'emi', emiId: emi.id, reminderSlot: i },
@@ -110,7 +101,7 @@ export async function scheduleEmiNotifications(emi, referenceDate) {
 }
 
 export async function cancelEmiNotifications(emiId) {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
 
   try {
@@ -123,7 +114,7 @@ export async function cancelEmiNotifications(emiId) {
 }
 
 export async function rescheduleAllEmiNotifications(emis) {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return { cancelled: 0, scheduled: 0 }
 
   const allIds = emis.flatMap((emi) => getNotificationIds(emi.id))
@@ -143,7 +134,7 @@ export async function rescheduleAllEmiNotifications(emis) {
 }
 
 export async function cancelAllEmiNotifications(emis) {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
 
   const allIds = emis.flatMap((emi) => getNotificationIds(emi.id))

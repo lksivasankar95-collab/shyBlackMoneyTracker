@@ -2,6 +2,7 @@ import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analyti
 import { formatCurrency } from './currency'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { ALL_CATEGORIES } from './constants'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 export function calculateFinancialScore(transactions) {
   if (transactions.length === 0) return { score: 0, level: 'N/A', factors: [] }
@@ -307,14 +308,12 @@ export async function checkStreakMilestone(transactions) {
   safeStorage.set(STORAGE_KEYS.STREAK, { milestone: newMilestone, date: new Date().toISOString().split('T')[0] })
 
   try {
-    const { LocalNotifications } = await import('@capacitor/local-notifications')
     await LocalNotifications.schedule({
       notifications: [{
         id: 9001,
         title: `${newMilestone}-Day Streak!`,
         body: `You've logged transactions ${newMilestone} days in a row. Keep the momentum going!`,
         schedule: { at: new Date(Date.now() + 500) },
-        smallIcon: 'ic_stat_icon_config_sample',
         iconColor: '#f97316',
       }],
     })

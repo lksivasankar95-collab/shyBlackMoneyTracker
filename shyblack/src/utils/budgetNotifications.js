@@ -1,19 +1,12 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getCategoryBreakdown } from './analytics'
 import { formatCurrency } from './currency'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 const NOTIF_IDS = { 80: 200, 100: 201 }
 
-let plugin = null
-async function getPlugin() {
-  if (plugin) return plugin
-  try {
-    const mod = await import('@capacitor/local-notifications')
-    plugin = mod.LocalNotifications
-    return plugin
-  } catch {
-    return null
-  }
+function getPlugin() {
+  return LocalNotifications
 }
 
 function getNotifLog() {
@@ -58,7 +51,7 @@ export async function checkAndNotifyBudget(budgets, transactions, category) {
   const log = getNotifLog()
   if (wasNotified(log, category, threshold)) return
 
-  const lp = await getPlugin()
+  const lp = getPlugin()
   if (!lp) return
 
   try {
@@ -77,7 +70,6 @@ export async function checkAndNotifyBudget(budgets, transactions, category) {
         title: threshold === 100 ? 'Budget Exceeded' : 'Budget Alert',
         body,
         schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
-        smallIcon: 'ic_stat_shyblack',
         iconColor: threshold === 100 ? '#ef4444' : '#f59e0b',
         channelId: 'shyblack-budget-alerts',
       }],

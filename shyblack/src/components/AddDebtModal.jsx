@@ -47,10 +47,10 @@ export default function AddDebtModal({ open, onClose, onSave }) {
     }
   }, [addToast])
 
-  const handleClose = () => {
+  const handleClose = useCallback(() => {
     reset()
     onClose()
-  }
+  }, [onClose])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -75,14 +75,6 @@ export default function AddDebtModal({ open, onClose, onSave }) {
       personPhone: personPhone.trim() || undefined,
     })
     reset()
-  }
-
-  const handleAmountChange = (e) => {
-    const val = e.target.value
-    if (val === '' || /^\d+$/.test(val)) {
-      setAmount(val)
-      setError('')
-    }
   }
 
   return (

@@ -1,25 +1,17 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getNotifT } from './notificationI18n'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 const REMINDER_NOTIFICATION_ID = 1
 const REMINDER_HOUR = 19
 const REMINDER_MINUTE = 0
 
-let CapacitorLocalNotifications = null
-
-async function getPlugin() {
-  if (CapacitorLocalNotifications) return CapacitorLocalNotifications
-  try {
-    const mod = await import('@capacitor/local-notifications')
-    CapacitorLocalNotifications = mod.LocalNotifications
-    return CapacitorLocalNotifications
-  } catch {
-    return null
-  }
+function getPlugin() {
+  return LocalNotifications
 }
 
 async function ensureDailyReminderChannel() {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
   try {
     await plugin.createChannel({
@@ -60,7 +52,7 @@ export function setReminderPreference(enabled) {
 }
 
 export async function requestNotificationPermission() {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return { granted: false, reason: 'not-available' }
 
   try {
@@ -77,7 +69,7 @@ export async function requestNotificationPermission() {
 }
 
 export async function checkNotificationPermission() {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return { granted: false, reason: 'not-available' }
 
   try {
@@ -89,7 +81,7 @@ export async function checkNotificationPermission() {
 }
 
 export async function scheduleDailyReminder(message, transactions, debts) {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return { scheduled: false, reason: 'plugin-not-available' }
 
   if (!getReminderPreference()) return { scheduled: false, reason: 'disabled' }
@@ -115,7 +107,6 @@ export async function scheduleDailyReminder(message, transactions, debts) {
           body: contextualMessage,
           schedule: { on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE }, allowWhileIdle: true },
           sound: null,
-          smallIcon: 'ic_stat_shyblack',
           iconColor: '#39ff14',
           channelId: 'shyblack-daily-reminder',
           actionTypeId: '',
@@ -131,7 +122,7 @@ export async function scheduleDailyReminder(message, transactions, debts) {
 }
 
 export async function cancelAllReminders() {
-  const plugin = await getPlugin()
+  const plugin = getPlugin()
   if (!plugin) return false
 
   try {
@@ -195,7 +186,7 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
   const expense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   if (income === 0 && expense === 0) return { skipped: true, reason: 'no-data' }
 
-  const lp = await getPlugin()
+  const lp = getPlugin()
   if (!lp) return { skipped: true, reason: 'no-plugin' }
 
   try {
@@ -216,7 +207,6 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
         title: t('notifications.monthly_summary'),
         body: parts.join(' · '),
         schedule: { at: new Date(Date.now() + 2000), allowWhileIdle: true },
-        smallIcon: 'ic_stat_shyblack',
         iconColor: '#39ff14',
         channelId: 'shyblack-daily-reminder',
       }],
@@ -245,7 +235,7 @@ export function shouldShowReviewBanner(transactions) {
 export async function checkDebtReminders(debts) {
   if (!debts || debts.length === 0) return
 
-  const lp = await getPlugin()
+  const lp = getPlugin()
   if (!lp) return
 
   try {
@@ -293,13 +283,12 @@ export async function checkDebtReminders(debts) {
 
   try {
     await ensureDailyReminderChannel()
-    const lp2 = await getPlugin()
+    const lp2 = getPlugin()
     if (!lp2) return
     await lp2.schedule({
       notifications: reminders.map((r) => ({
         ...r,
         schedule: { at: new Date(Date.now() + 3000 + reminders.indexOf(r) * 1000), allowWhileIdle: true },
-        smallIcon: 'ic_stat_shyblack',
         iconColor: '#f59e0b',
         channelId: 'shyblack-daily-reminder',
       })),
