@@ -7,27 +7,11 @@ export default function Modal({ open, onClose, title, children }) {
   const overlayRef = useRef()
   const dialogRef = useRef()
   const previousFocus = useRef()
+  const onCloseRef = useRef(onClose)
   const mountedRef = useRef(false)
   const effectCountRef = useRef(0)
 
-  const handleKeyDown = useCallback((e) => {
-    if (e.key === 'Escape' && open) onClose()
-    if (e.key === 'Tab' && dialogRef.current) {
-      const focusable = dialogRef.current.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-      )
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault()
-        last.focus()
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault()
-        first.focus()
-      }
-    }
-  }, [open, onClose])
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   useEffect(() => {
     effectCountRef.current++
@@ -35,42 +19,53 @@ export default function Modal({ open, onClose, title, children }) {
       mountedRef.current = true
       console.log(`[DIAG:Bug#3] Modal MOUNTED (first render only)`)
     }
-    console.log(`[DIAG:Bug#3] Modal useEffect RUN #${effectCountRef.current}: open=${open}, handleKeyDown ref changed: ${effectCountRef.current > 1 ? 'YES (onClose/handleKeyDown new reference!)' : 'initial mount'}`)
-    const activeBefore = document.activeElement
-    if (activeBefore) {
-      console.log(`[DIAG:Bug#3] Active element BEFORE effect: ${activeBefore.tagName}${activeBefore.id ? '#' + activeBefore.id : ''}${activeBefore.getAttribute('name') ? '[name=' + activeBefore.getAttribute('name') + ']' : ''}`)
-    }
+    console.log(`[DIAG:Bug#3] Modal useEffect RUN #${effectCountRef.current}: open=${open}${effectCountRef.current > 1 ? ' (parent re-render, but open unchanged - no focus steal!)' : ' initial mount'}`)
 
     if (open) {
       previousFocus.current = document.activeElement
       document.body.style.overflow = 'hidden'
+
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape' && open) onCloseRef.current()
+        if (e.key === 'Tab' && dialogRef.current) {
+          const focusable = dialogRef.current.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          )
+          if (focusable.length === 0) return
+          const first = focusable[0]
+          const last = focusable[focusable.length - 1]
+          if (e.shiftKey && document.activeElement === first) {
+            e.preventDefault()
+            last.focus()
+          } else if (!e.shiftKey && document.activeElement === last) {
+            e.preventDefault()
+            first.focus()
+          }
+        }
+      }
+
       window.addEventListener('keydown', handleKeyDown)
       requestAnimationFrame(() => {
         if (dialogRef.current) {
           const first = dialogRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
           if (first) {
-            const activeAfter = document.activeElement
-            if (activeAfter && activeAfter !== first) {
-              console.log(`[DIAG:Bug#3:FOCUS STEAL] rAF stealing focus from ${activeAfter.tagName} to ${first.tagName}`)
-              console.log(`[DIAG:Bug#3:FOCUS STEAL] This causes Android keyboard to CLOSE`)
-              console.log(`[DIAG:Bug#3:FOCUS STEAL] Effect run #${effectCountRef.current}`)
-            }
             first.focus()
           }
         }
       })
+
+      return () => {
+        console.log(`[DIAG:Bug#3] Modal useEffect CLEANUP #${effectCountRef.current}`)
+        document.body.style.overflow = ''
+        window.removeEventListener('keydown', handleKeyDown)
+      }
     } else {
       document.body.style.overflow = ''
       if (previousFocus.current && previousFocus.current.focus) {
         previousFocus.current.focus()
       }
     }
-    return () => {
-      console.log(`[DIAG:Bug#3] Modal useEffect CLEANUP #${effectCountRef.current}`)
-      document.body.style.overflow = ''
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [open, handleKeyDown])
+  }, [open])
 
   if (!open) return null
 
