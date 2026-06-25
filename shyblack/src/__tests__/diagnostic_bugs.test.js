@@ -142,7 +142,7 @@ describe('BUG #1 - Lock screen race condition analysis', () => {
    ═══════════════════════════════════════════════════════════════ */
 
 describe('BUG #2 - Notification: Android alarm permissions', () => {
-  it('PROOF: AndroidManifest.xml missing SCHEDULE_EXACT_ALARM permission', () => {
+  it('PROOF: AndroidManifest.xml has SCHEDULE_EXACT_ALARM (fix applied)', () => {
     const manifestPath = path.resolve(__dirname, '../../android/app/src/main/AndroidManifest.xml')
     const manifest = fs.readFileSync(manifestPath, 'utf-8')
 
@@ -150,21 +150,14 @@ describe('BUG #2 - Notification: Android alarm permissions', () => {
     const hasScheduleExact = manifest.includes('SCHEDULE_EXACT_ALARM')
     const hasUseExact = manifest.includes('USE_EXACT_ALARM')
 
-    console.log('[BUG#2 PROOF] Reading actual AndroidManifest.xml:')
+    console.log('[BUG#2 VERIFY] Reading actual AndroidManifest.xml:')
     console.log(`  POST_NOTIFICATIONS: ${hasPostNotif ? 'PRESENT ✓' : 'MISSING ✗'}`)
-    console.log(`  SCHEDULE_EXACT_ALARM (Android 12+): ${hasScheduleExact ? 'PRESENT' : 'MISSING ✗'}`)
-    console.log(`  USE_EXACT_ALARM (Android 14+): ${hasUseExact ? 'PRESENT' : 'MISSING ✗'}`)
+    console.log(`  SCHEDULE_EXACT_ALARM (Android 12+): ${hasScheduleExact ? 'PRESENT ✓' : 'MISSING ✗'}`)
+    console.log(`  USE_EXACT_ALARM (Android 14+): ${hasUseExact ? 'PRESENT' : 'MISSING (not needed until targetSDK >= 34)'}`)
 
     expect(hasPostNotif).toBe(true)
-    expect(hasScheduleExact).toBe(false)
+    expect(hasScheduleExact).toBe(true)
     expect(hasUseExact).toBe(false)
-
-    console.log('')
-    console.log('[BUG#2 PROOF] ROOT CAUSE CONFIRMED:')
-    console.log('[BUG#2 PROOF] SCHEDULE_EXACT_ALARM MISSING (Android 12+, API 31)')
-    console.log('[BUG#2 PROOF] USE_EXACT_ALARM MISSING (Android 14+, API 34)')
-    console.log('[BUG#2 PROOF] ANDROID DOCS: Without these, system batches the alarm')
-    console.log('[BUG#2 PROOF] and may delay it by up to ~10 minutes')
   })
 
   it('PROOF: reminders.js uses allowWhileIdle + specific time requiring exact alarm', () => {
