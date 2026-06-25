@@ -264,24 +264,34 @@ export default function App() {
 
   useEffect(() => {
     debug('visibility effect mounted')
+    console.log('[DIAG:Bug#1] visibility effect mounted - adding resume listeners')
 
     const handleResume = () => {
-      if (resumeHandled.current) return
+      if (resumeHandled.current) {
+        console.log('[DIAG:Bug#1] handleResume SKIPPED - resumeHandled guard active')
+        return
+      }
       resumeHandled.current = true
       setTimeout(() => { resumeHandled.current = false }, 200)
       const shouldLock = privacy.shouldLockOnResume()
+      console.log(`[DIAG:Bug#1] handleResume: shouldLockOnResume()=${shouldLock}, isLockedRef=${isLockedRef.current}, timeout=${privacy.getTimeout()}, isPinSet=${privacy.isPinSet()}`)
       debug('shouldLockOnResume result', shouldLock)
       if (shouldLock !== isLockedRef.current) {
+        console.log(`[DIAG:Bug#1] CHANGING isLocked: ${isLockedRef.current} → ${shouldLock}`)
         debug('updating isLocked to', shouldLock)
         setIsLocked(shouldLock)
+      } else {
+        console.log('[DIAG:Bug#1] isLocked unchanged')
       }
     }
 
     const handleVisibility = () => {
       if (document.hidden) {
+        console.log('[DIAG:Bug#1] visibilitychange: app backgrounded')
         debug('app backgrounded (visibilitychange)')
         privacy.onAppBackground()
       } else {
+        console.log('[DIAG:Bug#1] visibilitychange: app resumed')
         debug('app resumed (visibilitychange)')
         handleResume()
       }
@@ -292,15 +302,18 @@ export default function App() {
     let capListener = null
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
+        console.log('[DIAG:Bug#1] Capacitor appStateChange: resumed')
         debug('app resumed (Capacitor)')
         handleResume()
       } else {
+        console.log('[DIAG:Bug#1] Capacitor appStateChange: backgrounded')
         debug('app backgrounded (Capacitor)')
         privacy.onAppBackground()
       }
     }).then(l => { capListener = l }).catch(() => {})
 
     return () => {
+      console.log('[DIAG:Bug#1] visibility effect CLEANUP')
       debug('visibility effect cleanup')
       document.removeEventListener('visibilitychange', handleVisibility)
       if (capListener) capListener.remove()

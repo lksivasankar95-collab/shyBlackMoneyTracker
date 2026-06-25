@@ -7,6 +7,8 @@ export default function Modal({ open, onClose, title, children }) {
   const overlayRef = useRef()
   const dialogRef = useRef()
   const previousFocus = useRef()
+  const mountedRef = useRef(false)
+  const effectCountRef = useRef(0)
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Escape' && open) onClose()
@@ -28,6 +30,17 @@ export default function Modal({ open, onClose, title, children }) {
   }, [open, onClose])
 
   useEffect(() => {
+    effectCountRef.current++
+    if (!mountedRef.current) {
+      mountedRef.current = true
+      console.log(`[DIAG:Bug#3] Modal MOUNTED (first render only)`)
+    }
+    console.log(`[DIAG:Bug#3] Modal useEffect RUN #${effectCountRef.current}: open=${open}, handleKeyDown ref changed: ${effectCountRef.current > 1 ? 'YES (onClose/handleKeyDown new reference!)' : 'initial mount'}`)
+    const activeBefore = document.activeElement
+    if (activeBefore) {
+      console.log(`[DIAG:Bug#3] Active element BEFORE effect: ${activeBefore.tagName}${activeBefore.id ? '#' + activeBefore.id : ''}${activeBefore.getAttribute('name') ? '[name=' + activeBefore.getAttribute('name') + ']' : ''}`)
+    }
+
     if (open) {
       previousFocus.current = document.activeElement
       document.body.style.overflow = 'hidden'
@@ -35,7 +48,15 @@ export default function Modal({ open, onClose, title, children }) {
       requestAnimationFrame(() => {
         if (dialogRef.current) {
           const first = dialogRef.current.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')
-          if (first) first.focus()
+          if (first) {
+            const activeAfter = document.activeElement
+            if (activeAfter && activeAfter !== first) {
+              console.log(`[DIAG:Bug#3:FOCUS STEAL] rAF stealing focus from ${activeAfter.tagName} to ${first.tagName}`)
+              console.log(`[DIAG:Bug#3:FOCUS STEAL] This causes Android keyboard to CLOSE`)
+              console.log(`[DIAG:Bug#3:FOCUS STEAL] Effect run #${effectCountRef.current}`)
+            }
+            first.focus()
+          }
         }
       })
     } else {
@@ -45,6 +66,7 @@ export default function Modal({ open, onClose, title, children }) {
       }
     }
     return () => {
+      console.log(`[DIAG:Bug#3] Modal useEffect CLEANUP #${effectCountRef.current}`)
       document.body.style.overflow = ''
       window.removeEventListener('keydown', handleKeyDown)
     }

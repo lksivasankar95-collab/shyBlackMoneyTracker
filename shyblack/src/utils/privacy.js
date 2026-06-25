@@ -159,16 +159,27 @@ export function suppressLockForTransition(timeoutMs = 5000) {
 }
 
 export function shouldLockOnResume() {
-  if (!isPinSet()) return false
-  if (suppressLock) return false
+  if (!isPinSet()) {
+    console.log('[DIAG:Bug#1] shouldLockOnResume: false (no PIN set)')
+    return false
+  }
+  if (suppressLock) {
+    console.log('[DIAG:Bug#1] shouldLockOnResume: false (suppressLock active)')
+    return false
+  }
   const timeout = getTimeout()
+  const elapsed = Date.now() - lastActiveTime
+  console.log(`[DIAG:Bug#1] shouldLockOnResume: timeout=${timeout}s, elapsed=${elapsed}ms, lastActiveTime=${new Date(lastActiveTime).toISOString()}`)
   if (timeout === 0) {
     locked = true
+    console.log('[DIAG:Bug#1] shouldLockOnResume: true (timeout=0, always lock)')
     return true
   }
-  if (Date.now() - lastActiveTime >= timeout * 1000) {
+  if (elapsed >= timeout * 1000) {
     locked = true
+    console.log(`[DIAG:Bug#1] shouldLockOnResume: true (elapsed ${elapsed}ms >= ${timeout * 1000}ms)`)
     return true
   }
+  console.log(`[DIAG:Bug#1] shouldLockOnResume: false (elapsed ${elapsed}ms < ${timeout * 1000}ms - not past timeout yet)`)
   return false
 }
