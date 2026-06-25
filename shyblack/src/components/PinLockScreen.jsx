@@ -33,10 +33,20 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     if (isBiometricEnabled()) {
       checkBiometricAvailability().then((r) => setBioAvailable(r.available))
     }
+    if (isBiometricEnabled() && !bioAttempted && !requiresReset && cooldown === 0) {
+      setBioAttempted(true)
+      tryBiometricUnlock().then((result) => {
+        if (result.unlocked) {
+          hapticSuccess()
+          onUnlock()
+        }
+      })
+    }
   }, [])
 
   useEffect(() => {
     if (bioAvailable && !bioAttempted && !requiresReset && cooldown === 0) {
+      // bioAvailable just became true — retry biometric unlock
       setBioAttempted(true)
       tryBiometricUnlock().then((result) => {
         if (result.unlocked) {
@@ -52,7 +62,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     if (result.unlocked) {
       hapticSuccess()
       onUnlock()
-    } else {
+    } else if (result.reason === 'failed') {
       setError(t('pin_lock.biometric_failed'))
     }
   }, [onUnlock])
@@ -194,7 +204,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         {t('pin_lock.unlock')}
       </button>
 
-      {bioAvailable && (
+      {(bioAvailable || isBiometricEnabled()) && (
         <button
           onClick={handleBiometricUnlock}
           className="mt-4 w-full max-w-[220px] py-2.5 rounded-xl border border-glass-border text-gray-400 text-sm font-medium hover:text-white hover:border-neon/30 transition-all flex items-center justify-center gap-2"
