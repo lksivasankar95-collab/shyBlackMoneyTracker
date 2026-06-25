@@ -251,8 +251,11 @@ export default function App() {
     setIsOnboarded(true)
   }, [])
 
+  const sessionStarted = useRef(false)
+
   const handleUnlock = useCallback(() => {
     debug('handleUnlock called')
+    sessionStarted.current = true
     privacy.unlockSession()
     setIsLocked(false)
     debug('session unlocked')
@@ -269,6 +272,12 @@ export default function App() {
     const handleResume = () => {
       if (resumeHandled.current) {
         console.log('[DIAG:Bug#1] handleResume SKIPPED - resumeHandled guard active')
+        return
+      }
+      if (!sessionStarted.current) {
+        console.log('[DIAG:Bug#1] handleResume SKIPPED - cold start, initLockState already set lock correctly')
+        resumeHandled.current = true
+        setTimeout(() => { resumeHandled.current = false }, 200)
         return
       }
       resumeHandled.current = true
