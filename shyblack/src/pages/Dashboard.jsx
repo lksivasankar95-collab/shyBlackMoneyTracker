@@ -210,10 +210,10 @@ export default function Dashboard({ onNavigate }) {
             <div className="flex items-center justify-between mb-2.5">
               <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                 <Clock size={12} className="text-neon" />
-                Upcoming Recurring
+                {t('dashboard.upcoming_recurring')}
               </h2>
               <button onClick={() => onNavigate('recurring-transactions')} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
-                Manage <ChevronRight size={12} className="inline" />
+                {t('dashboard.manage')} <ChevronRight size={12} className="inline" />
               </button>
             </div>
             <GlassCard>
@@ -295,7 +295,7 @@ export default function Dashboard({ onNavigate }) {
             <GlassCard className="!p-3">
               <ReceiptIcon size={14} className="text-blue-400 mb-1" />
               <p className="text-lg font-bold text-white tabular-nums">{receiptStats.thisMonth}</p>
-              <p className="text-[10px] text-gray-500">Receipts (Month)</p>
+              <p className="text-[10px] text-gray-500">{t('dashboard.receipts_month')}</p>
             </GlassCard>
           </button>
         )}
@@ -304,7 +304,7 @@ export default function Dashboard({ onNavigate }) {
             <GlassCard className="!p-3">
               <BarChart3 size={14} className="text-amber-400 mb-1" />
               <p className="text-lg font-bold text-white tabular-nums">{wealthDashboardStats.wealthGrade !== 'N/A' ? wealthDashboardStats.wealthGrade : '-'}</p>
-              <p className="text-[10px] text-gray-500">Wealth Score</p>
+              <p className="text-[10px] text-gray-500">{t('dashboard.wealth_score')}</p>
             </GlassCard>
           </button>
         )}
@@ -313,7 +313,7 @@ export default function Dashboard({ onNavigate }) {
             <GlassCard className="!p-3">
               <TrendingUp size={14} className="text-neon mb-1" />
               <p className={`text-lg font-bold tabular-nums ${wealthDashboardStats.netWorth >= 0 ? 'text-neon' : 'text-red-400'}`}>{formatCurrency(wealthDashboardStats.netWorth)}</p>
-              <p className="text-[10px] text-gray-500">Net Worth</p>
+              <p className="text-[10px] text-gray-500">{t('dashboard.net_worth')}</p>
             </GlassCard>
           </button>
         )}
@@ -322,7 +322,7 @@ export default function Dashboard({ onNavigate }) {
             <GlassCard className="!p-3">
               <ShieldCheck size={14} className={`mb-1 ${backupDashboardStats.healthStatus === 'excellent' || backupDashboardStats.healthStatus === 'good' ? 'text-neon' : 'text-amber-400'}`} />
               <p className={`text-lg font-bold tabular-nums ${backupDashboardStats.healthGrade !== 'F' ? 'text-neon' : 'text-amber-400'}`}>{backupDashboardStats.healthGrade}</p>
-              <p className="text-[10px] text-gray-500">Backup Health</p>
+              <p className="text-[10px] text-gray-500">{t('dashboard.backup_health')}</p>
             </GlassCard>
           </button>
         )}
@@ -330,14 +330,14 @@ export default function Dashboard({ onNavigate }) {
           <GlassCard className="!p-3">
             <Zap size={14} className="text-amber-400 mb-1" />
             <p className="text-lg font-bold text-white tabular-nums">{transactions.length > 0 ? '✓' : '-'}</p>
-            <p className="text-[10px] text-gray-500">Forecast</p>
+            <p className="text-[10px] text-gray-500">{t('dashboard.forecast')}</p>
           </GlassCard>
         </button>
         <button onClick={() => onNavigate('diagnostics')} className="text-left">
           <GlassCard className="!p-3">
             <Activity size={14} className="text-cyan-400 mb-1" />
             <p className="text-lg font-bold text-white tabular-nums">{dataQuality?.total || 0 > 0 ? (dataQuality.total > 0 ? '⚠' : '✓') : '-'}</p>
-            <p className="text-[10px] text-gray-500">Health</p>
+            <p className="text-[10px] text-gray-500">{t('dashboard.health')}</p>
           </GlassCard>
         </button>
         {goals.length > 0 && (
@@ -374,15 +374,15 @@ export default function Dashboard({ onNavigate }) {
         <div className="grid grid-cols-3 gap-2">
           <button onClick={() => onNavigate('wealth-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <BarChart3 size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">Wealth Center</span>
+            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.wealth_center')}</span>
           </button>
           <button onClick={() => onNavigate('recovery-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <ShieldCheck size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">Backup</span>
+            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.backup')}</span>
           </button>
           <button onClick={() => onNavigate('budget-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Target size={16} className="text-teal-400" />
-            <span className="text-[10px] font-medium text-gray-400">Budget Center</span>
+            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.budget_center')}</span>
           </button>
           <button onClick={() => onNavigate('networth')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <BarChart3 size={16} className="text-neon" />
@@ -418,7 +418,7 @@ export default function Dashboard({ onNavigate }) {
           </button>
           <button onClick={() => onNavigate('forecast-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Zap size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">Forecast</span>
+            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.forecast')}</span>
           </button>
           <button onClick={() => onNavigate('cash-flow-forecast')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Activity size={16} className="text-cyan-400" />
@@ -446,7 +446,7 @@ export default function Dashboard({ onNavigate }) {
           </button>
           <button onClick={() => onNavigate('receipt-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <ReceiptIcon size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">Receipt Scanner</span>
+            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.receipt_scanner')}</span>
           </button>
           <button onClick={() => onNavigate('account-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
             <Wallet size={16} className="text-cyan-400" />

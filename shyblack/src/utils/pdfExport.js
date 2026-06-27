@@ -227,14 +227,27 @@ ${pendingDebtsGiven > 0 || pendingDebtsTaken > 0 ? `
 }
 
 export function printStatement(html) {
-  const win = window.open('', '_blank')
-  if (!win) return false
-  win.document.write(html)
-  win.document.close()
-  setTimeout(() => {
-    win.print()
-  }, 500)
-  return true
+  try {
+    const iframe = document.createElement('iframe')
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:99999'
+    iframe.srcdoc = html
+    document.body.appendChild(iframe)
+    iframe.onload = () => {
+      try { iframe.contentWindow.print() } catch (_) {}
+    }
+    return true
+  } catch {
+    try {
+      const win = window.open('', '_blank')
+      if (win) {
+        win.document.write(html)
+        win.document.close()
+        setTimeout(() => { try { win.print() } catch (_) {} }, 500)
+        return true
+      }
+    } catch (_) {}
+    return false
+  }
 }
 
 export function downloadStatement(html, filename) {

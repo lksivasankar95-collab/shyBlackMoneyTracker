@@ -18,9 +18,9 @@ import { safeStorage } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import {
   getReminderPreference, setReminderPreference,
-  requestNotificationPermission, checkNotificationPermission,
   refreshReminderSchedule, cancelAllReminders,
 } from '../utils/reminders'
+import { requestNotificationPermission, checkNotificationPermission } from '../utils/notifications'
 import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } from '../utils/privacy'
 import { checkBiometricAvailability, isBiometricEnabled, setBiometricEnabled, authenticateWithBiometric, getBiometricTypeLabel } from '../utils/biometrics'
 
@@ -654,8 +654,8 @@ export default function Settings({ onNavigate }) {
               <Repeat2 size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
             </div>
             <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-medium">Recurring Transactions</p>
-              <p className="text-xs text-gray-500">Automate income and expense entries</p>
+              <p className="text-sm font-medium">{t('nav.recurring_transactions')}</p>
+              <p className="text-xs text-gray-500">{t('settings.recurring_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>

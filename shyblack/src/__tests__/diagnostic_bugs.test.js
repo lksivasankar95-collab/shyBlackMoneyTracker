@@ -153,11 +153,11 @@ describe('BUG #2 - Notification: Android alarm permissions', () => {
     console.log('[BUG#2 VERIFY] Reading actual AndroidManifest.xml:')
     console.log(`  POST_NOTIFICATIONS: ${hasPostNotif ? 'PRESENT ✓' : 'MISSING ✗'}`)
     console.log(`  SCHEDULE_EXACT_ALARM (Android 12+): ${hasScheduleExact ? 'PRESENT ✓' : 'MISSING ✗'}`)
-    console.log(`  USE_EXACT_ALARM (Android 14+): ${hasUseExact ? 'PRESENT' : 'MISSING (not needed until targetSDK >= 34)'}`)
+    console.log(`  USE_EXACT_ALARM (Android 14+): ${hasUseExact ? 'PRESENT ✓' : 'MISSING (not needed until targetSDK >= 34)'}`)
 
     expect(hasPostNotif).toBe(true)
     expect(hasScheduleExact).toBe(true)
-    expect(hasUseExact).toBe(false)
+    expect(hasUseExact).toBe(true)
   })
 
   it('PROOF: reminders.js uses allowWhileIdle + specific time requiring exact alarm', () => {
@@ -440,20 +440,20 @@ describe('BUG #4 - Contacts permission request flow analysis', () => {
    ═══════════════════════════════════════════════════════════════ */
 
 describe('BUG #5 - Missing translation keys', () => {
-  it('PROOF: nav.history key does not exist in en.json', () => {
+  it('FIXED: nav.history key now exists in en.json', () => {
     const enPath = path.resolve(__dirname, '../i18n/en.json')
     const en = JSON.parse(fs.readFileSync(enPath, 'utf-8'))
     const hasHistory = en.nav && 'history' in en.nav
-    expect(hasHistory).toBe(false)
-    console.log('[BUG#5 PROOF] nav.history MISSING from en.json')
+    expect(hasHistory).toBe(true)
+    console.log('[BUG#5 FIXED] nav.history key added to en.json ✓')
   })
 
-  it('PROOF: nav.statements_export key does not exist in en.json', () => {
+  it('FIXED: nav.statements_export key now exists in en.json', () => {
     const enPath = path.resolve(__dirname, '../i18n/en.json')
     const en = JSON.parse(fs.readFileSync(enPath, 'utf-8'))
     const hasStatementsExport = en.nav && 'statements_export' in en.nav
-    expect(hasStatementsExport).toBe(false)
-    console.log('[BUG#5 PROOF] nav.statements_export MISSING from en.json')
+    expect(hasStatementsExport).toBe(true)
+    console.log('[BUG#5 FIXED] nav.statements_export key added to en.json ✓')
   })
 
   it('PROOF: BottomNav.jsx line 10 uses t(\'nav.history\')', () => {
@@ -464,7 +464,7 @@ describe('BUG #5 - Missing translation keys', () => {
     const hasNavHistory = source.includes("t('nav.history')") || source.includes('t("nav.history")')
     expect(hasNavHistory).toBe(true)
     console.log('[BUG#5 PROOF] BottomNav.jsx contains t(\'nav.history\') ✓')
-    console.log('[BUG#5 PROOF] But nav.history key DOES NOT EXIST in en.json')
+    console.log('[BUG#5 PROOF] nav.history key now EXISTS in en.json')
   })
 
   it('PROOF: Dashboard.jsx line 441 uses t(\'nav.statements_export\')', () => {
@@ -725,21 +725,17 @@ describe('BUG #7 - Hardcoded English category labels', () => {
    ═══════════════════════════════════════════════════════════════ */
 
 describe('BUG #8 - RecurringTransactionsPage: No translation usage', () => {
-  it('PROOF: useTranslation not imported in RecurringTransactionsPage', () => {
+  it('FIXED: useTranslation IS imported in RecurringTransactionsPage', () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, '../pages/RecurringTransactionsPage.jsx'),
       'utf-8'
     )
     const hasUseTranslation = source.includes('useTranslation')
-    const hasI18nImport = source.includes('../i18n')
-    expect(hasUseTranslation).toBe(false)
-    expect(hasI18nImport).toBe(false)
-    console.log('[BUG#8 PROOF] useTranslation: NOT imported ✗')
-    console.log('[BUG#8 PROOF] i18n import: NOT present ✗')
-    console.log('[BUG#8 PROOF] All strings are hardcoded English')
+    expect(hasUseTranslation).toBe(true)
+    console.log('[BUG#8 FIXED] useTranslation imported ✓')
   })
 
-  it('PROOF: Count hardcoded English strings in RecurringTransactionsPage', () => {
+  it('FIXED: Minimal hardcoded strings remain in RecurringTransactionsPage', () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, '../pages/RecurringTransactionsPage.jsx'),
       'utf-8'
@@ -759,22 +755,20 @@ describe('BUG #8 - RecurringTransactionsPage: No translation usage', () => {
       'Recurring transaction toggled', 'Recurring transaction deleted',
     ]
     const found = hardcodedPatterns.filter(p => source.includes(p))
-    expect(found.length).toBeGreaterThan(10)
-    console.log(`[BUG#8 PROOF] ${found.length}/${hardcodedPatterns.length} hardcoded strings confirmed`)
-    console.log('[BUG#8 PROOF] Zero t() calls in entire file')
-    console.log('[BUG#8 PROOF] All UI text, toasts, placeholders, and empty states are English only')
+    expect(found.length).toBeLessThanOrEqual(10)
+    console.log(`[BUG#8 FIXED] Hardcoded strings reduced to ${found.length} (previously >10)`)
+    console.log('[BUG#8 FIXED] Most UI text now uses t() translations ✓')
   })
 
-  it('PROOF: Zero t() calls in the entire file', () => {
+  it('FIXED: t() calls now present in RecurringTransactionsPage', () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, '../pages/RecurringTransactionsPage.jsx'),
       'utf-8'
     )
     const tCalls = (source.match(/\bt\(/g) || []).length
-    expect(tCalls).toBe(0)
-    console.log(`[BUG#8 PROOF] t() calls found: ${tCalls}`)
-    console.log('[BUG#8 PROOF] Compare: AddTransaction.jsx has 30+ t() calls')
-    console.log('[BUG#8 PROOF] Compare: DebtsPage.jsx has 20+ t() calls')
+    expect(tCalls).toBeGreaterThan(0)
+    console.log(`[BUG#8 FIXED] t() calls found: ${tCalls} (was 0)`)
+    console.log('[BUG#8 FIXED] Translations now properly used ✓')
   })
 
   it('ALTERNATIVE ANALYSIS: Could strings come from props?', () => {

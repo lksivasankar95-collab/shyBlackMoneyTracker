@@ -4,6 +4,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Clock, HardDrive,
   FileText, Lock, Unlock, RotateCcw, Eye, Search,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -38,6 +39,7 @@ const MODULES = [
 ]
 
 export default function RecoveryCenterPage({ onNavigate }) {
+  const { t } = useTranslation()
   const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState(0)
   const [backups, setBackups] = useState(() => getBackupGenerations())
@@ -144,8 +146,8 @@ export default function RecoveryCenterPage({ onNavigate }) {
           <ArrowLeft size={20} className="text-gray-400" />
         </button>
         <div className="flex-1">
-          <h1 className="text-lg font-bold text-white">Backup & Recovery</h1>
-          <p className="text-xs text-gray-500">Protect your financial data</p>
+          <h1 className="text-lg font-bold text-white">{t('backup.title')}</h1>
+          <p className="text-xs text-gray-500">{t('backup.protect_data')}</p>
         </div>
       </div>
 
@@ -156,7 +158,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neon text-matte text-xs font-bold hover:brightness-110 transition-all disabled:opacity-50"
         >
           <Download size={14} />
-          {loading || 'Backup Now'}
+          {loading || t('backup.backup_now')}
         </button>
         <button
           onClick={handleEmergencyBackup}
@@ -164,12 +166,12 @@ export default function RecoveryCenterPage({ onNavigate }) {
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-all disabled:opacity-50"
         >
           <AlertTriangle size={14} />
-          Emergency
+          {t('backup.emergency')}
         </button>
         {backups.length > 1 && (
           <button onClick={handleRollback} className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/10 text-amber-400 text-xs font-medium hover:bg-amber-500/20 transition-all">
             <RotateCcw size={14} />
-            Rollback
+            {t('backup.rollback')}
           </button>
         )}
       </div>
@@ -191,7 +193,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {activeTab === 0 && (
         <div>
           {backups.length === 0 ? (
-            <EmptyState icon={Shield} title="No backups" description="Create your first backup to protect your data" />
+            <EmptyState icon={Shield} title={t('backup.no_backups_title')} description={t('backup.no_backups_desc')} />
           ) : (
             <div className="space-y-2">
               {backups.map((b) => {
@@ -212,13 +214,13 @@ export default function RecoveryCenterPage({ onNavigate }) {
                         </div>
                         <p className="text-[10px] text-gray-500">
                           {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          {' · '}{daysAgo === 0 ? 'Today' : `${daysAgo}d ago`}
+                           {' · '}{daysAgo === 0 ? t('time.today') : t('time.days_ago', { count: daysAgo })}
                         </p>
                         <p className="text-[10px] text-gray-600">
-                          {b.modules?.length || 0} modules · {(b.size / 1024).toFixed(1)} KB
+                          {t('backup.modules_count', { count: b.modules?.length || 0 })} · {(b.size / 1024).toFixed(1)} {t('common.kilobytes')}
                           {verifyResult?.id === b.id && !verifyResult?.loading && (
                             <span className={`ml-1 ${verifyResult.valid ? 'text-green-400' : 'text-red-400'}`}>
-                              · {verifyResult.valid ? 'Verified' : 'Corrupt'}
+                              · {verifyResult.valid ? t('backup.verified') : t('backup.corrupt')}
                             </span>
                           )}
                         </p>
@@ -238,7 +240,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
                     {verifyResult?.id === b.id && verifyResult?.loading && (
                       <div className="flex items-center gap-1 mt-1.5">
                         <RefreshCw size={10} className="text-gray-500 animate-spin" />
-                        <span className="text-[10px] text-gray-500">Verifying integrity...</span>
+                        <span className="text-[10px] text-gray-500">{t('backup.verifying')}</span>
                       </div>
                     )}
                   </GlassCard>
@@ -248,7 +250,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
           )}
           {backups.length > 0 && (
             <button onClick={handleClearAll} className="w-full mt-3 py-2 rounded-xl bg-red-500/5 text-red-400 text-xs font-medium hover:bg-red-500/10 transition-colors">
-              Clear All Backups
+              {t('backup.clear_all')}
             </button>
           )}
         </div>
@@ -257,7 +259,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
       {activeTab === 1 && (
         <div>
           {snapshots.length === 0 ? (
-            <EmptyState icon={Clock} title="No snapshots" description="Snapshots are auto-created before imports & migrations" />
+            <EmptyState icon={Clock} title={t('backup.no_snapshots_title')} description={t('backup.no_snapshots_desc')} />
           ) : (
             <div className="space-y-2">
               {snapshots.map((s) => {
@@ -274,7 +276,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
                           {date.toLocaleDateString()} {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
                         <p className="text-[10px] text-gray-600">
-                          {s.data ? `${Object.keys(s.data).length} storage keys` : 'No data'}
+                          {s.data ? t('backup.storage_keys_count', { count: Object.keys(s.data).length }) : t('common.no_data')}
                         </p>
                       </div>
                       <div className="flex gap-1">
@@ -308,14 +310,14 @@ export default function RecoveryCenterPage({ onNavigate }) {
                 {health.score}
               </p>
               <p className="text-lg font-bold text-white">{health.grade}</p>
-              <p className="text-[10px] text-gray-500">Backup Health Score</p>
+              <p className="text-[10px] text-gray-500">{t('backup.health_score')}</p>
               <p className="text-xs text-gray-400 mt-1">{health.message}</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-white/[0.04] rounded-lg p-2 text-center">
                 <p className="text-lg font-bold text-white">{health.backupCount || 0}</p>
-                <p className="text-[10px] text-gray-500">Backups</p>
+                <p className="text-[10px] text-gray-500">{t('backup.backups_label')}</p>
               </div>
               <div className="bg-white/[0.04] rounded-lg p-2 text-center">
                 <p className={`text-lg font-bold ${health.daysSince <= 7 ? 'text-green-400' : health.daysSince <= 30 ? 'text-yellow-400' : 'text-red-400'}`}>

@@ -867,6 +867,84 @@
   },
 
   "notifications": {
+    "channel_name": "ShyBlack Finance",
+    "channel_description": "ShyBlack ಗಾಗಿ ಹಣಕಾಸು ಅಧಿಸೂಚನೆಗಳು",
+    "group_summary": {
+      "title": "ಹಣಕಾಸು ನವೀಕರಣಗಳು",
+      "body": "{{count}} ಹೊಸ ಅಧಿಸೂಚನೆ(ಗಳು)"
+    },
+    "app_name": "ShyBlack Finance",
+    "app_subtitle": "Personal Finance Assistant",
+    "expense_added": {
+      "title": "ವೆಚ್ಚ ಸೇರಿಸಲಾಗಿದೆ",
+      "body": "₹{{amount}} {{category}} ವೆಚ್ಚ ಸೇರಿಸಲಾಗಿದೆ"
+    },
+    "income_added": {
+      "title": "ಆದಾಯ ಸೇರಿಸಲಾಗಿದೆ",
+      "body": "₹{{amount}} {{category}} ಆದಾಯ ಸೇರಿಸಲಾಗಿದೆ"
+    },
+    "reminder": {
+      "title": "ಹಣಕಾಸು ಜ್ಞಾಪನೆ",
+      "body": "ನಿಮ್ಮ ಹಣಕಾಸನ್ನು ಪರಿಶೀಲಿಸುವ ಸಮಯ"
+    },
+    "backup_complete": {
+      "title": "ಬ್ಯಾಕಪ್ ಪೂರ್ಣಗೊಂಡಿದೆ",
+      "body": "ನಿಮ್ಮ ಡೇಟಾವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಬ್ಯಾಕಪ್ ಮಾಡಲಾಗಿದೆ"
+    },
+    "restore_complete": {
+      "title": "ಮರುಸ್ಥಾಪನೆ ಪೂರ್ಣಗೊಂಡಿದೆ",
+      "body": "ನಿಮ್ಮ ಡೇಟಾವನ್ನು ಯಶಸ್ವಿಯಾಗಿ ಮರುಸ್ಥಾಪಿಸಲಾಗಿದೆ"
+    },
+    "export_finished": {
+      "title": "ರಫ್ತು ಪೂರ್ಣಗೊಂಡಿದೆ",
+      "body": "ನಿಮ್ಮ ರಫ್ತು ಡೌನ್‌ಲೋಡ್‌ಗೆ ಸಿದ್ಧವಾಗಿದೆ"
+    },
+    "budget_alert": {
+      "title": "ಬಜೆಟ್ ಎಚ್ಚರಿಕೆ",
+      "body": "{{body}}"
+    },
+    "goal_achieved": {
+      "title": "ಗುರಿ ಸಾಧಿಸಲಾಗಿದೆ!",
+      "body": "{{body}}"
+    },
+    "debt_reminder": {
+      "title": "ಸಾಲ ಜ್ಞಾಪನೆ",
+      "body": "{{body}}"
+    },
+    "emi_reminder": {
+      "title": "EMI ಇಂದು ಗಡುವು",
+      "body": "{{name}} — ₹{{amount}}"
+    },
+    "trading_reminder": {
+      "title": "ವ್ಯಾಪಾರ ಜ್ಞಾಪನೆ",
+      "body": "ನಿಮ್ಮ ಹೂಡಿಕೆಗಳನ್ನು ಪರಿಶೀಲಿಸುವ ಸಮಯ"
+    },
+    "daily_reminder": {
+      "title": "ದೈನಂದಿನ ಹಣಕಾಸು ಜ್ಞಾಪನೆ",
+      "body_1": "ನೀವು ಇಂದಿನ ವೆಚ್ಚಗಳನ್ನು ಇನ್ನೂ ನವೀಕರಿಸಿಲ್ಲ. ಈಗ ಲಾಗ್ ಮಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      "body_2": "ಬಾಕಿ ಉಳಿದಿರುವ ಸಾಲ ಮರುಪಾವತಿಗಳಿಗೆ ನಿಮ್ಮ ಗಮನ ಬೇಕಾಗಿದೆ. ನಿಮ್ಮ ಸಾಲ ಪಟ್ಟಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.",
+      "body_3": "ನಿಮ್ಮ ದೈನಂದಿನ ಹಣಕಾಸು ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ಕಾಯುತ್ತಿದೆ. ಇಂದು ಪರಿಶೀಲಿಸಲು ShyBlack ತೆರೆಯಿರಿ."
+    },
+    "monthly_summary": {
+      "title": "ಮಾಸಿಕ ಸಾರಾಂಶ",
+      "body": "{{body}}"
+    },
+    "weekly_summary": {
+      "title": "ಸಾಪ್ತಾಹಿಕ ಸಾರಾಂಶ",
+      "body": "{{body}}"
+    },
+    "error": {
+      "title": "ಏನೋ ತಪ್ಪಾಗಿದೆ",
+      "body": "{{body}}"
+    },
+    "warning": {
+      "title": "ಎಚ್ಚರಿಕೆ",
+      "body": "{{body}}"
+    },
+    "success": {
+      "title": "ಯಶಸ್ಸು",
+      "body": "{{body}}"
+    },
     "transaction_added": "ವಹಿವಾಟು ಸೇರಿಸಲಾಗಿದೆ",
     "transaction_updated": "ವಹಿವಾಟು ನವೀಕರಿಸಲಾಗಿದೆ",
     "transaction_deleted": "ವಹಿವಾಟು ಅಳಿಸಲಾಗಿದೆ",
@@ -879,14 +957,6 @@
     "file_shared": "ಫೈಲ್ ಹಂಚಿಕೊಳ್ಳಲಾಗಿದೆ",
     "file_downloaded": "ಫೈಲ್ ಡೌನ್‌ಲೋಡ್ ಮಾಡಲಾಗಿದೆ",
     "settings_saved": "ಸೆಟ್ಟಿಂಗ್‌ಗಳನ್ನು ಉಳಿಸಲಾಗಿದೆ",
-    "app_name": "ShyBlack Finance",
-    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
-    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
-    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
-    "payment_due_tomorrow": "Payment Due Tomorrow",
-    "overdue_payment": "Overdue Payment",
-    "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today",
     "csv_exported": "CSV ರಫ್ತಾಗಿದೆ!",
     "statement_generated": "ಹೇಳಿಕೆ ರಚಿಸಲಾಗಿದೆ!",
     "pdf_saved": "{pageCount} ಪುಟಗಳ PDF ಉಳಿಸಲಾಗಿದೆ!",

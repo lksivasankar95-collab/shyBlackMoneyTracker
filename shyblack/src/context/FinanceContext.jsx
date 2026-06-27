@@ -49,7 +49,7 @@ function isValidTransaction(t) {
 }
 
 function isValidDebt(d) {
-  return d && typeof d === 'object' && typeof d.id === 'string' && typeof d.personName === 'string' && typeof d.amount === 'number'
+  return d && typeof d === 'object' && typeof d.id === 'string' && typeof d.personName === 'string' && (typeof d.amount === 'number' || typeof d.originalAmount === 'number')
 }
 
 function sanitizeTransactions(raw) {
@@ -59,7 +59,10 @@ function sanitizeTransactions(raw) {
 
 function sanitizeDebts(raw) {
   if (!Array.isArray(raw)) return []
-  return raw.filter(isValidDebt)
+  return raw.filter(isValidDebt).map((d) => {
+    if (typeof d.originalAmount === 'number') return d
+    return { ...d, originalAmount: d.amount, currentBalance: d.remainingAmount ?? d.amount, payments: d.payments ?? [], createdDate: d.createdDate ?? d.createdAt ?? Date.now() }
+  })
 }
 
 function sanitizeSavingsGoal(raw) {

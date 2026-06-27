@@ -52,6 +52,14 @@ export default function AddDebtModal({ open, onClose, onSave }) {
     onClose()
   }, [onClose])
 
+  const handleAmountChange = (e) => {
+    const val = e.target.value
+    if (val === '' || /^\d+(\.\d{0,2})?$/.test(val)) {
+      setAmount(val)
+      setError('')
+    }
+  }
+
   const handleSubmit = (e) => {
     e.preventDefault()
     setError('')

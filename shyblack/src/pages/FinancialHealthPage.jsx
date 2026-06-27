@@ -139,7 +139,7 @@ export default function FinancialHealthPage() {
               activeTab === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
             }`}
           >
-            {v === 'overview' ? t('health.overview') : v === 'details' ? t('health.details') : t('health.tips')}
+            {v === 'overview' ? t('health.overview') : v === 'details' ? t('health.details') : t('health.recommendations')}
           </button>
         ))}
       </div>
@@ -264,7 +264,7 @@ export default function FinancialHealthPage() {
 
           {overspentCategories.length > 0 && (
             <GlassCard>
-              <h3 className="text-xs font-semibold text-red-400 mb-2">Overspent Budgets</h3>
+              <h3 className="text-xs font-semibold text-red-400 mb-2">{t('health.overspent_budgets')}</h3>
               <div className="space-y-1">
                 {overspentCategories.slice(0, 5).map((b) => (
                   <div key={b.id} className="flex items-center justify-between text-[10px] bg-red-500/5 rounded-lg px-2.5 py-1.5">
@@ -278,8 +278,8 @@ export default function FinancialHealthPage() {
 
           {budgetHealthV2.warning > 0 && (
             <GlassCard>
-              <h3 className="text-xs font-semibold text-amber-400 mb-2">Budgets at Warning Level</h3>
-              <p className="text-[10px] text-gray-500">{budgetHealthV2.warning} budget(s) have reached 80%+ of their limit</p>
+              <h3 className="text-xs font-semibold text-amber-400 mb-2">{t('health.budgets_warning')}</h3>
+              <p className="text-[10px] text-gray-500">{t('health.budgets_warning_desc', { count: budgetHealthV2.warning })}</p>
             </GlassCard>
           )}
 
@@ -302,7 +302,7 @@ export default function FinancialHealthPage() {
                     rec.priority === 'medium' ? 'text-amber-400' :
                     'text-gray-500'
                   }`}>
-                    {rec.priority === 'high' ? 'High Priority' : rec.priority === 'medium' ? 'Medium' : 'Suggestion'}
+                    {rec.priority === 'high' ? t('health.priority_high') : rec.priority === 'medium' ? t('health.priority_medium') : t('health.priority_suggestion')}
                   </span>
                 </div>
               </div>

@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
-  Camera, Upload, CheckCircle2, X, Trash2, Search, FileText,
-  Loader2, AlertCircle, Scan, Receipt, Clock, Calendar,
+  Camera, Upload, CheckCircle2, Trash2, Search, FileText,
+  Loader2, Scan, Receipt,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -29,6 +29,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
   const { addToast } = useToast()
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState(0)
+  const [scanStatus, setScanStatus] = useState('')
   const [parsed, setParsed] = useState(null)
   const [editParsed, setEditParsed] = useState({ ...emptyParsed })
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -47,19 +48,34 @@ export default function ReceiptCenterPage({ onNavigate }) {
     setParsed(null)
     setEditParsed({ ...emptyParsed })
     setProgress(0)
+    setScanStatus('')
     setScanning(false)
   }, [])
 
   const handleFile = useCallback(async (file) => {
     if (!file) return
-    if (file.size > 10 * 1024 * 1024) { addToast('Image must be under 10MB', 'error'); return }
+    if (file.size > 10 * 1024 * 1024) { addToast(t('receipts.image_too_large'), 'error'); return }
     const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/bmp']
-    if (!ALLOWED_TYPES.includes(file.type)) { addToast('Please select a JPEG, PNG, WebP, or BMP image', 'error'); return }
+    if (!ALLOWED_TYPES.includes(file.type)) { addToast(t('receipts.invalid_image_type'), 'error'); return }
 
     setScanning(true)
     setProgress(0)
+    setScanStatus(t('receipts.compressing'))
     try {
-      const result = await scanReceipt(file, (p) => { if (mountedRef.current) setProgress(p) })
+      const result = await scanReceipt(file, (p, status) => {
+        if (!mountedRef.current) return
+        setProgress(p)
+        if (status) {
+          const statusMap = {
+            compressing: t('receipts.compressing'),
+            initializing: t('receipts.initializing'),
+            recognizing: t('receipts.scanning'),
+            parsing: t('receipts.parsing'),
+            complete: t('receipts.complete'),
+          }
+          setScanStatus(statusMap[status] || t('receipts.scanning'))
+        }
+      })
       if (!mountedRef.current) return
       setParsed(result)
       setEditParsed({
@@ -70,12 +86,13 @@ export default function ReceiptCenterPage({ onNavigate }) {
         rawText: result.rawText,
         confidence: result.confidence,
       })
+      setScanning(false)
     } catch (err) {
       if (!mountedRef.current) return
-      addToast('OCR failed: ' + (err.message || 'Unknown error'), 'error')
+      addToast(t('receipts.ocr_failed', { error: err.message || 'Unknown error' }), 'error')
       reset()
     }
-  }, [addToast, reset])
+  }, [addToast, reset, t])
 
   const handleFileSelect = useCallback((e) => {
     const file = e.target.files?.[0]
@@ -85,16 +102,16 @@ export default function ReceiptCenterPage({ onNavigate }) {
 
   const handleConfirm = useCallback(() => {
     if (!editParsed.merchant || !editParsed.amount || editParsed.amount <= 0) {
-      addToast('Merchant and amount are required', 'error')
+      addToast(t('receipts.merchant_required'), 'error')
       return
     }
     createTransactionFromReceipt({
       ...editParsed,
       amount: parseFloat(editParsed.amount),
     })
-    addToast('Receipt imported: ' + formatCurrency(editParsed.amount), 'success')
+    addToast(t('receipts.receipt_imported', { amount: formatCurrency(editParsed.amount) }), 'success')
     reset()
-  }, [editParsed, createTransactionFromReceipt, addToast, reset])
+  }, [editParsed, createTransactionFromReceipt, addToast, reset, t])
 
   const filtered = useMemo(() => {
     let result = receipts || []
@@ -117,22 +134,22 @@ export default function ReceiptCenterPage({ onNavigate }) {
           <div className="w-9 h-9 rounded-xl bg-blue-500/10 flex items-center justify-center">
             <Receipt size={18} className="text-blue-400" />
           </div>
-          <h1 className="text-xl font-bold">Receipt Scanner</h1>
+          <h1 className="text-xl font-bold">{t('receipts.title')}</h1>
         </div>
       </div>
 
       {receipts.length > 0 && (
         <div className="grid grid-cols-3 gap-2 mb-4">
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Total</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('receipts.total')}</p>
             <p className="text-sm font-extrabold text-white tabular-nums">{receiptStats.total}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">This Month</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('receipts.this_month')}</p>
             <p className="text-sm font-extrabold text-blue-400 tabular-nums">{receiptStats.thisMonth}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Accuracy</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('receipts.accuracy')}</p>
             <p className="text-sm font-extrabold text-emerald-400 tabular-nums">{receiptStats.avgConfidence}%</p>
           </GlassCard>
         </div>
@@ -144,19 +161,19 @@ export default function ReceiptCenterPage({ onNavigate }) {
             <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center">
               <Scan size={32} className="text-blue-400" />
             </div>
-            <p className="text-xs text-gray-500 text-center">Scan a receipt or bill to auto-create an expense</p>
+            <p className="text-xs text-gray-500 text-center">{t('receipts.scan_hint')}</p>
             <div className="flex gap-3">
               <button
                 onClick={() => { privacy.suppressLockForTransition(10000); cameraInputRef.current?.click() }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-500/10 text-blue-400 text-xs font-semibold hover:bg-blue-500/20 transition-all"
               >
-                <Camera size={14} /> Take Photo
+                <Camera size={14} /> {t('receipts.take_photo')}
               </button>
               <button
                 onClick={() => { privacy.suppressLockForTransition(10000); fileInputRef.current?.click() }}
                 className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-white/[0.05] text-gray-300 text-xs font-semibold hover:bg-white/[0.1] transition-all"
               >
-                <Upload size={14} /> Choose Image
+                <Upload size={14} /> {t('receipts.choose_image')}
               </button>
             </div>
             <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
@@ -168,7 +185,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
       {scanning && (
         <GlassCard className="mb-4 text-center">
           <Loader2 size={24} className="text-blue-400 animate-spin mx-auto mb-2" />
-          <p className="text-xs font-medium">Scanning receipt...</p>
+          <p className="text-xs font-medium">{scanStatus}</p>
           <div className="w-full h-1.5 bg-matte-200 rounded-full mt-3 overflow-hidden">
             <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-cyan-400 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} />
           </div>
@@ -180,25 +197,25 @@ export default function ReceiptCenterPage({ onNavigate }) {
         <GlassCard className="mb-4 border-emerald-500/20">
           <h3 className="text-xs font-bold mb-3 flex items-center gap-1.5">
             <CheckCircle2 size={12} className="text-emerald-400" />
-            Preview & Confirm
+            {t('receipts.preview_title')}
           </h3>
           <div className="space-y-3">
             <div>
-              <label className="text-[10px] text-gray-500 font-medium mb-1 block">Merchant</label>
+              <label className="text-[10px] text-gray-500 font-medium mb-1 block">{t('receipts.merchant')}</label>
               <input type="text" value={editParsed.merchant} onChange={(e) => setEditParsed((f) => ({ ...f, merchant: e.target.value }))} className="input-field text-sm" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] text-gray-500 font-medium mb-1 block">Amount</label>
+                <label className="text-[10px] text-gray-500 font-medium mb-1 block">{t('receipts.amount')}</label>
                 <input type="number" value={editParsed.amount} onChange={(e) => setEditParsed((f) => ({ ...f, amount: e.target.value }))} className="input-field text-sm" min="1" />
               </div>
               <div>
-                <label className="text-[10px] text-gray-500 font-medium mb-1 block">Date</label>
+                <label className="text-[10px] text-gray-500 font-medium mb-1 block">{t('receipts.date')}</label>
                 <input type="date" value={editParsed.date} onChange={(e) => setEditParsed((f) => ({ ...f, date: e.target.value }))} className="input-field text-sm" />
               </div>
             </div>
             <div>
-              <label className="text-[10px] text-gray-500 font-medium mb-1 block">Category</label>
+              <label className="text-[10px] text-gray-500 font-medium mb-1 block">{t('receipts.category')}</label>
               <div className="flex flex-wrap gap-1.5">
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <button
@@ -214,19 +231,19 @@ export default function ReceiptCenterPage({ onNavigate }) {
             </div>
             {editParsed.rawText && (
               <div>
-                <label className="text-[10px] text-gray-500 font-medium mb-1 block">OCR Text</label>
+                <label className="text-[10px] text-gray-500 font-medium mb-1 block">{t('receipts.ocr_text')}</label>
                 <textarea readOnly value={editParsed.rawText} rows={3} className="input-field text-[10px] resize-none text-gray-500" />
               </div>
             )}
             <div className="flex items-center justify-between text-[10px]">
-              <span className="text-gray-500">OCR Confidence</span>
+              <span className="text-gray-500">{t('receipts.ocr_confidence')}</span>
               <span className={`font-semibold ${parsed.confidence >= 80 ? 'text-emerald-400' : parsed.confidence >= 50 ? 'text-amber-400' : 'text-red-400'}`}>{parsed.confidence}%</span>
             </div>
             <div className="flex gap-2">
               <button onClick={handleConfirm} disabled={!editParsed.merchant || !editParsed.amount || editParsed.amount <= 0} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-all disabled:opacity-40 flex items-center justify-center gap-1.5">
-                <CheckCircle2 size={14} /> Create Expense
+                <CheckCircle2 size={14} /> {t('receipts.create_expense')}
               </button>
-              <button onClick={reset} className="flex-1 btn-secondary text-sm">Discard</button>
+              <button onClick={reset} className="flex-1 btn-secondary text-sm">{t('receipts.discard')}</button>
             </div>
           </div>
         </GlassCard>
@@ -235,15 +252,15 @@ export default function ReceiptCenterPage({ onNavigate }) {
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search receipts..." className="input-field !pl-9 text-xs" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('receipts.search_placeholder')} className="input-field !pl-9 text-xs" />
         </div>
       </div>
 
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
         {[
-          { key: 'all', label: 'All', count: receipts.length },
-          { key: 'has-tx', label: 'Imported' },
-          { key: 'no-tx', label: 'Unlinked' },
+          { key: 'all', label: t('receipts.filter_all'), count: receipts.length },
+          { key: 'has-tx', label: t('receipts.filter_imported') },
+          { key: 'no-tx', label: t('receipts.filter_unlinked') },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -258,9 +275,9 @@ export default function ReceiptCenterPage({ onNavigate }) {
       {filtered.length === 0 && (
         <EmptyState
           icon={Receipt}
-          title={receipts.length === 0 ? 'No receipts yet' : 'No matching receipts'}
-          description={receipts.length === 0 ? 'Scan your first receipt to auto-create expenses' : undefined}
-          hint={receipts.length === 0 ? 'Supported: bills, invoices, payment receipts' : undefined}
+          title={receipts.length === 0 ? t('receipts.no_receipts') : t('receipts.no_matching')}
+          description={receipts.length === 0 ? t('receipts.no_receipts_desc') : undefined}
+          hint={receipts.length === 0 ? t('receipts.supported_hint') : undefined}
         />
       )}
 
@@ -276,7 +293,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-xs font-medium truncate">{r.merchant || 'Unknown'}</p>
-                    {r.transactionId && <span className="text-[10px] text-emerald-400 font-medium">Imported</span>}
+                    {r.transactionId && <span className="text-[10px] text-emerald-400 font-medium">{t('receipts.imported_label')}</span>}
                   </div>
                   <p className="text-[10px] text-gray-500">
                     {cat?.label || r.category} · {formatDate(r.createdAt)}
@@ -293,15 +310,15 @@ export default function ReceiptCenterPage({ onNavigate }) {
                   <button
                     onClick={() => {
                       createTransactionFromReceipt(r)
-                      addToast('Expense created: ' + formatCurrency(r.amount), 'success')
+                      addToast(t('receipts.expense_created', { amount: formatCurrency(r.amount) }), 'success')
                     }}
                     className="flex-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1"
                   >
-                    <CheckCircle2 size={11} /> Create Expense
+                    <CheckCircle2 size={11} /> {t('receipts.create_expense')}
                   </button>
                 )}
                 <button onClick={() => setDeleteTarget(r)} className="flex-1 bg-white/[0.05] hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
-                  <Trash2 size={11} /> Delete
+                  <Trash2 size={11} /> {t('receipts.delete')}
                 </button>
               </div>
             </GlassCard>
@@ -312,11 +329,11 @@ export default function ReceiptCenterPage({ onNavigate }) {
       <ConfirmationModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => { deleteReceiptCb(deleteTarget.id); addToast('Receipt deleted', 'info'); setDeleteTarget(null) }}
-        title="Delete Receipt"
-        description="This will permanently delete this receipt record."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        onConfirm={() => { deleteReceiptCb(deleteTarget.id); addToast(t('receipts.receipt_deleted'), 'info'); setDeleteTarget(null) }}
+        title={t('receipts.delete_title')}
+        description={t('receipts.delete_desc')}
+        confirmLabel={t('receipts.delete')}
+        cancelLabel={t('receipts.cancel')}
         danger
       />
     </div>

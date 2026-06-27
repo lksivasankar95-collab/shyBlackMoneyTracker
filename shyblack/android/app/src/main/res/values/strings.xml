@@ -4,4 +4,7 @@
     <string name="title_activity_main">ShyBlack</string>
     <string name="package_name">com.shyblack.finance</string>
     <string name="custom_url_scheme">com.shyblack.finance</string>
+    <string name="notification_channel_id">shyblack_finance</string>
+    <string name="notification_channel_name">ShyBlack Finance</string>
+    <string name="notification_channel_description">Financial notifications for ShyBlack</string>
 </resources>

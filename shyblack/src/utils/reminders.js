@@ -1,44 +1,18 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
-import { getNotifT } from './notificationI18n'
-import { LocalNotifications } from '@capacitor/local-notifications'
+import { sendNotification, cancelNotifications, checkNotificationPermission, requestNotificationPermission, getPendingNotifications, NOTIF_TYPES } from './notifications'
 
 const REMINDER_NOTIFICATION_ID = 1
 const REMINDER_HOUR = 19
 const REMINDER_MINUTE = 0
 
-function getPlugin() {
-  return LocalNotifications
-}
-
-async function ensureDailyReminderChannel() {
-  const plugin = getPlugin()
-  if (!plugin) return false
-  try {
-    await plugin.createChannel({
-      id: 'shyblack-daily-reminder',
-      name: 'Daily Reminders',
-      description: 'Daily financial reminders and monthly summaries',
-      importance: 4,
-      visibility: 1,
-      sound: 'default',
-      vibration: true,
-      lightColor: '#39ff14',
-    })
-    return true
-  } catch {
-    return false
-  }
-}
-
-async function getContextualMessage(transactions, debts) {
-  const t = await getNotifT()
+async function getContextualMessage() {
+  const i18nMod = await import('i18next')
+  const t = i18nMod.default.t.bind(i18nMod.default)
   const msgs = [
-    t('notifications.daily_body_1'),
-    t('notifications.daily_body_2'),
-    t('notifications.daily_body_3'),
+    t('notifications.daily_reminder.body_1'),
+    t('notifications.daily_reminder.body_2'),
+    t('notifications.daily_reminder.body_3'),
   ]
-  const hasPendingDebts = debts.some((d) => d.status === 'pending' && d.remainingAmount > 0)
-  if (hasPendingDebts) return msgs[1]
   return msgs[Math.floor(Math.random() * msgs.length)]
 }
 
@@ -51,39 +25,7 @@ export function setReminderPreference(enabled) {
   safeStorage.set(STORAGE_KEYS.REMINDER, { enabled, updatedAt: Date.now() })
 }
 
-export async function requestNotificationPermission() {
-  const plugin = getPlugin()
-  if (!plugin) return { granted: false, reason: 'not-available' }
-
-  try {
-    const perm = await plugin.requestPermissions()
-    return { granted: perm.display === 'granted', reason: perm.display }
-  } catch {
-    try {
-      const perm = await plugin.checkPermissions()
-      return { granted: perm.display === 'granted', reason: perm.display }
-    } catch {
-      return { granted: false, reason: 'error' }
-    }
-  }
-}
-
-export async function checkNotificationPermission() {
-  const plugin = getPlugin()
-  if (!plugin) return { granted: false, reason: 'not-available' }
-
-  try {
-    const perm = await plugin.checkPermissions()
-    return { granted: perm.display === 'granted', reason: perm.display }
-  } catch {
-    return { granted: false, reason: 'error' }
-  }
-}
-
-export async function scheduleDailyReminder(message, transactions, debts) {
-  const plugin = getPlugin()
-  if (!plugin) return { scheduled: false, reason: 'plugin-not-available' }
-
+export async function scheduleDailyReminder(message) {
   if (!getReminderPreference()) return { scheduled: false, reason: 'disabled' }
 
   const perm = await checkNotificationPermission()
@@ -93,42 +35,29 @@ export async function scheduleDailyReminder(message, transactions, debts) {
   }
 
   try {
-    await ensureDailyReminderChannel()
     await cancelAllReminders()
+    const body = message || await getContextualMessage()
 
-    const t = await getNotifT()
-    const contextualMessage = message || await getContextualMessage(transactions, debts)
-
-    await plugin.schedule({
-      notifications: [
-        {
-          id: REMINDER_NOTIFICATION_ID,
-          title: t('notifications.app_name'),
-          body: contextualMessage,
-          schedule: { on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE }, allowWhileIdle: true },
-          sound: null,
-          iconColor: '#39ff14',
-          channelId: 'shyblack-daily-reminder',
-          actionTypeId: '',
-          extra: { source: 'daily-reminder' },
-        },
-      ],
+    const id = await sendNotification(NOTIF_TYPES.DAILY_REMINDER, {
+      id: REMINDER_NOTIFICATION_ID,
+      body,
+      schedule: { on: { hour: REMINDER_HOUR, minute: REMINDER_MINUTE }, allowWhileIdle: true },
     })
 
-    return { scheduled: true }
+    return { scheduled: !!id }
   } catch (error) {
     return { scheduled: false, reason: error.message || 'schedule-error' }
   }
 }
 
-export async function cancelAllReminders() {
-  const plugin = getPlugin()
-  if (!plugin) return false
+const REMINDER_IDS = new Set([REMINDER_NOTIFICATION_ID, 50, 51])
 
+export async function cancelAllReminders() {
   try {
-    const pending = await plugin.getPending()
-    if (pending.notifications.length > 0) {
-      await plugin.cancel({ notifications: pending.notifications })
+    const pending = await getPendingNotifications()
+    const toCancel = pending.filter((n) => REMINDER_IDS.has(n.id))
+    if (toCancel.length > 0) {
+      await cancelNotifications(toCancel.map((n) => n.id))
     }
     return true
   } catch {
@@ -136,14 +65,13 @@ export async function cancelAllReminders() {
   }
 }
 
-export async function refreshReminderSchedule(transactions, debts) {
+export async function refreshReminderSchedule() {
   const enabled = getReminderPreference()
   if (!enabled) {
     await cancelAllReminders()
     return { active: false, reason: 'disabled' }
   }
-
-  const result = await scheduleDailyReminder(null, transactions, debts)
+  const result = await scheduleDailyReminder()
   return { active: result.scheduled, scheduled: result.scheduled, reason: result.reason }
 }
 
@@ -186,37 +114,25 @@ export async function checkAndScheduleMonthlyRecap(transactions) {
   const expense = monthTx.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
   if (income === 0 && expense === 0) return { skipped: true, reason: 'no-data' }
 
-  const lp = getPlugin()
-  if (!lp) return { skipped: true, reason: 'no-plugin' }
+  const perm = await checkNotificationPermission()
+  if (!perm.granted) return { skipped: true, reason: 'no-permission' }
 
-  try {
-    const perm = await lp.checkPermissions()
-    if (perm.display !== 'granted') return { skipped: true, reason: 'no-permission' }
+  const saved = income - expense
+  const parts = [`Spent ₹${formatAmount(expense)}`]
+  if (income > 0) parts.unshift(`Earned ₹${formatAmount(income)}`)
+  if (saved > 0) parts.push(`Saved ₹${formatAmount(saved)}`)
 
-    await ensureDailyReminderChannel()
+  const id = await sendNotification(NOTIF_TYPES.MONTHLY_SUMMARY, {
+    id: 50,
+    body: parts.join(' · '),
+    schedule: { at: new Date(Date.now() + 2000), allowWhileIdle: true },
+  })
 
-    const t = await getNotifT()
-    const saved = income - expense
-    const parts = [`Spent ₹${formatAmount(expense)}`]
-    if (income > 0) parts.unshift(`Earned ₹${formatAmount(income)}`)
-    if (saved > 0) parts.push(`Saved ₹${formatAmount(saved)}`)
-
-    await lp.schedule({
-      notifications: [{
-        id: 50,
-        title: t('notifications.monthly_summary'),
-        body: parts.join(' · '),
-        schedule: { at: new Date(Date.now() + 2000), allowWhileIdle: true },
-        iconColor: '#39ff14',
-        channelId: 'shyblack-daily-reminder',
-      }],
-    })
-
+  if (id) {
     markMonthlyRecapSent()
     return { sent: true }
-  } catch (err) {
-    return { skipped: true, reason: err?.message }
   }
+  return { skipped: true, reason: 'send-failed' }
 }
 
 export function shouldShowReviewBanner(transactions) {
@@ -235,15 +151,8 @@ export function shouldShowReviewBanner(transactions) {
 export async function checkDebtReminders(debts) {
   if (!debts || debts.length === 0) return
 
-  const lp = getPlugin()
-  if (!lp) return
-
-  try {
-    const perm = await lp.checkPermissions()
-    if (perm.display !== 'granted') return
-  } catch {
-    return
-  }
+  const perm = await checkNotificationPermission()
+  if (!perm.granted) return
 
   const now = new Date()
   const todayStr = now.toISOString().split('T')[0]
@@ -251,47 +160,47 @@ export async function checkDebtReminders(debts) {
   tomorrow.setDate(tomorrow.getDate() + 1)
   const tomorrowStr = tomorrow.toISOString().split('T')[0]
 
-  const reminders = []
-  const t = await getNotifT()
+  const notifications = []
 
-  debts.forEach((d) => {
-    if (d.status === 'paid' || !d.dueDate || d.remainingAmount <= 0) return
+  debts.forEach((d, index) => {
+    const balance = d.remainingAmount ?? d.currentBalance ?? 0
+    if (d.status === 'paid' || d.status === 'settled' || !d.dueDate || balance <= 0) return
     const due = d.dueDate.split('T')[0]
     const name = d.personName || 'someone'
-    const amt = `₹${d.remainingAmount.toLocaleString()}`
+    const amt = `₹${balance.toLocaleString()}`
 
     if (due === tomorrowStr) {
-      reminders.push({
-        id: 300 + reminders.length,
-        title: t('notifications.payment_due_tomorrow'),
+      notifications.push({
+        type: NOTIF_TYPES.DEBT_REMINDER,
+        id: 500000 + index,
         body: d.type === 'lent'
           ? `${amt} due from ${name} tomorrow`
           : `${amt} owed to ${name} due tomorrow`,
+        debtId: d.id,
+        iconColor: '#F97316',
       })
     } else if (due < todayStr) {
-      reminders.push({
-        id: 350 + reminders.length,
-        title: t('notifications.overdue_payment'),
+      notifications.push({
+        type: NOTIF_TYPES.DEBT_REMINDER,
+        id: 500100 + index,
         body: d.type === 'lent'
           ? `${amt} from ${name} is overdue`
           : `${amt} owed to ${name} is overdue`,
+        debtId: d.id,
+        iconColor: '#DC2626',
       })
     }
   })
 
-  if (reminders.length === 0) return
+  if (notifications.length === 0) return
 
-  try {
-    await ensureDailyReminderChannel()
-    const lp2 = getPlugin()
-    if (!lp2) return
-    await lp2.schedule({
-      notifications: reminders.map((r) => ({
-        ...r,
-        schedule: { at: new Date(Date.now() + 3000 + reminders.indexOf(r) * 1000), allowWhileIdle: true },
-        iconColor: '#f59e0b',
-        channelId: 'shyblack-daily-reminder',
-      })),
+  for (const n of notifications) {
+    await sendNotification(n.type, {
+      id: n.id,
+      body: n.body,
+      iconColor: n.iconColor,
+      debtId: n.debtId,
+      schedule: { at: new Date(Date.now() + 3000 + notifications.indexOf(n) * 1000), allowWhileIdle: true },
     })
-  } catch {}
+  }
 }

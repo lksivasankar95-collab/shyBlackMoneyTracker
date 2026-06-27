@@ -225,19 +225,18 @@ export async function openFileNative(blob, filename) {
 }
 
 export function getSafeWindowOpen(url) {
-  const win = window.open('', '_blank')
-  if (win) {
-    win.document.write(`<iframe src="${url}" style="width:100%;height:100%;border:none;" onload="this.contentWindow.print()"></iframe>`)
-    return win
+  try {
+    const iframe = document.createElement('iframe')
+    iframe.src = url
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999'
+    document.body.appendChild(iframe)
+    const closeBtn = document.createElement('button')
+    closeBtn.textContent = 'Close'
+    closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;padding:8px 16px;background:#000;color:#fff;border-radius:8px'
+    closeBtn.onclick = () => { try { document.body.removeChild(iframe) } catch (_) {}; try { document.body.removeChild(closeBtn) } catch (_) {} }
+    document.body.appendChild(closeBtn)
+    return iframe
+  } catch {
+    return null
   }
-  const iframe = document.createElement('iframe')
-  iframe.src = url
-  iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;border:none;z-index:9999'
-  document.body.appendChild(iframe)
-  const closeBtn = document.createElement('button')
-  closeBtn.textContent = 'Close'
-  closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;padding:8px 16px;background:#000;color:#fff;border-radius:8px'
-  closeBtn.onclick = () => { document.body.removeChild(iframe); document.body.removeChild(closeBtn) }
-  document.body.appendChild(closeBtn)
-  return null
 }

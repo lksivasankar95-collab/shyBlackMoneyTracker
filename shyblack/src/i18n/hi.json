@@ -867,6 +867,84 @@
   },
 
   "notifications": {
+    "channel_name": "ShyBlack Finance",
+    "channel_description": "ShyBlack के लिए वित्तीय सूचनाएं",
+    "group_summary": {
+      "title": "Finance अपडेट",
+      "body": "{{count}} नई सूचना(एं)"
+    },
+    "app_name": "ShyBlack Finance",
+    "app_subtitle": "Personal Finance Assistant",
+    "expense_added": {
+      "title": "खर्च जोड़ा गया",
+      "body": "₹{{amount}} {{category}} खर्च जोड़ा गया"
+    },
+    "income_added": {
+      "title": "आय जोड़ी गई",
+      "body": "₹{{amount}} {{category}} आय जोड़ी गई"
+    },
+    "reminder": {
+      "title": "वित्त अनुस्मारक",
+      "body": "अपने वित्त की समीक्षा करने का समय"
+    },
+    "backup_complete": {
+      "title": "बैकअप पूर्ण",
+      "body": "आपका डेटा सफलतापूर्वक बैकअप हो गया है"
+    },
+    "restore_complete": {
+      "title": "पुनर्स्थापना पूर्ण",
+      "body": "आपका डेटा सफलतापूर्वक पुनर्स्थापित हो गया है"
+    },
+    "export_finished": {
+      "title": "निर्यात पूर्ण",
+      "body": "आपका निर्यात डाउनलोड के लिए तैयार है"
+    },
+    "budget_alert": {
+      "title": "बजट अलर्ट",
+      "body": "{{body}}"
+    },
+    "goal_achieved": {
+      "title": "लक्ष्य प्राप्त हुआ!",
+      "body": "{{body}}"
+    },
+    "debt_reminder": {
+      "title": "कर्ज अनुस्मारक",
+      "body": "{{body}}"
+    },
+    "emi_reminder": {
+      "title": "EMI आज देय",
+      "body": "{{name}} — ₹{{amount}}"
+    },
+    "trading_reminder": {
+      "title": "ट्रेडिंग अनुस्मारक",
+      "body": "अपने निवेश की जाँच करने का समय"
+    },
+    "daily_reminder": {
+      "title": "दैनिक वित्त अनुस्मारक",
+      "body_1": "आपने आज के खर्च अपडेट नहीं किए हैं। अभी लॉग करने के लिए टैप करें।",
+      "body_2": "लंबित कर्ज भुगतान पर ध्यान देने की आवश्यकता है। अपनी उधार सूची जांचें।",
+      "body_3": "आपका दैनिक वित्त स्नैपशॉट इंतजार कर रहा है। आज समीक्षा करने के लिए ShyBlack खोलें।"
+    },
+    "monthly_summary": {
+      "title": "मासिक सारांश",
+      "body": "{{body}}"
+    },
+    "weekly_summary": {
+      "title": "साप्ताहिक सारांश",
+      "body": "{{body}}"
+    },
+    "error": {
+      "title": "कुछ गलत हो गया",
+      "body": "{{body}}"
+    },
+    "warning": {
+      "title": "चेतावनी",
+      "body": "{{body}}"
+    },
+    "success": {
+      "title": "सफलता",
+      "body": "{{body}}"
+    },
     "transaction_added": "लेन-देन जोड़ा गया",
     "transaction_updated": "लेन-देन अपडेट किया गया",
     "transaction_deleted": "लेन-देन हटाया गया",
@@ -879,14 +957,6 @@
     "file_shared": "फ़ाइल साझा की गई",
     "file_downloaded": "फ़ाइल डाउनलोड की गई",
     "settings_saved": "सेटिंग्स सहेजी गईं",
-    "app_name": "ShyBlack Finance",
-    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
-    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
-    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
-    "payment_due_tomorrow": "Payment Due Tomorrow",
-    "overdue_payment": "Overdue Payment",
-    "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today",
     "csv_exported": "CSV निर्यात किया गया!",
     "statement_generated": "विवरण तैयार किया गया!",
     "pdf_saved": "{pageCount} पृष्ठ PDF सहेजा गया!",

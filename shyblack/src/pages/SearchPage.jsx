@@ -137,7 +137,7 @@ export default function SearchPage({ onNavigate }) {
 
     results.total = results.transactions.length + results.debts.length + results.goals.length + results.emis.length + results.transfers.length + results.documents.length + results.accounts.length
     return results
-  }, [debouncedQuery, transactions, debts, goals, emis, transfers, activeTab, filters])
+  }, [debouncedQuery, transactions, debts, goals, activeTab, filters])
 
   const clearFilters = useCallback(() => {
     setFilters({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '' })

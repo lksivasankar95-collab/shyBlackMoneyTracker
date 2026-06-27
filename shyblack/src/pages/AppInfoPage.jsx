@@ -1,4 +1,5 @@
 import { Info, ChevronRight } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { safeStorage } from '../utils/safeStorage'
@@ -14,6 +15,7 @@ function Row({ label, value }) {
 }
 
 export default function AppInfoPage() {
+  const { t } = useTranslation()
   const schemaVersion = getSchemaVersion()
   const info = safeStorage.getStorageInfo()
 
@@ -24,52 +26,52 @@ export default function AppInfoPage() {
           <Info size={18} className="text-neon" />
         </div>
         <div>
-          <h1 className="text-base font-bold">About</h1>
-          <p className="text-[10px] text-gray-500">App information & version</p>
+          <h1 className="text-base font-bold">{t('settings.about')}</h1>
+          <p className="text-[10px] text-gray-500">{t('app.info_subtitle')}</p>
         </div>
       </div>
 
       <GlassCard className="mb-3">
-        <h3 className="text-xs font-semibold text-gray-300 mb-2">App Info</h3>
-        <Row label="App Name" value="ShyBlack Finance" />
-        <Row label="Version" value="1.0.0" />
-        <Row label="Build" value={`${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`} />
-        <Row label="Schema Version" value={`v${schemaVersion}`} />
-        <Row label="Target Schema" value={`v${APP_SCHEMA_VERSION}`} />
-        <Row label="Storage Used" value={`${info.usedKB} KB`} />
-        <Row label="Storage Keys" value={info.keyCount} />
+        <h3 className="text-xs font-semibold text-gray-300 mb-2">{t('app.app_info')}</h3>
+        <Row label={t('app.app_name')} value="ShyBlack Finance" />
+        <Row label={t('app.version')} value="1.0.0" />
+        <Row label={t('app.build')} value={`${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`} />
+        <Row label={t('app.schema_version')} value={`v${schemaVersion}`} />
+        <Row label={t('app.target_schema')} value={`v${APP_SCHEMA_VERSION}`} />
+        <Row label={t('app.storage_used')} value={`${info.usedKB} ${t('common.kilobytes')}`} />
+        <Row label={t('app.storage_keys')} value={info.keyCount} />
       </GlassCard>
 
       <GlassCard className="mb-3">
-        <h3 className="text-xs font-semibold text-gray-300 mb-2">Technology Stack</h3>
-        <Row label="Framework" value="React" />
-        <Row label="Build Tool" value="Vite" />
-        <Row label="Styling" value="Tailwind CSS" />
-        <Row label="Mobile Runtime" value="Capacitor" />
-        <Row label="Architecture" value="Offline-First" />
-        <Row label="Storage" value="LocalStorage / Capacitor" />
+        <h3 className="text-xs font-semibold text-gray-300 mb-2">{t('app.technology_stack')}</h3>
+        <Row label={t('app.framework')} value="React" />
+        <Row label={t('app.build_tool')} value="Vite" />
+        <Row label={t('app.styling')} value="Tailwind CSS" />
+        <Row label={t('app.mobile_runtime')} value="Capacitor" />
+        <Row label={t('app.architecture')} value={t('app.offline_first')} />
+        <Row label={t('app.storage')} value="LocalStorage / Capacitor" />
       </GlassCard>
 
       <GlassCard className="mb-3">
-        <h3 className="text-xs font-semibold text-gray-300 mb-2">Release Notes</h3>
+        <h3 className="text-xs font-semibold text-gray-300 mb-2">{t('app.release_notes')}</h3>
         <div className="text-[11px] text-gray-400 leading-relaxed space-y-2">
-          <p><span className="text-neon font-medium">v1.0.0</span> — Production release with:</p>
+          <p><span className="text-neon font-medium">v1.0.0</span> — {t('app.production_release_with')}</p>
           <ul className="list-disc list-inside space-y-1 text-gray-500">
-            <li>Transaction management (income/expense)</li>
-            <li>Budget planning & tracking</li>
-            <li>Debt & ledger management</li>
-            <li>EMI tracking with amortization</li>
-            <li>Goal setting with progress tracking</li>
-            <li>Wealth & investment portfolio</li>
-            <li>Financial health scoring</li>
-            <li>Cash flow forecasting</li>
-            <li>Backup & recovery system</li>
-            <li>Document & receipt management</li>
-            <li>Multi-language support</li>
-            <li>PIN & biometric security</li>
-            <li>Data integrity validation</li>
-            <li>Performance monitoring</li>
-            <li>Storage health diagnostics</li>
+            <li>{t('app.feature_transactions')}</li>
+            <li>{t('app.feature_budgets')}</li>
+            <li>{t('app.feature_debts')}</li>
+            <li>{t('app.feature_emi')}</li>
+            <li>{t('app.feature_goals')}</li>
+            <li>{t('app.feature_wealth')}</li>
+            <li>{t('app.feature_health')}</li>
+            <li>{t('app.feature_cashflow')}</li>
+            <li>{t('app.feature_backup')}</li>
+            <li>{t('app.feature_documents')}</li>
+            <li>{t('app.feature_multi_language')}</li>
+            <li>{t('app.feature_security')}</li>
+            <li>{t('app.feature_integrity')}</li>
+            <li>{t('app.feature_performance')}</li>
+            <li>{t('app.feature_diagnostics')}</li>
           </ul>
         </div>
       </GlassCard>

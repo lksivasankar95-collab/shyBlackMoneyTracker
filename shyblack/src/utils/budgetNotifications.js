@@ -1,13 +1,9 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getCategoryBreakdown } from './analytics'
 import { formatCurrency } from './currency'
-import { LocalNotifications } from '@capacitor/local-notifications'
+import { sendNotification, checkNotificationPermission, NOTIF_TYPES } from './notifications'
 
-const NOTIF_IDS = { 80: 200, 100: 201 }
-
-function getPlugin() {
-  return LocalNotifications
-}
+const NOTIF_IDS = { 80: 100000, 100: 100001 }
 
 function getNotifLog() {
   const now = new Date()
@@ -20,7 +16,6 @@ function saveNotifLog(log) {
   const now = new Date()
   const monthKey = `${now.getFullYear()}_${now.getMonth()}`
   const data = safeStorage.get(STORAGE_KEYS.BUDGET_NOTIF, {})
-  // Keep only last 2 months to prevent unbounded growth
   const keys = Object.keys(data).sort()
   if (keys.length >= 3) delete data[keys[0]]
   data[monthKey] = log
@@ -51,30 +46,23 @@ export async function checkAndNotifyBudget(budgets, transactions, category) {
   const log = getNotifLog()
   if (wasNotified(log, category, threshold)) return
 
-  const lp = getPlugin()
-  if (!lp) return
+  const perm = await checkNotificationPermission()
+  if (!perm.granted) return
 
-  try {
-    const perm = await lp.checkPermissions()
-    if (perm.display !== 'granted') return
+  const label = category.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  const remaining = budget.limit - spent
+  const body = threshold === 100
+    ? `${label} budget exceeded — ₹${Math.abs(remaining).toLocaleString()} over limit`
+    : `${label} budget at ${pct}% — ${formatCurrency(remaining)} remaining`
 
-    const label = category.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
-    const remaining = budget.limit - spent
-    const body = threshold === 100
-      ? `${label} budget exceeded — ₹${Math.abs(remaining).toLocaleString()} over limit`
-      : `${label} budget at ${pct}% — ${formatCurrency(remaining)} remaining`
+  const type = threshold === 100 ? NOTIF_TYPES.BUDGET_ALERT : NOTIF_TYPES.WARNING
+  const id = NOTIF_IDS[threshold] + Object.keys(log).length % 50
 
-    await lp.schedule({
-      notifications: [{
-        id: NOTIF_IDS[threshold] + Object.keys(log).length % 50,
-        title: threshold === 100 ? 'Budget Exceeded' : 'Budget Alert',
-        body,
-        schedule: { at: new Date(Date.now() + 500), allowWhileIdle: true },
-        iconColor: threshold === 100 ? '#ef4444' : '#f59e0b',
-        channelId: 'shyblack-budget-alerts',
-      }],
-    })
+  await sendNotification(type, {
+    id,
+    title: threshold === 100 ? 'Budget Exceeded' : 'Budget Alert',
+    body,
+  })
 
-    markNotified(log, category, threshold)
-  } catch {}
+  markNotified(log, category, threshold)
 }

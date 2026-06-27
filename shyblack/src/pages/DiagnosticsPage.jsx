@@ -6,7 +6,9 @@ import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { getActiveAdapterType } from '../utils/storageAdapter'
 import GlassCard from '../components/GlassCard'
-import { checkNotificationPermission, getReminderPreference } from '../utils/reminders'
+import { getReminderPreference } from '../utils/reminders'
+import { checkNotificationPermission } from '../utils/notifications'
+import { getNotificationDiagnostics as getUnifiedDiagnostics, initializeNotificationChannel } from '../utils/notifications'
 
 async function getNotifPlugin() {
   try {
@@ -14,6 +16,25 @@ async function getNotifPlugin() {
     return mod.LocalNotifications
   } catch {
     return null
+  }
+}
+
+async function getBatteryOptimizationStatus() {
+  try {
+    const mod = await import('@capacitor/app')
+    return 'check app info'
+  } catch {
+    return 'unknown'
+  }
+}
+
+async function getExactAlarmSupport() {
+  try {
+    const { LocalNotifications } = await import('@capacitor/local-notifications')
+    const pending = await LocalNotifications.getPending()
+    return pending.notifications.length >= 0 ? 'supported' : 'unknown'
+  } catch {
+    return 'unknown'
   }
 }
 
@@ -71,12 +92,18 @@ export default function DiagnosticsPage({ onNavigate }) {
       const plugin = await getNotifPlugin()
       const pref = getReminderPreference()
       const perm = await checkNotificationPermission()
+      const unifiedDiag = await getUnifiedDiagnostics()
+      const batteryOpt = await getBatteryOptimizationStatus()
+      const exactAlarm = await getExactAlarmSupport()
       let pending = null
+      let pendingList = []
       let nextSchedule = null
+      let channelInfo = null
       if (perm.granted && plugin) {
         try {
           const result = await plugin.getPending()
           pending = result.notifications.length
+          pendingList = result.notifications || []
           const daily = result.notifications.find(n => n.id === 1)
           if (daily?.schedule?.on) {
             const h = String(daily.schedule.on.hour).padStart(2, '0')
@@ -86,9 +113,23 @@ export default function DiagnosticsPage({ onNavigate }) {
             nextSchedule = new Date(daily.schedule.at).toLocaleString()
           }
         } catch {}
+        try {
+          channelInfo = await plugin.getChannel({ id: 'shyblack_finance' })
+        } catch {}
       }
       if (mounted) {
-        setNotifDiag({ permission: perm, reminderEnabled: pref, pendingCount: pending, nextSchedule, platformAvailable: !!plugin })
+        setNotifDiag({
+          permission: perm,
+          reminderEnabled: pref,
+          pendingCount: pending,
+          pendingList,
+          nextSchedule,
+          platformAvailable: !!plugin,
+          channelInfo,
+          batteryOptimization: batteryOpt,
+          exactAlarmSupport: exactAlarm,
+          unifiedChannel: unifiedDiag.channel,
+        })
       }
     }
     load()
@@ -234,6 +275,14 @@ export default function DiagnosticsPage({ onNavigate }) {
         <Row label={t('diagnostics.notif_pending_count')} value={notifDiag ? (notifDiag.pendingCount !== null ? notifDiag.pendingCount : t('common.error')) : '…'} mono />
         <Row label={t('diagnostics.notif_next_schedule')} value={notifDiag ? (notifDiag.nextSchedule || '—') : '…'} mono />
         <Row label={t('diagnostics.notif_platform')} value={notifDiag ? (notifDiag.platformAvailable ? t('common.yes') : t('common.no')) : '…'} mono />
+        <Row label="Battery Optimization" value={notifDiag ? (notifDiag.batteryOptimization || 'unknown') : '…'} mono />
+        <Row label="Exact Alarm" value={notifDiag ? (notifDiag.exactAlarmSupport || 'unknown') : '…'} mono />
+        <Row label="Channel Active" value={notifDiag ? (notifDiag.channelInfo ? t('common.yes') : 'No') : '…'} mono />
+        {notifDiag && notifDiag.pendingList && notifDiag.pendingList.length > 0 && (
+          <div className="mt-1">
+            <span className="text-[9px] text-gray-600">Pending IDs: {notifDiag.pendingList.map(n => n.id).join(', ')}</span>
+          </div>
+        )}
       </GlassCard>
 
       <p className="text-[10px] text-gray-700 text-center mt-2">

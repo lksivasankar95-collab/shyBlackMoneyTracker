@@ -142,7 +142,7 @@ export function calculateHealthScore(transactions, budgets, debts, goals) {
   const totalScore = categories.reduce((s, c) => s + c.score, 0)
   const clampedScore = Math.max(0, Math.min(100, totalScore))
 
-  let level = 'Needs Improvement'
+  let level = 'Poor'
   if (clampedScore >= 80) level = 'Excellent'
   else if (clampedScore >= 60) level = 'Good'
   else if (clampedScore >= 40) level = 'Fair'

@@ -3,6 +3,7 @@ import {
   Repeat2, Plus, Trash2, Edit3, Search, Calendar, CheckCircle2, XCircle,
   ChevronRight, AlertTriangle, Filter,
 } from 'lucide-react'
+import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
@@ -12,13 +13,6 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
 import Modal from '../components/Modal'
-
-const RECURRENCE_TYPES = [
-  { id: 'daily', label: 'Daily' },
-  { id: 'weekly', label: 'Weekly' },
-  { id: 'monthly', label: 'Monthly' },
-  { id: 'yearly', label: 'Yearly' },
-]
 
 const emptyForm = {
   type: 'expense',
@@ -32,6 +26,7 @@ const emptyForm = {
 }
 
 export default function RecurringTransactionsPage() {
+  const { t } = useTranslation()
   const { recurring, addRecurring, updateRecurring, toggleRecurring, removeRecurring } = useFinance()
   const { addToast } = useToast()
   const [search, setSearch] = useState('')
@@ -42,6 +37,13 @@ export default function RecurringTransactionsPage() {
   const [filterType, setFilterType] = useState('all')
 
   const stats = useMemo(() => getRecurringStats(recurring), [recurring])
+
+  const RECURRENCE_TYPES = useMemo(() => [
+    { id: 'daily', label: t('recurring.daily') },
+    { id: 'weekly', label: t('recurring.weekly') },
+    { id: 'monthly', label: t('recurring.monthly') },
+    { id: 'yearly', label: t('recurring.yearly') },
+  ], [t])
 
   const categories = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
 
@@ -149,22 +151,22 @@ export default function RecurringTransactionsPage() {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Repeat2 size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Recurring Transactions</h1>
+          <h1 className="text-xl font-bold">{t('recurring.title')}</h1>
         </div>
         <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all">
           <Plus size={14} />
-          Add
+          {t('recurring.add_btn')}
         </button>
       </div>
 
       {recurring.length > 0 && (
         <div className="grid grid-cols-2 gap-2.5 mb-4">
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Active</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('recurring.active')}</p>
             <p className="text-lg font-extrabold tabular-nums">{stats.active}</p>
           </GlassCard>
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Monthly Total</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('recurring.monthly_total')}</p>
             <p className="text-lg font-extrabold text-neon tabular-nums">{formatCurrency(stats.totalMonthly)}</p>
           </GlassCard>
         </div>

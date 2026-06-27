@@ -15,31 +15,32 @@ import ConfirmationModal from '../components/ConfirmationModal'
 import { useToast } from '../components/Toast'
 
 function DueBadge({ emi }) {
+  const { t } = useTranslation()
   if (emi.isOverdue) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-400 bg-red-500/10 px-2 py-0.5 rounded-full">
-        <AlertTriangle size={10} /> Overdue
+        <AlertTriangle size={10} /> {t('emis.overdue_badge')}
       </span>
     )
   }
   if (emi.isDueToday) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-yellow-400 bg-yellow-500/10 px-2 py-0.5 rounded-full">
-        <Clock size={10} /> Due Today
+        <Clock size={10} /> {t('emis.due_today')}
       </span>
     )
   }
   if (emi.isDueTomorrow) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded-full">
-        <Calendar size={10} /> Due Tomorrow
+        <Calendar size={10} /> {t('emis.due_tomorrow')}
       </span>
     )
   }
   if (emi.isDueWithin7) {
     return (
       <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">
-        <Calendar size={10} /> {emi.dueInDays}d left
+        <Calendar size={10} /> {t('emis.due_days_left', { days: emi.dueInDays })}
       </span>
     )
   }
@@ -221,15 +222,15 @@ export default function EmiCenterPage({ onNavigate }) {
           <div className="w-9 h-9 rounded-xl bg-purple-500/10 flex items-center justify-center">
             <Landmark size={18} className="text-purple-400" />
           </div>
-          <h1 className="text-xl font-bold">EMI Tracker</h1>
+          <h1 className="text-xl font-bold">{t('emis.page_title')}</h1>
         </div>
         <div className="flex gap-1.5">
-          <button onClick={() => setShowCalculator(true)} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all" title="EMI Calculator">
+          <button onClick={() => setShowCalculator(true)} className="p-2 rounded-xl bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition-all" title={t('emis.emi_calculator')}>
             <Calculator size={16} />
           </button>
           <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-purple-500/10 text-purple-400 text-xs font-medium hover:bg-purple-500/20 transition-all">
             {showForm ? <Minus size={14} /> : <Plus size={14} />}
-            Add
+            {t('emis.add_button')}
           </button>
         </div>
       </div>
@@ -237,19 +238,19 @@ export default function EmiCenterPage({ onNavigate }) {
       {emis.length > 0 && (
         <div className="grid grid-cols-4 gap-2 mb-4">
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Active</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('emis.stat_active')}</p>
             <p className="text-sm font-extrabold text-white tabular-nums">{stats.totalActiveLoans}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Outstanding</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('emis.stat_outstanding')}</p>
             <p className="text-sm font-extrabold text-purple-400 tabular-nums">{formatCurrency(stats.totalOutstanding)}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Due This Month</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('emis.stat_due_this_month')}</p>
             <p className={`text-sm font-extrabold tabular-nums ${stats.dueThisMonth > 0 ? 'text-yellow-400' : 'text-gray-500'}`}>{stats.dueThisMonth}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Monthly EMI</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('emis.stat_monthly_emi')}</p>
             <p className="text-sm font-extrabold text-amber-400 tabular-nums">{formatCurrency(stats.totalEMIThisMonth)}</p>
           </GlassCard>
         </div>
@@ -259,15 +260,15 @@ export default function EmiCenterPage({ onNavigate }) {
         <GlassCard className="mb-4 border-purple-500/20">
           <h3 className="text-xs font-bold mb-3 flex items-center gap-1.5">
             {editTarget ? <Edit3 size={12} className="text-purple-400" /> : <Plus size={12} className="text-purple-400" />}
-            {editTarget ? 'Edit EMI' : 'Add New EMI'}
+            {editTarget ? t('emis.edit_title') : t('emis.add_title')}
           </h3>
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
-              <input type="text" placeholder="Loan Name *" value={form.loanName} onChange={(e) => setForm((f) => ({ ...f, loanName: e.target.value }))} className="input-field text-sm" required />
-              <input type="text" placeholder="Lender Name" value={form.lenderName} onChange={(e) => setForm((f) => ({ ...f, lenderName: e.target.value }))} className="input-field text-sm" />
+              <input type="text" placeholder={t('emis.loan_name_placeholder')} value={form.loanName} onChange={(e) => setForm((f) => ({ ...f, loanName: e.target.value }))} className="input-field text-sm" required />
+              <input type="text" placeholder={t('emis.lender_name_placeholder')} value={form.lenderName} onChange={(e) => setForm((f) => ({ ...f, lenderName: e.target.value }))} className="input-field text-sm" />
             </div>
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1.5 block">Loan Type</label>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('emis.loan_type_label')}</label>
               <div className="flex flex-wrap gap-1.5">
                 {LOAN_TYPES.map((lt) => (
                   <button
@@ -280,21 +281,21 @@ export default function EmiCenterPage({ onNavigate }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Principal *</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.principal_label')}</label>
                 <input type="number" placeholder="1,00,000" value={form.principalAmount} onChange={(e) => setForm((f) => ({ ...f, principalAmount: e.target.value }))} className="input-field text-sm" min="1" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Interest Rate %</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.interest_rate_label')}</label>
                 <input type="number" placeholder="10.5" value={form.interestRate} onChange={(e) => setForm((f) => ({ ...f, interestRate: e.target.value }))} className="input-field text-sm" min="0" step="0.1" />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Tenure (months) *</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.tenure_label')}</label>
                 <input type="number" placeholder="12" value={form.tenureMonths} onChange={(e) => setForm((f) => ({ ...f, tenureMonths: e.target.value }))} className="input-field text-sm" min="1" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">EMI Amount *</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.emi_amount_label')}</label>
                 <div className="flex gap-1">
                   <input type="number" placeholder="10,000" value={form.emiAmount} onChange={(e) => setForm((f) => ({ ...f, emiAmount: e.target.value }))} className="input-field text-sm flex-1" min="1" />
                   <button
@@ -309,7 +310,7 @@ export default function EmiCenterPage({ onNavigate }) {
                       }
                     }}
                     className="px-2 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 text-[10px] hover:bg-amber-500/20 transition-all"
-                    title="Auto-calculate EMI"
+                    title={t('emis.auto_calculate')}
                   >
                     <Calculator size={14} />
                   </button>
@@ -318,26 +319,26 @@ export default function EmiCenterPage({ onNavigate }) {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Start Date</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.start_date')}</label>
                 <input type="date" value={form.startDate} onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))} className="input-field text-sm" />
               </div>
               <div>
-                <label className="text-xs text-gray-500 font-medium mb-1 block">Frequency</label>
+                <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.frequency')}</label>
                 <select value={form.frequency} onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))} className="input-field text-sm">
                   {FREQUENCY_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
                 </select>
               </div>
             </div>
-            <textarea placeholder="Notes (optional)" value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="input-field text-sm resize-none" />
+            <textarea placeholder={t('emis.notes_placeholder')} value={form.notes} onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))} rows={2} className="input-field text-sm resize-none" />
             <div className="flex gap-2">
               <button
                 onClick={handleSave}
                 disabled={!form.loanName || !form.principalAmount || !form.emiAmount || !form.tenureMonths}
                 className="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-all disabled:opacity-40"
               >
-                {editTarget ? 'Update EMI' : 'Create EMI'}
+                {editTarget ? t('emis.update_button') : t('emis.create_button')}
               </button>
-              <button onClick={() => { setShowForm(false); setEditTarget(null) }} className="flex-1 btn-secondary text-sm">Cancel</button>
+              <button onClick={() => { setShowForm(false); setEditTarget(null) }} className="flex-1 btn-secondary text-sm">{t('emis.cancel_button')}</button>
             </div>
           </div>
         </GlassCard>

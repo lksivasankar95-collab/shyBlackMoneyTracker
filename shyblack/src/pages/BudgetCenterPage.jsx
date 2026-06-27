@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import {
   Plus, Trash2, Edit3, Archive, RotateCcw, Target, AlertTriangle,
   Wallet, TrendingUp, CheckCircle2, X, BarChart3, CircleDollarSign,
@@ -14,12 +14,6 @@ import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
 import CategoryIcon from '../components/CategoryIcon'
-
-const PERIOD_OPTIONS = [
-  { value: BUDGET_PERIODS.WEEKLY, label: 'Weekly' },
-  { value: BUDGET_PERIODS.MONTHLY, label: 'Monthly' },
-  { value: BUDGET_PERIODS.YEARLY, label: 'Yearly' },
-]
 
 const emptyForm = {
   name: '',
@@ -69,8 +63,8 @@ export default function BudgetCenterPage() {
 
   const handleSave = useCallback(() => {
     const amount = parseFloat(form.amount)
-    if (!form.name.trim()) { addToast('Budget name required', 'error'); return }
-    if (!amount || amount <= 0) { addToast('Amount must be greater than 0', 'error'); return }
+    if (!form.name.trim()) { addToast(t('budgets.name_required'), 'error'); return }
+    if (!amount || amount <= 0) { addToast(t('budgets.amount_invalid'), 'error'); return }
 
     const data = {
       name: form.name.trim(),
@@ -84,14 +78,20 @@ export default function BudgetCenterPage() {
 
     if (editTarget) {
       updateBudgetV2(editTarget.id, data)
-      addToast('Budget updated', 'success')
+      addToast(t('budgets.updated'), 'success')
     } else {
       addBudgetV2(data)
-      addToast('Budget created', 'success')
+      addToast(t('budgets.created'), 'success')
     }
     setShowForm(false)
     setEditTarget(null)
   }, [form, editTarget, addBudgetV2, updateBudgetV2, addToast])
+
+  const periodOptions = useMemo(() => [
+    { value: BUDGET_PERIODS.WEEKLY, label: t('budgets.weekly') },
+    { value: BUDGET_PERIODS.MONTHLY, label: t('budgets.monthly') },
+    { value: BUDGET_PERIODS.YEARLY, label: t('budgets.yearly') },
+  ], [t])
 
   const filtered = useMemo(() => {
     let result = budgetsV2 || []
@@ -117,11 +117,11 @@ export default function BudgetCenterPage() {
           <div className="w-9 h-9 rounded-xl bg-teal-500/10 flex items-center justify-center">
             <Target size={18} className="text-teal-400" />
           </div>
-          <h1 className="text-xl font-bold">Budget Center</h1>
+          <h1 className="text-xl font-bold">{t('budgets.title')}</h1>
         </div>
         <div className="flex gap-1.5">
           <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-500/10 text-teal-400 text-xs font-medium hover:bg-teal-500/20 transition-all">
-            <Plus size={14} /> Add Budget
+            <Plus size={14} /> {t('budgets.add')}
           </button>
         </div>
       </div>
@@ -129,19 +129,19 @@ export default function BudgetCenterPage() {
       {budgetsV2.length > 0 && (
         <div className="grid grid-cols-4 gap-2 mb-4">
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Total</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('budgets.total')}</p>
             <p className="text-sm font-extrabold text-white tabular-nums">{budgetDashboardStats.totalBudgets}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Active</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('budgets.active')}</p>
             <p className="text-sm font-extrabold text-teal-400 tabular-nums">{budgetDashboardStats.activeBudgets}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Over</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('budgets.over')}</p>
             <p className={`text-sm font-extrabold tabular-nums ${budgetDashboardStats.overBudgetCount > 0 ? 'text-red-400' : 'text-gray-500'}`}>{budgetDashboardStats.overBudgetCount}</p>
           </GlassCard>
           <GlassCard className="!p-2.5">
-            <p className="text-[10px] text-gray-500 font-medium truncate">Util</p>
+            <p className="text-[10px] text-gray-500 font-medium truncate">{t('budgets.util')}</p>
             <p className={`text-sm font-extrabold tabular-nums ${utilization > 80 ? 'text-yellow-400' : 'text-teal-400'}`}>{utilization}%</p>
           </GlassCard>
         </div>
@@ -150,17 +150,17 @@ export default function BudgetCenterPage() {
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search budgets..." className="input-field !pl-9 text-xs" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('budgets.search_placeholder')} className="input-field !pl-9 text-xs" />
         </div>
       </div>
 
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
         {[
-          { key: 'active', label: 'Active', count: budgetDashboardStats.activeBudgets },
-          { key: 'exceeded', label: 'Exceeded', count: budgetDashboardStats.overBudgetCount },
-          { key: 'warning', label: 'Warning', count: budgetHealthV2.warning },
-          { key: 'all', label: 'All', count: budgetsV2.length },
-          { key: 'archived', label: 'Archived' },
+          { key: 'active', label: t('budgets.filter_active'), count: budgetDashboardStats.activeBudgets },
+          { key: 'exceeded', label: t('budgets.filter_exceeded'), count: budgetDashboardStats.overBudgetCount },
+          { key: 'warning', label: t('budgets.filter_warning'), count: budgetHealthV2.warning },
+          { key: 'all', label: t('budgets.filter_all'), count: budgetsV2.length },
+          { key: 'archived', label: t('budgets.filter_archived') },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -187,12 +187,12 @@ export default function BudgetCenterPage() {
         <GlassCard className="mb-4 border-teal-500/20">
           <h3 className="text-xs font-bold mb-3 flex items-center gap-1.5">
             {editTarget ? <Edit3 size={12} className="text-teal-400" /> : <Plus size={12} className="text-teal-400" />}
-            {editTarget ? 'Edit Budget' : 'Create Budget'}
+            {editTarget ? t('budgets.edit_budget') : t('budgets.create_budget')}
           </h3>
           <div className="space-y-3">
-            <input type="text" placeholder="Budget Name *" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="input-field text-sm" />
+            <input type="text" placeholder={t('budgets.name_placeholder')} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="input-field text-sm" />
             <div>
-              <label className="text-xs text-gray-500 font-medium mb-1.5 block">Category</label>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('budgets.category')}</label>
               <div className="flex flex-wrap gap-1.5">
                 {EXPENSE_CATEGORIES.map((cat) => (
                   <button
@@ -206,22 +206,22 @@ export default function BudgetCenterPage() {
                 ))}
               </div>
             </div>
-            <input type="number" placeholder="Budget Amount *" value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className="input-field text-sm" min="1" />
+            <input type="number" placeholder={t('budgets.amount_placeholder')} value={form.amount} onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))} className="input-field text-sm" min="1" />
             <select value={form.period} onChange={(e) => setForm((f) => ({ ...f, period: e.target.value }))} className="input-field text-sm">
-              {PERIOD_OPTIONS.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
+              {periodOptions.map((p) => (<option key={p.value} value={p.value}>{p.label}</option>))}
             </select>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-1.5 text-xs text-gray-400">
                 <input type="checkbox" checked={form.alert80} onChange={(e) => setForm((f) => ({ ...f, alert80: e.target.checked }))} className="accent-teal-500" />
-                80% Alert
+                {t('budgets.alert_80')}
               </label>
               <label className="flex items-center gap-1.5 text-xs text-gray-400">
                 <input type="checkbox" checked={form.alert100} onChange={(e) => setForm((f) => ({ ...f, alert100: e.target.checked }))} className="accent-teal-500" />
-                100% Alert
+                {t('budgets.alert_100')}
               </label>
               <label className="flex items-center gap-1.5 text-xs text-gray-400">
                 <input type="checkbox" checked={form.rollover} onChange={(e) => setForm((f) => ({ ...f, rollover: e.target.checked }))} className="accent-teal-500" />
-                Rollover
+                {t('budgets.rollover')}
               </label>
             </div>
             <div className="flex gap-2">
@@ -230,9 +230,9 @@ export default function BudgetCenterPage() {
                 disabled={!form.name || !form.amount}
                 className="flex-1 bg-teal-500 hover:bg-teal-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-all disabled:opacity-40"
               >
-                {editTarget ? 'Update' : 'Create'}
+                {editTarget ? t('budgets.update') : t('budgets.create')}
               </button>
-              <button onClick={() => { setShowForm(false); setEditTarget(null) }} className="flex-1 btn-secondary text-sm">Cancel</button>
+              <button onClick={() => { setShowForm(false); setEditTarget(null) }} className="flex-1 btn-secondary text-sm">{t('budgets.cancel')}</button>
             </div>
           </div>
         </GlassCard>
@@ -241,7 +241,7 @@ export default function BudgetCenterPage() {
       {overspentCategories.length > 0 && (
         <GlassCard className="mb-3">
           <h3 className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1.5">
-            <BarChart3 size={12} /> Top Overspending
+            <BarChart3 size={12} /> {t('budgets.top_overspending')}
           </h3>
           <div className="space-y-1.5">
             {overspentCategories.slice(0, 5).map((b) => {
@@ -263,9 +263,9 @@ export default function BudgetCenterPage() {
       {filtered.length === 0 && (
         <EmptyState
           icon={Target}
-          title={budgetsV2.length === 0 ? 'No budgets yet' : 'No matching budgets'}
-          description={budgetsV2.length === 0 ? 'Create your first budget to start tracking' : 'Try a different search or filter'}
-          action={budgetsV2.length === 0 ? <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">Create First Budget</button> : undefined}
+          title={budgetsV2.length === 0 ? t('budgets.no_budgets_yet') : t('budgets.no_matching_budgets')}
+          description={budgetsV2.length === 0 ? t('budgets.create_first_desc') : t('budgets.no_matching_desc')}
+          action={budgetsV2.length === 0 ? <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">{t('budgets.create_first_budget')}</button> : undefined}
         />
       )}
 
@@ -284,32 +284,32 @@ export default function BudgetCenterPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
                     <p className="text-xs font-medium truncate">{b.name}</p>
-                    {isExceeded && <span className="text-[10px] text-red-400 font-medium">Exceeded</span>}
-                    {isWarning && <span className="text-[10px] text-amber-400 font-medium">Warning</span>}
-                    {!b.active && <span className="text-[10px] text-gray-500">Archived</span>}
+                    {isExceeded && <span className="text-[10px] text-red-400 font-medium">{t('budgets.status_exceeded')}</span>}
+                    {isWarning && <span className="text-[10px] text-amber-400 font-medium">{t('budgets.status_warning')}</span>}
+                    {!b.active && <span className="text-[10px] text-gray-500">{t('budgets.status_archived')}</span>}
                   </div>
                   <p className="text-[10px] text-gray-500 capitalize">{cat?.label || b.category} · {b.period}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-semibold tabular-nums">{formatCurrency(b.spent)}</p>
-                  <p className="text-[10px] text-gray-600">of {formatCurrency(b.amount)}</p>
+                  <p className="text-[10px] text-gray-600">{t('budgets.of')} {formatCurrency(b.amount)}</p>
                 </div>
               </div>
               <div className="w-full h-1.5 rounded-full bg-matte-200 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${isExceeded ? 'bg-gradient-to-r from-red-500 to-red-400' : isWarning ? 'bg-gradient-to-r from-amber-500 to-yellow-400' : 'bg-gradient-to-r from-teal-500 to-emerald-400'}`} style={{ width: `${pct}%` }} />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-gray-600">{Math.round(pct)}% spent</span>
-                <span className={`text-[10px] ${isExceeded ? 'text-red-400' : 'text-gray-600'}`}>{formatCurrency(Math.max(0, b.remaining))} left</span>
+                <span className="text-[10px] text-gray-600">{t('budgets.percent_spent', { pct: Math.round(pct) })}</span>
+                <span className={`text-[10px] ${isExceeded ? 'text-red-400' : 'text-gray-600'}`}>{t('budgets.left', { amount: formatCurrency(Math.max(0, b.remaining)) })}</span>
               </div>
 
               <div className="flex gap-2 mt-2 pt-2 border-t border-white/[0.06]">
                 <button onClick={() => openEdit(b)} className="flex-1 bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-gray-200 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
-                  <Edit3 size={11} /> Edit
+                  <Edit3 size={11} /> {t('budgets.edit')}
                 </button>
                 {b.active ? (
                   <button onClick={() => setArchiveTarget(b)} className="flex-1 bg-white/[0.05] hover:bg-amber-500/10 text-gray-400 hover:text-amber-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
-                    <Archive size={11} /> Archive
+                    <Archive size={11} /> {t('budgets.archive')}
                   </button>
                 ) : (
                   <button onClick={() => { reactivateBudgetV2(b.id); addToast('Budget reactivated', 'success') }} className="flex-1 bg-white/[0.05] hover:bg-teal-500/10 text-gray-400 hover:text-teal-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">

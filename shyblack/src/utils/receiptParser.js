@@ -46,9 +46,15 @@ export function compressImage(file, maxWidth = 1200, quality = 0.7) {
 }
 
 async function runOCR(imageBlob, onProgress) {
-  const worker = await createWorker('eng', 1, {
-    logger: (m) => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress) },
-  })
+  const initTimeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('OCR engine initialization timed out after 30 seconds')), 30000)
+  )
+  const worker = await Promise.race([
+    createWorker('eng', 1, {
+      logger: (m) => { if (m.status === 'recognizing text' && onProgress) onProgress(m.progress) },
+    }),
+    initTimeout,
+  ])
   try {
     const timeoutPromise = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('OCR processing timed out after 60 seconds')), 60000)
@@ -162,23 +168,43 @@ export function detectCategory(merchant, text) {
 }
 
 export async function scanReceipt(file, onProgress) {
-  const compressed = await compressImage(file)
-  const { text, confidence } = await runOCR(compressed, onProgress)
-  const clean = cleanText(text)
-  const { merchant, category: merchantCat } = detectMerchant(clean)
-  const detectedMerchant = merchant || 'Unknown Merchant'
-  const amount = extractAmount(clean)
-  const date = extractDate(clean)
-  const detectedCategory = merchantCat || detectCategory(detectedMerchant, clean)
+  const TOTAL_TIMEOUT = 90000
+  const startTime = Date.now()
 
-  return {
-    merchant: detectedMerchant,
-    amount,
-    category: detectedCategory,
-    date,
-    rawText: clean,
-    confidence,
-  }
+  const timeoutPromise = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Scan timed out after 90 seconds')), TOTAL_TIMEOUT)
+  )
+
+  const scanPromise = (async () => {
+    if (onProgress) onProgress(0.05, 'compressing')
+    const compressed = await compressImage(file)
+
+    if (onProgress) onProgress(0.15, 'initializing')
+    const { text, confidence } = await runOCR(compressed, (p) => {
+      if (onProgress) onProgress(0.15 + p * 0.8, 'recognizing')
+    })
+
+    if (onProgress) onProgress(0.95, 'parsing')
+    const clean = cleanText(text)
+    const { merchant, category: merchantCat } = detectMerchant(clean)
+    const detectedMerchant = merchant || 'Unknown Merchant'
+    const amount = extractAmount(clean)
+    const date = extractDate(clean)
+    const detectedCategory = merchantCat || detectCategory(detectedMerchant, clean)
+
+    if (onProgress) onProgress(1, 'complete')
+
+    return {
+      merchant: detectedMerchant,
+      amount,
+      category: detectedCategory,
+      date,
+      rawText: clean,
+      confidence,
+    }
+  })()
+
+  return Promise.race([scanPromise, timeoutPromise])
 }
 
 export function extractLines(text) {

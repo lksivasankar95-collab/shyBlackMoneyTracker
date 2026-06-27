@@ -10,6 +10,7 @@ import PageErrorBoundary from './components/PageErrorBoundary'
 import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
 import Onboarding from './pages/Onboarding'
 import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthlyRecap, checkDebtReminders } from './utils/reminders'
+import { registerNotificationListeners } from './utils/notifications'
 import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
@@ -151,6 +152,19 @@ function ReminderInit() {
   return null
 }
 
+function NotificationTapHandler({ onNavigate }) {
+  useEffect(() => {
+    const cleanup = registerNotificationListeners((deepLink, extra) => {
+      if (deepLink && pages[deepLink]) {
+        onNavigate(deepLink)
+      }
+    })
+    return cleanup
+  }, [onNavigate])
+
+  return null
+}
+
 function LockGate({ isLocked, onUnlock }) {
   const { clearAllData } = useFinance()
 
@@ -228,6 +242,7 @@ function AppContent() {
         <BottomNav active={currentPage} onNavigate={handleNavigate} />
       )}
       <QuickActionCenter onNavigate={handleNavigate} />
+      <NotificationTapHandler onNavigate={handleNavigate} />
     </div>
   )
 }

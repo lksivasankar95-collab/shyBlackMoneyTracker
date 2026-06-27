@@ -867,6 +867,84 @@
   },
 
   "notifications": {
+    "channel_name": "ShyBlack Finance",
+    "channel_description": "ShyBlack కోసం ఆర్థిక నోటిఫికేషన్‌లు",
+    "group_summary": {
+      "title": "ఫైనాన్స్ అప్‌డేట్‌లు",
+      "body": "{{count}} కొత్త నోటిఫికేషన్(లు)"
+    },
+    "app_name": "ShyBlack Finance",
+    "app_subtitle": "Personal Finance Assistant",
+    "expense_added": {
+      "title": "ఖర్చు జోడించబడింది",
+      "body": "₹{{amount}} {{category}} ఖర్చు జోడించబడింది"
+    },
+    "income_added": {
+      "title": "ఆదాయం జోడించబడింది",
+      "body": "₹{{amount}} {{category}} ఆదాయం జోడించబడింది"
+    },
+    "reminder": {
+      "title": "ఫైనాన్స్ రిమైండర్",
+      "body": "మీ ఆర్థిక పరిస్థితిని సమీక్షించడానికి సమయం"
+    },
+    "backup_complete": {
+      "title": "బ్యాకప్ పూర్తయింది",
+      "body": "మీ డేటా విజయవంతంగా బ్యాకప్ చేయబడింది"
+    },
+    "restore_complete": {
+      "title": "పునరుద్ధరణ పూర్తయింది",
+      "body": "మీ డేటా విజయవంతంగా పునరుద్ధరించబడింది"
+    },
+    "export_finished": {
+      "title": "ఎగుమతి పూర్తయింది",
+      "body": "మీ ఎగుమతి డౌన్‌లోడ్ కోసం సిద్ధంగా ఉంది"
+    },
+    "budget_alert": {
+      "title": "బడ్జెట్ అలర్ట్",
+      "body": "{{body}}"
+    },
+    "goal_achieved": {
+      "title": "లక్ష్యం సాధించబడింది!",
+      "body": "{{body}}"
+    },
+    "debt_reminder": {
+      "title": "అప్పు రిమైండర్",
+      "body": "{{body}}"
+    },
+    "emi_reminder": {
+      "title": "EMI ఈరోజు గడువు",
+      "body": "{{name}} — ₹{{amount}}"
+    },
+    "trading_reminder": {
+      "title": "ట్రేడింగ్ రిమైండర్",
+      "body": "మీ పెట్టుబడులను తనిఖీ చేయడానికి సమయం"
+    },
+    "daily_reminder": {
+      "title": "రోజువారీ ఫైనాన్స్ రిమైండర్",
+      "body_1": "మీరు ఈరోజు ఖర్చులను ఇంకా అప్‌డేట్ చేయలేదు. ఇప్పుడు లాగ్ చేయడానికి నొక్కండి.",
+      "body_2": "పెండింగ్‌లో ఉన్న అప్పు చెల్లింపులకు మీ దృష్టి అవసరం. మీ అప్పుల జాబితాను తనిఖీ చేయండి.",
+      "body_3": "మీ రోజువారీ ఆర్థిక స్నాప్‌షాట్ ఎదురుచూస్తోంది. ఈరోజు సమీక్షించడానికి ShyBlack తెరవండి."
+    },
+    "monthly_summary": {
+      "title": "నెలవారీ సారాంశం",
+      "body": "{{body}}"
+    },
+    "weekly_summary": {
+      "title": "వారపు సారాంశం",
+      "body": "{{body}}"
+    },
+    "error": {
+      "title": "ఏదో తప్పు జరిగింది",
+      "body": "{{body}}"
+    },
+    "warning": {
+      "title": "హెచ్చరిక",
+      "body": "{{body}}"
+    },
+    "success": {
+      "title": "విజయం",
+      "body": "{{body}}"
+    },
     "transaction_added": "లావాదేవీ జోడించబడింది",
     "transaction_updated": "లావాదేవీ నవీకరించబడింది",
     "transaction_deleted": "లావాదేవీ తొలగించబడింది",
@@ -879,14 +957,6 @@
     "file_shared": "ఫైల్ భాగస్వామ్యం చేయబడింది",
     "file_downloaded": "ఫైల్ డౌన్‌లోడ్ చేయబడింది",
     "settings_saved": "సెట్టింగ్‌లు సేవ్ చేయబడ్డాయి",
-    "app_name": "ShyBlack Finance",
-    "daily_body_1": "You haven't updated today's expenses yet. Tap to log them now.",
-    "daily_body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
-    "daily_body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today.",
-    "payment_due_tomorrow": "Payment Due Tomorrow",
-    "overdue_payment": "Overdue Payment",
-    "monthly_summary": "Monthly Summary",
-    "emi_due_today": "EMI Due Today",
     "csv_exported": "CSV ఎగుమతి చేయబడింది!",
     "statement_generated": "నివేదిక రూపొందించబడింది!",
     "pdf_saved": "{pageCount} పేజీ PDF సేవ్ చేయబడింది!",

@@ -6,4 +6,9 @@
     <color name="colorSurface">#13131A</color>
     <color name="colorOnSurface">#FFFFFF</color>
     <color name="colorBackground">#0A0A0F</color>
+    <color name="notificationColor">#39FF14</color>
+    <color name="notificationBackground">#111111</color>
+    <color name="neonAccent">#00E676</color>
+    <color name="matteDark">#1A1A1A</color>
+    <color name="textSecondary">#B0B0B0</color>
 </resources>
