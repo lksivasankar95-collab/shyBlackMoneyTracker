@@ -11,7 +11,7 @@ export default class PageErrorBoundary extends Component {
 
   componentDidCatch(error, errorInfo) {
     try {
-      const log = JSON.parse(sessionStorage.getItem('shyblack_crash_log') || '[]')
+      const log = JSON.parse(sessionStorage.getItem('finora_crash_log') || '[]')
       log.push({
         page: this.props.page || 'unknown',
         type: error?.name,
@@ -19,7 +19,7 @@ export default class PageErrorBoundary extends Component {
         ts: new Date().toISOString(),
       })
       if (log.length > 10) log.shift()
-      sessionStorage.setItem('shyblack_crash_log', JSON.stringify(log))
+      sessionStorage.setItem('finora_crash_log', JSON.stringify(log))
     } catch {}
   }
 

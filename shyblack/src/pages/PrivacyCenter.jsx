@@ -22,7 +22,7 @@ export default function PrivacyCenter({ onNavigate }) {
       <GlassCard className="mb-3">
         <h3 className="text-xs font-semibold text-gray-300 mb-2">Offline-First Architecture</h3>
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          ShyBlack Finance is built on an offline-first architecture. All your financial data
+          FINORA is built on an offline-first architecture. All your financial data
           is stored locally on your device. There are no remote servers, no cloud sync,
           and no data transmission to external services.
         </p>

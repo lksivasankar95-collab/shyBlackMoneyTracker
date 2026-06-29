@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
-const BIOMETRIC_KEY = 'shyblack_biometric'
+const BIOMETRIC_KEY = 'finora_biometric'
 
 let biometricAvailable = false
 let biometricType = null
@@ -45,8 +45,8 @@ export async function authenticateWithBiometric(reason) {
     })
     await Promise.race([
       BiometricAuth.authenticate({
-        reason: reason || 'Unlock ShyBlack Finance',
-        androidTitle: 'Unlock ShyBlack',
+        reason: reason || 'Unlock FINORA',
+        androidTitle: 'Unlock FINORA',
         androidSubtitle: 'Use biometric to unlock',
         cancelTitle: 'Use PIN instead',
         allowDeviceCredential: true,
@@ -70,7 +70,7 @@ export async function tryBiometricUnlock() {
     return { unlocked: false, reason: 'not-available' }
   }
 
-  const verified = await authenticateWithBiometric('Unlock ShyBlack Finance')
+  const verified = await authenticateWithBiometric('Unlock FINORA')
   return { unlocked: verified, reason: verified ? 'verified' : 'failed' }
 }
 

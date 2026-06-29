@@ -50,7 +50,7 @@ export default function StatementExportPage() {
     try {
       const html = generateMonthlyStatement(transactions, debts, accounts || [], budgets, selectedYear, selectedMonth)
       const monthName = new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' }).replace(/ /g, '_')
-      downloadStatement(html, `shyblack_statement_${monthName}.html`)
+      downloadStatement(html, `finora_statement_${monthName}.html`)
       addToast(t('statements.downloaded'), 'success')
     } catch {
       addToast(t('statements.generateFailed'), 'error')

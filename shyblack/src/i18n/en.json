@@ -1,6 +1,6 @@
 {
-  "app_name": "ShyBlack",
-  "app_subtitle": "Finance",
+  "app_name": "FINORA",
+  "app_subtitle": "Smart Finance",
 
   "nav": {
     "dashboard": "Dashboard",
@@ -202,7 +202,7 @@
       "privacy_desc": "PIN lock protection. Your data, your rules."
     },
     "welcome": {
-      "title": "ShyBlack Finance",
+      "title": "FINORA - Smart Finance",
       "description": "Your private, offline finance companion. Smart tracking meets dark mode elegance.",
       "get_started": "Get Started"
     },
@@ -254,7 +254,7 @@
       "terms_text": "This app is a financial tracking tool and does not provide financial advice. You are responsible for your data backups.",
       "agree_prefix": "I agree to the",
       "setting_up": "Setting up...",
-      "start": "Start Using ShyBlack"
+      "start": "Start Using FINORA"
     }
   },
 
@@ -1440,13 +1440,13 @@
   },
 
   "notifications": {
-    "channel_name": "ShyBlack Finance",
-    "channel_description": "Financial notifications for ShyBlack",
+    "channel_name": "FINORA Finance",
+    "channel_description": "Financial notifications for FINORA",
     "group_summary": {
       "title": "Finance Updates",
       "body": "{{count}} new notification(s)"
     },
-    "app_name": "ShyBlack Finance",
+    "app_name": "FINORA",
     "app_subtitle": "Personal Finance Assistant",
     "expense_added": {
       "title": "Expense Added",
@@ -1496,7 +1496,7 @@
       "title": "Daily Finance Reminder",
       "body_1": "You haven't updated today's expenses yet. Tap to log them now.",
       "body_2": "Pending debt repayments need your attention. Check your borrow & lend list.",
-      "body_3": "Your daily financial snapshot is waiting. Open ShyBlack to review today."
+      "body_3": "Your daily financial snapshot is waiting. Open FINORA to review today."
     },
     "monthly_summary": {
       "title": "Monthly Summary",
@@ -1665,7 +1665,7 @@
     "unlock": "Unlock",
     "use_fingerprint": "Use Fingerprint",
     "forgot_pin": "Forgot PIN?",
-    "forgot_pin_desc": "ShyBlack stores all data offline. There is no way to recover a forgotten PIN without resetting.",
+    "forgot_pin_desc": "FINORA stores all data offline. There is no way to recover a forgotten PIN without resetting.",
     "reset_all_data": "Reset All App Data",
     "confirm_reset": "Confirm Reset",
     "confirm_reset_warning": "This permanently deletes all your data.",
@@ -1688,7 +1688,7 @@
     "section_crashed": "This section crashed",
     "go_to_dashboard": "Go to Dashboard",
     "app_error_title": "Something went wrong",
-    "app_error_desc": "ShyBlack encountered an unexpected error. Your data is safe and no information has been lost.",
+    "app_error_desc": "FINORA encountered an unexpected error. Your data is safe and no information has been lost.",
     "reload_app": "Reload App",
     "reset_local_data": "Reset Local Data",
     "encrypted_storage": "Encrypted Offline Storage",

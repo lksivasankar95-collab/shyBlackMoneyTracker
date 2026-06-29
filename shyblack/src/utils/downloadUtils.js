@@ -50,7 +50,7 @@ export async function downloadBlob(blob, filename) {
 
   try {
     const savedFile = await Filesystem.writeFile({
-      path: `ShyBlackFinance/${filename}`,
+      path: `FINORA/${filename}`,
       data: base64,
       directory: Directory.Documents,
       recursive: true,
@@ -59,7 +59,7 @@ export async function downloadBlob(blob, filename) {
     return {
       success: true,
       uri: savedFile.uri,
-      path: `Downloads/ShyBlackFinance/${filename}`,
+      path: `Downloads/FINORA/${filename}`,
       filename,
       mimeType,
     }
@@ -97,7 +97,7 @@ export async function downloadDataUri(dataUri, filename) {
 
   try {
     const savedFile = await Filesystem.writeFile({
-      path: `ShyBlackFinance/${filename}`,
+      path: `FINORA/${filename}`,
       data: base64,
       directory: Directory.Documents,
       recursive: true,
@@ -106,7 +106,7 @@ export async function downloadDataUri(dataUri, filename) {
     return {
       success: true,
       uri: savedFile.uri,
-      path: `Downloads/ShyBlackFinance/${filename}`,
+      path: `Downloads/FINORA/${filename}`,
       filename,
       mimeType,
     }
@@ -177,7 +177,7 @@ export async function shareBlob(blob, filename, title) {
 
     const base64 = await blobToBase64(blob)
     const savedFile = await Filesystem.writeFile({
-      path: `ShyBlackFinance/_share/${filename}`,
+      path: `FINORA/_share/${filename}`,
       data: base64,
       directory: Directory.Cache,
       recursive: true,

@@ -867,13 +867,13 @@
   },
 
   "notifications": {
-    "channel_name": "ShyBlack Finance",
-    "channel_description": "ShyBlack के लिए वित्तीय सूचनाएं",
+    "channel_name": "FINORA Finance",
+    "channel_description": "FINORA के लिए वित्तीय सूचनाएं",
     "group_summary": {
       "title": "Finance अपडेट",
       "body": "{{count}} नई सूचना(एं)"
     },
-    "app_name": "ShyBlack Finance",
+    "app_name": "FINORA",
     "app_subtitle": "Personal Finance Assistant",
     "expense_added": {
       "title": "खर्च जोड़ा गया",
@@ -923,7 +923,7 @@
       "title": "दैनिक वित्त अनुस्मारक",
       "body_1": "आपने आज के खर्च अपडेट नहीं किए हैं। अभी लॉग करने के लिए टैप करें।",
       "body_2": "लंबित कर्ज भुगतान पर ध्यान देने की आवश्यकता है। अपनी उधार सूची जांचें।",
-      "body_3": "आपका दैनिक वित्त स्नैपशॉट इंतजार कर रहा है। आज समीक्षा करने के लिए ShyBlack खोलें।"
+      "body_3": "आपका दैनिक वित्त स्नैपशॉट इंतजार कर रहा है। आज समीक्षा करने के लिए FINORA खोलें।"
     },
     "monthly_summary": {
       "title": "मासिक सारांश",
@@ -1092,7 +1092,7 @@
     "unlock": "अनलॉक",
     "use_fingerprint": "फिंगरप्रिंट का उपयोग करें",
     "forgot_pin": "PIN भूल गए?",
-    "forgot_pin_desc": "ShyBlack सभी डेटा ऑफलाइन संग्रहीत करता है। रीसेट किए बिना भूला हुआ PIN पुनर्प्राप्त नहीं किया जा सकता।",
+    "forgot_pin_desc": "FINORA सभी डेटा ऑफलाइन संग्रहीत करता है। रीसेट किए बिना भूला हुआ PIN पुनर्प्राप्त नहीं किया जा सकता।",
     "reset_all_data": "सभी ऐप डेटा रीसेट करें",
     "confirm_reset": "रीसेट की पुष्टि करें",
     "confirm_reset_warning": "यह आपका सारा डेटा स्थायी रूप से हटा देगा।",
@@ -1115,7 +1115,7 @@
     "section_crashed": "यह अनुभाग क्रैश हो गया",
     "go_to_dashboard": "डैशबोर्ड पर जाएं",
     "app_error_title": "कुछ गलत हो गया",
-    "app_error_desc": "ShyBlack को एक अप्रत्याशित त्रुटि का सामना करना पड़ा। आपका डेटा सुरक्षित है।",
+    "app_error_desc": "FINORA को एक अप्रत्याशित त्रुटि का सामना करना पड़ा। आपका डेटा सुरक्षित है।",
     "reload_app": "ऐप पुनः लोड करें",
     "reset_local_data": "स्थानीय डेटा रीसेट करें",
     "encrypted_storage": "एन्क्रिप्टेड ऑफलाइन संग्रहण",

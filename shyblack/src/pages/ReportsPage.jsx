@@ -46,7 +46,7 @@ export default function ReportsPage() {
   const handleExportStatement = useCallback(() => {
     if (statement) {
       const html = generateStatementHTML(statement)
-      downloadHTML(html, `shyblack_statement_${MONTHS[selectedMonth]}_${selectedYear}.html`)
+      downloadHTML(html, `finora_statement_${MONTHS[selectedMonth]}_${selectedYear}.html`)
       addToast(t('notifications.statement_generated'), 'success')
     }
   }, [statement, selectedMonth, selectedYear, addToast, t])
@@ -81,7 +81,7 @@ export default function ReportsPage() {
       }
       setPdfDataUri(result.dataUri)
       setPdfBlob(result.blob)
-      const saveResult = await downloadBlob(result.blob, `shyblack_report_${Date.now()}.pdf`)
+      const saveResult = await downloadBlob(result.blob, `finora_report_${Date.now()}.pdf`)
       if (saveResult.success) {
         setDownloadResult(saveResult)
         setShowDownloadInfo(true)
@@ -99,13 +99,13 @@ export default function ReportsPage() {
 
   const handleOpenPDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await openFileNative(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
+    const result = await openFileNative(pdfBlob, `finora_report_${Date.now()}.pdf`)
     if (result.action === 'cancelled') return
   }, [pdfBlob])
 
   const handleSharePDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await shareBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`, 'ShyBlack Finance Report')
+    const result = await shareBlob(pdfBlob, `finora_report_${Date.now()}.pdf`, 'FINORA Report')
     if (result.shared) {
       addToast(t('notifications.file_shared'), 'success')
     } else if (result.method === 'unsupported') {
@@ -115,7 +115,7 @@ export default function ReportsPage() {
 
   const handleDownloadPDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await downloadBlob(pdfBlob, `shyblack_report_${Date.now()}.pdf`)
+    const result = await downloadBlob(pdfBlob, `finora_report_${Date.now()}.pdf`)
     if (result.success) {
       setDownloadResult(result)
       setShowDownloadInfo(true)

@@ -26,10 +26,10 @@ export default class ErrorBoundary extends Component {
           timestamp: new Date().toISOString(),
           url: window.location.href,
         }
-        const crashLog = JSON.parse(sessionStorage.getItem('shyblack_crash_log') || '[]')
+        const crashLog = JSON.parse(sessionStorage.getItem('finora_crash_log') || '[]')
         crashLog.push(diagnostics)
         if (crashLog.length > 5) crashLog.shift()
-        sessionStorage.setItem('shyblack_crash_log', JSON.stringify(crashLog))
+        sessionStorage.setItem('finora_crash_log', JSON.stringify(crashLog))
       } catch {}
     }
   }
@@ -53,7 +53,7 @@ export default class ErrorBoundary extends Component {
       keysToRemove.forEach((k) => {
         try { localStorage.removeItem(k) } catch {}
       })
-      sessionStorage.removeItem('shyblack_crash_log')
+      sessionStorage.removeItem('finora_crash_log')
     } catch {}
     window.location.reload()
   }

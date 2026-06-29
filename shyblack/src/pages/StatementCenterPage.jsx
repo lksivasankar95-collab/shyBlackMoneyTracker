@@ -111,7 +111,7 @@ export default function StatementCenterPage({ onNavigate }) {
   const handleShare = useCallback(async () => {
     if (!generated) return
     const filename = `Statement_${new Date().toISOString().split('T')[0]}.pdf`
-    const result = await shareBlob(generated.blob, filename, 'ShyBlack Finance Statement')
+    const result = await shareBlob(generated.blob, filename, 'FINORA Statement')
     if (result.shared) {
       addToast(t('statements.saved_again_toast'), 'success')
     } else if (result.method === 'unsupported') {

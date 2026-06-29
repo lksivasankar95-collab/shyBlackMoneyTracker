@@ -128,7 +128,7 @@ function buildHtml(data) {
 <body>
 
 <div class="header">
-  <h1>ShyBlack Finance</h1>
+  <h1>FINORA - Smart Finance</h1>
   <p>Monthly Financial Statement — ${monthName}</p>
   <p style="font-size:9px;color:#999">Generated on ${new Date().toLocaleDateString()}</p>
 </div>
@@ -218,7 +218,7 @@ ${pendingDebtsGiven > 0 || pendingDebtsTaken > 0 ? `
 ` : ''}
 
 <div class="footer">
-  <p>ShyBlack Finance — Offline Personal Finance Manager</p>
+  <p>FINORA — Smart Finance. Better Life.</p>
   <p>This statement was generated offline. Data is stored locally on your device.</p>
 </div>
 

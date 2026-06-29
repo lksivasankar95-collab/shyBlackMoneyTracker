@@ -8,7 +8,7 @@ import hi from './hi.json'
 import te from './te.json'
 import kn from './kn.json'
 
-const LANG_KEY = 'shyblack_language'
+const LANG_KEY = 'finora_language'
 const DEFAULT_LANG = 'en'
 const FALLBACK_LANG = 'en'
 const SUPPORTED_LANGS = ['en', 'ta', 'hi', 'te', 'kn']

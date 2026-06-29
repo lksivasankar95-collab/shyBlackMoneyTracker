@@ -318,7 +318,7 @@ export async function encryptBackup(backupObj, password) {
   const plaintext = new TextEncoder().encode(JSON.stringify(backupObj))
   const ciphertext = await _crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext)
   return {
-    app: 'shyblack-finance',
+    app: 'finora-finance',
     encrypted: true,
     version: BACKUP_SCHEMA_VERSION,
     salt: toBase64(salt),
@@ -341,13 +341,13 @@ export async function exportEncryptedBackup(password) {
   const backup = collectBackupData()
   const encryptedObj = await encryptBackup(backup, password)
   const json = JSON.stringify(encryptedObj)
-  const filename = `shyblack_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
+  const filename = `finora_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
   let exported = false
 
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem')
     await Filesystem.writeFile({
-      path: `ShyBlackFinance/${filename}`,
+      path: `FINORA/${filename}`,
       data: btoa(unescape(encodeURIComponent(json))),
       directory: Directory.Documents,
       recursive: true,
@@ -381,8 +381,8 @@ export async function parseAndValidateEncryptedBackup(jsonString, password) {
     return { success: false, error: 'Invalid JSON format. File may be corrupted.' }
   }
 
-  if (!parsed.encrypted || parsed.app !== 'shyblack-finance') {
-    return { success: false, error: 'Not a ShyBlack encrypted backup file.' }
+  if (!parsed.encrypted || (parsed.app !== 'finora-finance' && parsed.app !== 'shyblack-finance')) {
+    return { success: false, error: 'Not a FINORA encrypted backup file.' }
   }
 
   if (!parsed.salt || !parsed.iv || !parsed.data) {
@@ -455,7 +455,7 @@ export function collectBackupData() {
     : {}
 
   return {
-    app: 'shyblack-finance',
+    app: 'finora-finance',
     version: BACKUP_SCHEMA_VERSION,
     exportedAt: new Date().toISOString(),
     data,
@@ -465,12 +465,12 @@ export function collectBackupData() {
 export async function exportBackup() {
   const backup = collectBackupData()
   const json = JSON.stringify(backup, null, 2)
-  const filename = `shyblack_backup_${new Date().toISOString().split('T')[0]}.json`
+  const filename = `finora_backup_${new Date().toISOString().split('T')[0]}.json`
 
   try {
     const { Filesystem, Directory } = await import('@capacitor/filesystem')
     await Filesystem.writeFile({
-      path: `ShyBlackFinance/${filename}`,
+      path: `FINORA/${filename}`,
       data: btoa(unescape(encodeURIComponent(json))),
       directory: Directory.Documents,
       recursive: true,
@@ -516,7 +516,7 @@ export function validateBackupData(data) {
 
   if (errors.length > 0) return { valid: false, errors }
 
-  if (data.app !== 'shyblack-finance') {
+  if (data.app !== 'finora-finance' && data.app !== 'shyblack-finance') {
     errors.push(`Invalid app identifier: "${data.app}"`)
   }
 

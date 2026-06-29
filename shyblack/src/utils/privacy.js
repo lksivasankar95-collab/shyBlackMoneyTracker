@@ -1,6 +1,6 @@
 import { safeStorage } from './safeStorage'
 
-const PRIVACY_KEY = 'shyblack_privacy'
+const PRIVACY_KEY = 'finora_privacy'
 
 const FAIL_THRESHOLD_COOLDOWN = 5
 const FAIL_THRESHOLD_LOCKOUT = 10

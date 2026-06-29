@@ -33,7 +33,7 @@ export default function AppInfoPage() {
 
       <GlassCard className="mb-3">
         <h3 className="text-xs font-semibold text-gray-300 mb-2">{t('app.app_info')}</h3>
-        <Row label={t('app.app_name')} value="ShyBlack Finance" />
+        <Row label={t('app.app_name')} value="FINORA" />
         <Row label={t('app.version')} value="1.0.0" />
         <Row label={t('app.build')} value={`${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`} />
         <Row label={t('app.schema_version')} value={`v${schemaVersion}`} />

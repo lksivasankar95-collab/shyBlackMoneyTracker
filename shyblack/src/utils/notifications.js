@@ -1,9 +1,9 @@
 import { LocalNotifications } from '@capacitor/local-notifications'
 import i18n from 'i18next'
 
-const CHANNEL_ID = 'shyblack_finance'
+const CHANNEL_ID = 'finora_finance'
 const GROUP_KEY = 'finance_notifications'
-const SMALL_ICON = 'ic_stat_shyblack'
+const SMALL_ICON = 'ic_stat_finora'
 
 export const NOTIF_TYPES = {
   EXPENSE_ADDED: 'expense_added',

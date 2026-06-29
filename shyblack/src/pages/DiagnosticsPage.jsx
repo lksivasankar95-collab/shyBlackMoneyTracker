@@ -114,7 +114,7 @@ export default function DiagnosticsPage({ onNavigate }) {
           }
         } catch {}
         try {
-          channelInfo = await plugin.getChannel({ id: 'shyblack_finance' })
+          channelInfo = await plugin.getChannel({ id: 'finora_finance' })
         } catch {}
       }
       if (mounted) {

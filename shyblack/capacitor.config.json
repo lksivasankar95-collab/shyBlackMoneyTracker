@@ -1,13 +1,13 @@
 {
   "appId": "com.shyblack.finance",
-  "appName": "ShyBlack",
+  "appName": "FINORA",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"
   },
   "plugins": {
     "LocalNotifications": {
-      "smallIcon": "ic_stat_shyblack",
+      "smallIcon": "ic_stat_finora",
       "iconColor": "#39FF14"
     }
   }
