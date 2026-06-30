@@ -58,6 +58,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
     const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/bmp']
     if (!ALLOWED_TYPES.includes(file.type)) { addToast(t('receipts.invalid_image_type'), 'error'); return }
 
+    const originalName = file.name || ''
     setScanning(true)
     setProgress(0)
     setScanStatus(t('receipts.compressing'))
@@ -79,6 +80,7 @@ export default function ReceiptCenterPage({ onNavigate }) {
       if (!mountedRef.current) return
       setParsed(result)
       setEditParsed({
+        fileName: originalName,
         merchant: result.merchant,
         amount: result.amount,
         category: result.category,

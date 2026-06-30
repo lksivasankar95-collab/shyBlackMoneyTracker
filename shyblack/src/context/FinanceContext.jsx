@@ -5,7 +5,7 @@ import { buildIndexes } from '../utils/indexer'
 import { saveSnapshot, findRecoverySnapshot, getRecoveryChainSummary, detectCorruption } from '../utils/snapshotRecovery'
 import { getBackupHealth, getBackupStats } from '../utils/backupHealth'
 import { getBudgets, saveBudgets } from '../utils/budgets'
-import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTransactions, advanceNextDate, autoExecuteDueRecurring, normalizeRecurringItem } from '../utils/recurring'
+import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTransactions, advanceNextDate, autoExecuteDueRecurring, normalizeRecurringItem, detectDuplicateGeneration } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS, addPayment, undoLastPayment, editPayment, deletePayment, settleLedger, getLedgerSummary, getLedgerStatement, getLedgerInsights } from '../utils/debts'
@@ -24,6 +24,7 @@ import {
   getHabitInsights, getFinancialHealth, checkStreakMilestone,
   getMonthlyScoreHistory, getScoreVelocity, getLoggingStreak,
   predictMonthEndSpend, getCashflowForecast, getScoreBreakdown,
+  generateSmartInsights,
 } from '../utils/insights'
 import { getCategoryTrends } from '../utils/analytics'
 import { runMigrations } from '../utils/schema'
@@ -234,8 +235,12 @@ export function FinanceProvider({ children }) {
     const timer = setTimeout(() => {
       try {
         const normalized = recurring.map(normalizeRecurringItem)
-        autoExecuteDueRecurring(normalized, (item) => {
-          const today = new Date().toISOString().split('T')[0]
+        const today = new Date().toISOString().split('T')[0]
+        const duplicateCheck = detectDuplicateGeneration(normalized, transactions)
+        autoExecuteDueRecurring(normalized.filter((item) => {
+          const dup = duplicateCheck.find((d) => d.recurring.id === item.id)
+          return !(dup && dup.generatedToday)
+        }), (item) => {
           const newTx = {
             type: item.type,
             amount: item.amount,
@@ -546,6 +551,69 @@ export function FinanceProvider({ children }) {
     })
   }, [])
 
+  const pauseRecurring = useCallback((id) => {
+    setState((prev) => ({
+      ...prev,
+      recurring: prev.recurring.map((r) =>
+        r.id === id
+          ? { ...r, paused: true, pausedAt: Date.now(), updatedAt: Date.now() }
+          : r
+      ),
+    }))
+  }, [])
+
+  const resumeRecurring = useCallback((id) => {
+    setState((prev) => {
+      const item = prev.recurring.find((r) => r.id === id)
+      if (!item) return prev
+      const nextDate = advanceNextDate(item.nextDate || item.startDate || new Date().toISOString().split('T')[0], item.frequency || 'monthly')
+      return {
+        ...prev,
+        recurring: prev.recurring.map((r) =>
+          r.id === id
+            ? { ...r, paused: false, pausedAt: undefined, nextDate, updatedAt: Date.now() }
+            : r
+        ),
+      }
+    })
+  }, [])
+
+  const skipNextOccurrence = useCallback((id) => {
+    setState((prev) => ({
+      ...prev,
+      recurring: prev.recurring.map((r) =>
+        r.id === id
+          ? { ...r, nextDate: advanceNextDate(r.nextDate, r.frequency || 'monthly'), lastSkippedAt: Date.now(), updatedAt: Date.now() }
+          : r
+      ),
+    }))
+  }, [])
+
+  const editFutureOccurrences = useCallback((id, updates) => {
+    const today = new Date().toISOString().split('T')[0]
+    setState((prev) => {
+      const updatedTransactions = prev.transactions.map((tx) => {
+        if (tx.source === 'recurring' && tx.date >= today) {
+          const txUpdates = {}
+          if (updates.amount !== undefined) txUpdates.amount = updates.amount
+          if (updates.category !== undefined) txUpdates.category = updates.category
+          if (updates.note !== undefined) txUpdates.note = updates.note
+          return Object.keys(txUpdates).length ? { ...tx, ...txUpdates } : tx
+        }
+        return tx
+      })
+      return {
+        ...prev,
+        transactions: updatedTransactions,
+        recurring: prev.recurring.map((r) =>
+          r.id === id
+            ? { ...r, ...updates, updatedAt: Date.now() }
+            : r
+        ),
+      }
+    })
+  }, [])
+
   const pendingRecurring = useMemo(() => getDueRecurringTransactions(recurring), [recurring])
 
   const addTag = useCallback((name) => {
@@ -559,6 +627,34 @@ export function FinanceProvider({ children }) {
 
   const removeTag = useCallback((id) => {
     setState((prev) => ({ ...prev, tags: prev.tags.filter((t) => t.id !== id) }))
+  }, [])
+
+  const renameTag = useCallback((id, newName) => {
+    const trimmed = newName.trim().toLowerCase()
+    if (!trimmed) return
+    setState((prev) => {
+      if (prev.tags.find((t) => t.name === trimmed && t.id !== id)) return prev
+      return {
+        ...prev,
+        tags: prev.tags.map((t) => (t.id === id ? { ...t, name: trimmed } : t)),
+      }
+    })
+  }, [])
+
+  const mergeTags = useCallback((sourceName, targetName) => {
+    const s = sourceName.toLowerCase().trim()
+    const t = targetName.toLowerCase().trim()
+    if (!s || !t || s === t) return
+    setState((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((tag) => tag.name !== s),
+      transactions: prev.transactions.map((tx) => {
+        if (!tx.tags || !tx.tags.includes(s)) return tx
+        const updated = tx.tags.map((tag) => (tag === s ? t : tag))
+        const deduped = [...new Set(updated)]
+        return { ...tx, tags: deduped }
+      }),
+    }))
   }, [])
 
   const updateSecurity = useCallback((updates) => {
@@ -748,6 +844,7 @@ export function FinanceProvider({ children }) {
     scoreBreakdown: null,
     overspend: null, recommendations: [], habits: [], health: null,
     scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+    smartInsights: [],
   })
   const insightsTimerRef = useRef(null)
 
@@ -760,6 +857,7 @@ export function FinanceProvider({ children }) {
           score: { score: 0, level: 'N/A', factors: [] },
           overspend: null, recommendations: [], habits: [], health: null,
           scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+          smartInsights: [],
         })
         return
       }
@@ -776,6 +874,7 @@ export function FinanceProvider({ children }) {
           streak: getLoggingStreak(transactions),
           monthPrediction: predictMonthEndSpend(transactions),
           trends: getCategoryTrends(transactions, 3),
+          smartInsights: generateSmartInsights(transactions, budgetsRef.current, debts),
         })
       } catch {
         setDebouncedInsights({
@@ -783,6 +882,7 @@ export function FinanceProvider({ children }) {
           scoreBreakdown: null,
           overspend: null, recommendations: [], habits: [], health: null,
           scoreHistory: [], scoreVelocity: null, streak: 0, monthPrediction: null, trends: [],
+          smartInsights: [],
         })
       }
     }, 400)
@@ -1237,54 +1337,102 @@ export function FinanceProvider({ children }) {
     } catch { return null }
   }, [])
 
-  const value = useMemo(() => ({
-    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
-    cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
-    templates, recentTemplates,
-    snapshotDiagnostics, storageCorruptionReport,
-    backupHealth, backupStats,
-    pendingRecurring, dataQuality, reviewSummary,
-    budgetsV2, addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2,
-    spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, financialScore,
-    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts, overspentCategories,
+  const transactionActions = useMemo(() => ({
     addTransaction, deleteTransaction, updateTransaction, getBalance,
-    getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
-    addRecurring, updateRecurring, toggleRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
-    addTag, removeTag, updateSecurity,
-    clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
-    debts, addDebt, updateDebt, deleteDebt, recordRepayment, addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
-    addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
-    emis, addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment, emiSummary,
-    accounts, updateAccounts,
-    documents, addDocument, editDocument, removeDocument, documentStats,
-    receipts, addReceipt, updateReceiptCb, deleteReceiptCb, createTransactionFromReceipt, receiptStats,
-    wealthAssets, addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb, netWorthData, netWorthHistory,
-    assetAllocation, portfolioSummary, wealthScore, wealthDashboardStats,
-    backupDashboardStats, handleCreateBackup,
-  }), [
-    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification, insights,
-    documents, documentStats,
-    receipts, receiptStats, wealthAssets, netWorthData, netWorthHistory, assetAllocation, portfolioSummary, wealthScore, wealthDashboardStats,
-    cashflowForecast, recoverySnapshot, recentPeople, goals, goalsProjections,
-    templates, recentTemplates,
-    snapshotDiagnostics, storageCorruptionReport,
-    backupHealth, backupStats,
+    getMonthlySummary, getMonthlyData,
+  }), [addTransaction, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData])
+
+  const recurringActions = useMemo(() => ({
+    addRecurring, updateRecurring, toggleRecurring, removeRecurring,
+    executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
+    pauseRecurring, resumeRecurring, skipNextOccurrence, editFutureOccurrences,
+  }), [addRecurring, updateRecurring, toggleRecurring, removeRecurring,
+    executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
+    pauseRecurring, resumeRecurring, skipNextOccurrence, editFutureOccurrences])
+
+  const budgetActions = useMemo(() => ({
+    addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2,
+  }), [addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2])
+
+  const tagActions = useMemo(() => ({
+    addTag, removeTag, renameTag, mergeTags,
+  }), [addTag, removeTag, renameTag, mergeTags])
+
+  const debtActions = useMemo(() => ({
+    addDebt, updateDebt, deleteDebt, recordRepayment,
+    addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger,
+  }), [addDebt, updateDebt, deleteDebt, recordRepayment,
+    addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger])
+
+  const goalActions = useMemo(() => ({ addGoal, editGoal, removeGoal }), [addGoal, editGoal, removeGoal])
+
+  const templateActions = useMemo(() => ({ addTemplate, removeTemplate }), [addTemplate, removeTemplate])
+
+  const emiActions = useMemo(() => ({
+    addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment,
+  }), [addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment])
+
+  const documentActions = useMemo(() => ({
+    addDocument, editDocument, removeDocument,
+  }), [addDocument, editDocument, removeDocument])
+
+  const receiptActions = useMemo(() => ({
+    addReceipt, updateReceiptCb, deleteReceiptCb, createTransactionFromReceipt,
+  }), [addReceipt, updateReceiptCb, deleteReceiptCb, createTransactionFromReceipt])
+
+  const wealthActions = useMemo(() => ({
+    addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb,
+  }), [addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb])
+
+  const computedData = useMemo(() => ({
+    insights, cashflowForecast, recentPeople, goalsProjections,
+    snapshotDiagnostics, storageCorruptionReport, backupHealth, backupStats,
     pendingRecurring, dataQuality, reviewSummary,
-    budgetsV2, addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, recalcBudgetsV2,
-    spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, financialScore,
-    smartRecommendations, budgetDashboardStats, budgetHealthV2, budgetAlerts, overspentCategories,
-    addTransaction, deleteTransaction, updateTransaction, getBalance,
-    getMonthlySummary, getMonthlyData, updateSavings, updateBudgets, updateBudgetLimit,
-    addRecurring, updateRecurring, toggleRecurring, removeRecurring, executeRecurring, executeAllRecurring, skipRecurring, skipAllRecurring,
-    addTag, removeTag, updateSecurity,
-    clearAllData, importData, dismissNotification, restoreFromSnapshot, reloadFromStorage,
-    debts, addDebt, updateDebt, deleteDebt, recordRepayment, addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
-    addGoal, editGoal, removeGoal, addTemplate, removeTemplate,
-    emis, addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, pauseEmi, resumeEmi, markEmiPaid, undoEmiPayment, emiSummary,
-    accounts, updateAccounts,
-    wealthAssets, addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb,
+    spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData,
+    financialScore, smartRecommendations, budgetDashboardStats, budgetHealthV2,
+    budgetAlerts, overspentCategories, ledgerInsights, debtsSummary,
+    emiSummary, documentStats, receiptStats,
     netWorthData, netWorthHistory, assetAllocation, portfolioSummary, wealthScore, wealthDashboardStats,
-    backupDashboardStats, handleCreateBackup,
+    backupDashboardStats,
+  }), [insights, cashflowForecast, recentPeople, goalsProjections,
+    snapshotDiagnostics, storageCorruptionReport, backupHealth, backupStats,
+    pendingRecurring, dataQuality, reviewSummary,
+    spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData,
+    financialScore, smartRecommendations, budgetDashboardStats, budgetHealthV2,
+    budgetAlerts, overspentCategories, ledgerInsights, debtsSummary,
+    emiSummary, documentStats, receiptStats,
+    netWorthData, netWorthHistory, assetAllocation, portfolioSummary, wealthScore, wealthDashboardStats,
+    backupDashboardStats])
+
+  const value = useMemo(() => ({
+    ...computedData,
+    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification,
+    recoverySnapshot, goals, templates, recentTemplates,
+    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets,
+    ...transactionActions,
+    ...recurringActions,
+    ...budgetActions,
+    ...tagActions,
+    ...debtActions,
+    ...goalActions,
+    ...templateActions,
+    ...emiActions,
+    ...documentActions,
+    ...receiptActions,
+    ...wealthActions,
+    updateSavings, updateBudgets, updateBudgetLimit, updateSecurity,
+    updateAccounts, clearAllData, importData, dismissNotification,
+    restoreFromSnapshot, reloadFromStorage, handleCreateBackup,
+  }), [
+    computedData,
+    transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification,
+    recoverySnapshot, goals, templates, recentTemplates,
+    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets,
+    transactionActions, recurringActions, budgetActions, tagActions,
+    debtActions, goalActions, templateActions, emiActions, documentActions, receiptActions, wealthActions,
+    updateSavings, updateBudgets, updateBudgetLimit, updateSecurity,
+    updateAccounts, clearAllData, importData, dismissNotification,
+    restoreFromSnapshot, reloadFromStorage, handleCreateBackup,
   ])
 
   return <FinanceContext.Provider value={value}>{children}</FinanceContext.Provider>

@@ -1,14 +1,23 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Download, FileText, BarChart3, Calendar, Share2, Save, Loader2, ExternalLink, CheckCircle2 } from 'lucide-react'
+import { Download, FileText, BarChart3, Calendar, Share2, Save, Loader2, ExternalLink, CheckCircle2, Tag, Globe, FileSpreadsheet, Code, Layers, History } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
-import { exportToCSV, generateMonthlyStatement, generateStatementHTML, downloadCSV, downloadHTML } from '../utils/exports'
-import { generateMonthlyReport, generateCategoryReport, generateDateRangeReport, generateAnnualReport } from '../utils/pdfReport'
+import {
+  exportToCSV, generateMonthlyStatement, generateStatementHTML, downloadCSV, downloadHTML,
+  transactionsToCsv, downloadCsv, downloadXlsx, exportToExcelWithSummary,
+  exportWithChartsToHTML, downloadHtml, generateExportSummary,
+  exportByMonth, exportByYear, exportByCategory, exportByCustomRange,
+} from '../utils/exports'
+import {
+  generateMonthlyReport, generateCategoryReport, generateDateRangeReport, generateAnnualReport,
+  generateCustomReport,
+} from '../utils/pdfReport'
 import { downloadBlob, shareBlob, openFileNative } from '../utils/downloadUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
+import { ALL_CATEGORIES } from '../utils/constants'
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const REPORT_TYPES = [
@@ -17,10 +26,23 @@ const REPORT_TYPES = [
   { id: 'daterange', label: 'Date Range' },
   { id: 'annual', label: 'Annual' },
 ]
+const EXPORT_FORMATS = [
+  { id: 'csv', label: 'CSV', icon: FileText },
+  { id: 'excel', label: 'Excel', icon: FileSpreadsheet },
+  { id: 'html', label: 'HTML Report', icon: Code },
+  { id: 'pdf', label: 'PDF', icon: FileText },
+]
+const EXPORT_SCOPES = [
+  { id: 'all', label: 'All Transactions' },
+  { id: 'this_month', label: 'This Month' },
+  { id: 'this_year', label: 'This Year' },
+  { id: 'custom_range', label: 'Custom Range' },
+  { id: 'by_category', label: 'By Category' },
+]
 
 export default function ReportsPage() {
   const { t } = useTranslation()
-  const { transactions } = useFinance()
+  const { transactions, tags } = useFinance()
   const { addToast } = useToast()
   const now = new Date()
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth())
@@ -34,14 +56,128 @@ export default function ReportsPage() {
   const [pdfError, setPdfError] = useState(null)
   const [downloadResult, setDownloadResult] = useState(null)
   const [showDownloadInfo, setShowDownloadInfo] = useState(false)
+  const [selectedTags, setSelectedTags] = useState([])
+  const [exportFormat, setExportFormat] = useState('csv')
+  const [exportScope, setExportScope] = useState('all')
+  const [customCategory, setCustomCategory] = useState('')
+  const [customDateFrom, setCustomDateFrom] = useState('')
+  const [customDateTo, setCustomDateTo] = useState('')
+  const [exportWithCharts, setExportWithCharts] = useState(true)
+  const [batchExport, setBatchExport] = useState(false)
+  const [exportHistory, setExportHistory] = useState([])
+  const [showExportPreview, setShowExportPreview] = useState(false)
+
+  const filteredTxs = useMemo(() => {
+    let result = [...transactions]
+    if (selectedTags.length > 0) {
+      result = result.filter((t) => t.tags && t.tags.some((tag) => selectedTags.includes(tag)))
+    }
+    const scope = exportScope
+    if (scope === 'this_month') {
+      result = exportByMonth(result, now.getFullYear(), now.getMonth())
+    } else if (scope === 'this_year') {
+      result = exportByYear(result, now.getFullYear())
+    } else if (scope === 'custom_range') {
+      if (customDateFrom && customDateTo) {
+        result = exportByCustomRange(result, customDateFrom, customDateTo)
+      }
+    } else if (scope === 'by_category') {
+      if (customCategory) {
+        result = exportByCategory(result, customCategory)
+      }
+    }
+    return result
+  }, [transactions, selectedTags, exportScope, customCategory, customDateFrom, customDateTo, now])
+
+  const exportSummary = useMemo(() => generateExportSummary(filteredTxs), [filteredTxs])
 
   const statement = useMemo(() => generateMonthlyStatement(transactions, selectedYear, selectedMonth), [transactions, selectedYear, selectedMonth])
 
+  const getExportFilename = useCallback((ext) => {
+    const dateStr = new Date().toISOString().split('T')[0]
+    const scopePrefix = exportScope !== 'all' ? exportScope : 'all'
+    return `finora_${scopePrefix}_${dateStr}.${ext}`
+  }, [exportScope])
+
+  const handleExport = useCallback(async (singleFormat) => {
+    const formats = singleFormat ? [singleFormat] : (batchExport ? EXPORT_FORMATS.map((f) => f.id) : [exportFormat])
+    const results = []
+
+    for (const fmt of formats) {
+      try {
+        if (filteredTxs.length === 0) throw new Error('No transactions to export')
+        if (fmt === 'csv') {
+          const csv = transactionsToCsv(filteredTxs)
+          downloadCsv(csv, getExportFilename('csv'))
+          results.push('CSV')
+        } else if (fmt === 'excel') {
+          const data = { transactions: filteredTxs, debts: [], goals: [], emis: [], transfers: [], accounts: [] }
+          const blob = exportToExcelWithSummary(data, exportSummary)
+          if (blob) {
+            downloadXlsx(blob, getExportFilename('xlsx'))
+            results.push('Excel')
+          }
+        } else if (fmt === 'html') {
+          let html
+          if (exportWithCharts) {
+            html = exportWithChartsToHTML(filteredTxs, exportSummary)
+          } else {
+            const stmt = generateMonthlyStatement(filteredTxs, selectedMonth, selectedYear)
+            html = stmt ? generateStatementHTML(stmt) : exportWithChartsToHTML(filteredTxs, exportSummary)
+          }
+          downloadHtml(html, getExportFilename('html'))
+          results.push('HTML')
+        } else if (fmt === 'pdf') {
+          setPdfLoading(true)
+          setPdfError(null)
+          let result
+          const opts = { includeCharts: exportWithCharts, includeSummary: true }
+          if (exportScope === 'custom_range') {
+            result = generateCustomReport(filteredTxs, { ...opts, dateFrom: customDateFrom, dateTo: customDateTo, title: 'Custom Range Report', periodLabel: `${customDateFrom} \u2014 ${customDateTo}` })
+          } else if (exportScope === 'by_category') {
+            result = generateCustomReport(filteredTxs, { ...opts, category: customCategory, title: 'Category Report', periodLabel: `Category: ${customCategory}` })
+          } else if (exportScope === 'this_year') {
+            result = generateAnnualReport(filteredTxs, now.getFullYear())
+          } else if (exportScope === 'this_month') {
+            result = generateMonthlyReport(filteredTxs, now.getMonth(), now.getFullYear())
+          } else {
+            result = generateCustomReport(filteredTxs, { ...opts, dateFrom: '', dateTo: '', title: 'Full Report', periodLabel: 'All Transactions' })
+          }
+          setPdfDataUri(result.dataUri)
+          setPdfBlob(result.blob)
+          const saveResult = await downloadBlob(result.blob, getExportFilename('pdf'))
+          if (saveResult.success) {
+            setDownloadResult(saveResult)
+            setShowDownloadInfo(true)
+            results.push(`PDF (${result.pageCount}p)`)
+          } else {
+            results.push('PDF (saved)')
+          }
+        }
+      } catch (e) {
+        addToast(e.message || 'Export failed', 'error')
+      }
+    }
+
+    if (results.length > 0) {
+      const exportRecord = {
+        id: Date.now(),
+        formats: results,
+        scope: exportScope,
+        count: filteredTxs.length,
+        timestamp: new Date().toLocaleString('en-IN'),
+      }
+      setExportHistory((prev) => [exportRecord, ...prev].slice(0, 20))
+      addToast(`Exported: ${results.join(', ')}`, 'success')
+    }
+    setPdfLoading(false)
+  }, [filteredTxs, exportFormat, exportScope, batchExport, exportWithCharts, exportSummary, getExportFilename, customDateFrom, customDateTo, customCategory, selectedMonth, selectedYear, now, addToast])
+
   const handleExportCSV = useCallback(() => {
-    const csv = exportToCSV(transactions)
+    const csv = exportToCSV(filteredTxs)
     downloadCSV(csv)
     addToast(t('notifications.csv_exported'), 'success')
-  }, [transactions, addToast, t])
+  }, [filteredTxs, addToast, t])
 
   const handleExportStatement = useCallback(() => {
     if (statement) {
@@ -59,22 +195,22 @@ export default function ReportsPage() {
     setDownloadResult(null)
     setShowDownloadInfo(false)
     try {
-      if (transactions.length === 0) throw new Error(t('reports.no_data_desc'))
+      if (filteredTxs.length === 0) throw new Error(t('reports.no_data_desc'))
       let result
       switch (reportType) {
         case 'monthly':
-          result = generateMonthlyReport(transactions, selectedMonth, selectedYear)
+          result = generateMonthlyReport(filteredTxs, selectedMonth, selectedYear)
           break
         case 'category':
-          result = generateCategoryReport(transactions, selectedMonth, selectedYear)
+          result = generateCategoryReport(filteredTxs, selectedMonth, selectedYear)
           break
         case 'daterange':
           if (!dateFrom || !dateTo) throw new Error(t('reports.select_dates'))
           if (dateFrom > dateTo) throw new Error(t('reports.start_before_end'))
-          result = generateDateRangeReport(transactions, dateFrom, dateTo)
+          result = generateDateRangeReport(filteredTxs, dateFrom, dateTo)
           break
         case 'annual':
-          result = generateAnnualReport(transactions, selectedYear)
+          result = generateAnnualReport(filteredTxs, selectedYear)
           break
         default:
           throw new Error(t('reports.unknown_type'))
@@ -125,15 +261,11 @@ export default function ReportsPage() {
     }
   }, [pdfBlob, addToast, t])
 
-  const handleSavePDF = useCallback(() => {
-    handleDownloadPDF()
-  }, [handleDownloadPDF])
-
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <h1 className="text-xl font-bold mb-6">{t('reports.title')}</h1>
 
-      {transactions.length === 0 ? (
+      {filteredTxs.length === 0 && selectedTags.length === 0 && exportScope === 'all' ? (
         <GlassCard>
           <EmptyState
             icon={FileText}
@@ -141,8 +273,156 @@ export default function ReportsPage() {
             description={t('reports.no_data_desc')}
           />
         </GlassCard>
+      ) : filteredTxs.length === 0 && selectedTags.length > 0 ? (
+        <GlassCard>
+          <EmptyState
+            icon={Tag}
+            title={t('reports.no_tag_matches') || 'No transactions match selected tags'}
+            description={t('reports.try_different_tags') || 'Try selecting different tags or clear the tag filter'}
+          />
+        </GlassCard>
       ) : (
         <>
+          {/* Export Section */}
+          <GlassCard brand className="mb-4">
+            <div className="flex items-center gap-2 mb-4">
+              <Download size={16} className="text-neon" />
+              <h2 className="text-sm font-semibold">{t('reports.export_options')}</h2>
+            </div>
+
+            {/* Export Format Selector */}
+            <div className="mb-3">
+              <label className="text-[10px] text-gray-500 font-medium mb-1.5 block">{t('reports.export_format') || 'Export Format'}</label>
+              <div className="flex gap-1.5">
+                {EXPORT_FORMATS.map((ef) => (
+                  <button
+                    key={ef.id}
+                    onClick={() => setExportFormat(ef.id)}
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all flex items-center gap-1 ${
+                      exportFormat === ef.id
+                        ? 'bg-neon/10 text-neon border border-neon/30'
+                        : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    <ef.icon size={12} />
+                    {ef.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Export Scope Selector */}
+            <div className="mb-3">
+              <label className="text-[10px] text-gray-500 font-medium mb-1.5 block">{t('reports.export_scope') || 'Export Scope'}</label>
+              <div className="flex gap-1.5 flex-wrap">
+                {EXPORT_SCOPES.map((es) => (
+                  <button
+                    key={es.id}
+                    onClick={() => { setExportScope(es.id); setShowExportPreview(true) }}
+                    className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
+                      exportScope === es.id
+                        ? 'bg-neon/10 text-neon border border-neon/30'
+                        : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    {es.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Scope Config */}
+            {exportScope === 'custom_range' && (
+              <div className="flex gap-2 mb-3">
+                <input
+                  type="date"
+                  value={customDateFrom}
+                  onChange={(e) => setCustomDateFrom(e.target.value)}
+                  className="input-field text-[10px] flex-1"
+                />
+                <input
+                  type="date"
+                  value={customDateTo}
+                  onChange={(e) => setCustomDateTo(e.target.value)}
+                  className="input-field text-[10px] flex-1"
+                />
+              </div>
+            )}
+            {exportScope === 'by_category' && (
+              <select
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                className="input-field text-[10px] w-full mb-3"
+              >
+                <option value="">{t('reports.select_category') || 'Select Category'}</option>
+                {ALL_CATEGORIES.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.label}</option>
+                ))}
+              </select>
+            )}
+
+            {/* Export Summary Preview */}
+            {filteredTxs.length > 0 && (
+              <div className="mb-3 p-3 rounded-xl bg-white/[0.03] border border-glass-border">
+                <p className="text-[10px] text-gray-500 font-medium mb-2">{t('reports.export_summary') || 'Export Summary'}</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div>
+                    <p className="text-[18px] font-extrabold text-neon tabular-nums">{formatCurrency(exportSummary.totalIncome)}</p>
+                    <p className="text-[9px] text-gray-500">{t('common.income')}</p>
+                  </div>
+                  <div>
+                    <p className="text-[18px] font-extrabold text-red-400 tabular-nums">{formatCurrency(exportSummary.totalExpense)}</p>
+                    <p className="text-[9px] text-gray-500">{t('common.expense')}</p>
+                  </div>
+                  <div>
+                    <p className={`text-[18px] font-extrabold tabular-nums ${exportSummary.balance >= 0 ? 'text-neon' : 'text-red-400'}`}>{formatCurrency(exportSummary.balance)}</p>
+                    <p className="text-[9px] text-gray-500">{t('common.balance')}</p>
+                  </div>
+                </div>
+                <div className="flex justify-between mt-2 pt-2 border-t border-glass-border text-[10px] text-gray-500">
+                  <span>{exportSummary.count} {t('reports.transactions') || 'transactions'}</span>
+                  <span>{t('reports.savings_rate') || 'Savings'}: {exportSummary.savingsRate.toFixed(1)}%</span>
+                  {exportSummary.topCategory && <span>Top: {exportSummary.topCategory}</span>}
+                </div>
+              </div>
+            )}
+
+            {/* Options */}
+            <div className="flex items-center gap-3 mb-3">
+              <label className="flex items-center gap-1.5 text-[10px] text-gray-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={exportWithCharts}
+                  onChange={(e) => setExportWithCharts(e.target.checked)}
+                  className="accent-neon"
+                />
+                {t('reports.include_charts') || 'Include Charts'}
+              </label>
+              <label className="flex items-center gap-1.5 text-[10px] text-gray-500 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={batchExport}
+                  onChange={(e) => setBatchExport(e.target.checked)}
+                  className="accent-neon"
+                />
+                {t('reports.batch_export') || 'Batch Export (All Formats)'}
+              </label>
+            </div>
+
+            {/* Export Button */}
+            <button
+              onClick={() => handleExport(null)}
+              disabled={filteredTxs.length === 0 || pdfLoading}
+              className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {pdfLoading ? (
+                <><Loader2 size={16} className="animate-spin" /> {t('common.generating')}</>
+              ) : (
+                <><Download size={16} /> {batchExport ? (t('reports.batch_export_btn') || 'Export All Formats') : `${t('reports.export') || 'Export'} ${EXPORT_FORMATS.find((f) => f.id === exportFormat)?.label}`}</>
+              )}
+            </button>
+          </GlassCard>
+
           {/* PDF Report Generation */}
           <GlassCard brand className="mb-4">
             <div className="flex items-center gap-2 mb-4">
@@ -221,6 +501,38 @@ export default function ReportsPage() {
                 </select>
               )}
             </div>
+
+            {/* Tag Filter */}
+            {tags.length > 0 && (
+              <div className="mb-4">
+                <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+                  <Tag size={11} />
+                  {t('reports.filter_by_tag') || 'Filter by Tag'}
+                </label>
+                <div className="flex gap-1.5 flex-wrap">
+                  {tags.map((tag) => {
+                    const isSelected = selectedTags.includes(tag.name)
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => setSelectedTags((prev) =>
+                          isSelected
+                            ? prev.filter((t) => t !== tag.name)
+                            : [...prev, tag.name]
+                        )}
+                        className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                          isSelected
+                            ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                            : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                        }`}
+                      >
+                        #{tag.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleGeneratePDF}
@@ -369,50 +681,59 @@ export default function ReportsPage() {
             )}
           </GlassCard>
 
-          {/* Export Options */}
-          <GlassCard className="mb-4">
-            <div className="flex items-center gap-2 mb-4">
-              <BarChart3 size={16} className="text-neon" />
-              <h2 className="text-sm font-semibold">{t('reports.export_options')}</h2>
-            </div>
-            <div className="space-y-2">
-              <button onClick={handleExportCSV} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
-                <Download size={16} />
-                {t('reports.export_csv')}
-              </button>
-            </div>
-          </GlassCard>
+          {/* Export History */}
+          {exportHistory.length > 0 && (
+            <GlassCard className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <History size={16} className="text-neon" />
+                <h2 className="text-sm font-semibold">{t('reports.export_history') || 'Export History'}</h2>
+              </div>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {exportHistory.map((record) => (
+                  <div key={record.id} className="flex items-center justify-between p-2 rounded-lg bg-white/[0.02] text-[10px]">
+                    <div className="flex items-center gap-2">
+                      <Layers size={12} className="text-gray-500" />
+                      <span className="text-gray-400">{record.formats.join(', ')}</span>
+                      <span className="text-gray-600">|</span>
+                      <span className="text-gray-500">{record.count} txns</span>
+                    </div>
+                    <span className="text-gray-600">{record.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            </GlassCard>
+          )}
 
           {/* Summary Stats */}
           <GlassCard>
             <div className="flex items-center gap-2 mb-3">
-              <FileText size={16} className="text-neon" />
+              <BarChart3 size={16} className="text-neon" />
               <h2 className="text-sm font-semibold">{t('reports.account_summary')}</h2>
             </div>
             <div className="space-y-3">
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">{t('reports.total_transactions')}</span>
-                <span className="text-sm font-semibold tabular-nums">{transactions.length}</span>
+                <span className="text-sm font-semibold tabular-nums">{filteredTxs.length}</span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">{t('reports.total_income')}</span>
                 <span className="text-sm font-semibold text-neon tabular-nums">
-                  {formatCurrency(transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
+                  {formatCurrency(filteredTxs.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0))}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-gray-500">{t('reports.total_expenses')}</span>
                 <span className="text-sm font-semibold text-red-400 tabular-nums">
-                  {formatCurrency(transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
+                  {formatCurrency(filteredTxs.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0))}
                 </span>
               </div>
               <div className="border-t border-glass-border pt-3 flex justify-between items-center">
                 <span className="text-xs font-medium">{t('common.net_worth')}</span>
                 <span className={`text-sm font-extrabold tabular-nums ${
-                  transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0
+                  filteredTxs.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0) >= 0
                     ? 'text-neon' : 'text-red-400'
                 }`}>
-                  {formatCurrency(transactions.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0))}
+                  {formatCurrency(filteredTxs.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0))}
                 </span>
               </div>
             </div>

@@ -10,10 +10,15 @@ global.localStorage = {
   key: (i) => Object.keys(store)[i] ?? null,
 }
 
+const { safeStorage } = await import('../utils/safeStorage.js')
+
 const { saveSnapshot, getSnapshotChain, findLatestValidSnapshot, findRecoverySnapshot, detectCorruption } =
   await import('../utils/snapshotRecovery.js')
 
-beforeEach(() => { Object.keys(store).forEach((k) => delete store[k]) })
+beforeEach(() => {
+  Object.keys(store).forEach((k) => delete store[k])
+  safeStorage.invalidateCache()
+})
 
 function makeTx(id) {
   return { id, type: 'expense', amount: 100, category: 'food', date: '2024-06-15' }
@@ -29,12 +34,12 @@ describe('saveSnapshot / getSnapshotChain', () => {
     expect(chain[0].savingsGoal).toEqual({ target: 1000, saved: 500 })
   })
 
-  it('maintains at most MAX_SNAPSHOTS entries', () => {
+  it('preserves all snapshots within age limit (no count limit)', () => {
     for (let i = 0; i < 10; i++) {
       saveSnapshot([makeTx(String(i))], { target: 0, saved: 0 })
     }
     const chain = getSnapshotChain()
-    expect(chain.length).toBeLessThanOrEqual(5)
+    expect(chain.length).toBe(10)
     expect(chain[0].transactions[0].id).toBe('9')
   })
 

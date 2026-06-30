@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef } from 'react'
 import { X } from 'lucide-react'
 import { useTranslation } from '../i18n'
 
@@ -8,19 +8,9 @@ export default function Modal({ open, onClose, title, children }) {
   const dialogRef = useRef()
   const previousFocus = useRef()
   const onCloseRef = useRef(onClose)
-  const mountedRef = useRef(false)
-  const effectCountRef = useRef(0)
-
   useEffect(() => { onCloseRef.current = onClose }, [onClose])
 
   useEffect(() => {
-    effectCountRef.current++
-    if (!mountedRef.current) {
-      mountedRef.current = true
-      console.log(`[DIAG:Bug#3] Modal MOUNTED (first render only)`)
-    }
-    console.log(`[DIAG:Bug#3] Modal useEffect RUN #${effectCountRef.current}: open=${open}${effectCountRef.current > 1 ? ' (parent re-render, but open unchanged - no focus steal!)' : ' initial mount'}`)
-
     if (open) {
       previousFocus.current = document.activeElement
       document.body.style.overflow = 'hidden'
@@ -55,7 +45,6 @@ export default function Modal({ open, onClose, title, children }) {
       })
 
       return () => {
-        console.log(`[DIAG:Bug#3] Modal useEffect CLEANUP #${effectCountRef.current}`)
         document.body.style.overflow = ''
         window.removeEventListener('keydown', handleKeyDown)
       }

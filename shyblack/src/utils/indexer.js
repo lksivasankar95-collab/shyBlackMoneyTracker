@@ -4,6 +4,7 @@ export function buildIndexes(transactions) {
   const byType = { income: [], expense: [] }
   const byPerson = new Map()
   const byPaymentMethod = new Map()
+  const byTags = new Map()
   const bySource = new Map()
 
   let totalIncome = 0
@@ -48,6 +49,18 @@ export function buildIndexes(transactions) {
         byPerson.set(name, personArr)
       }
       personArr.push(t)
+    }
+
+    if (t.tags && Array.isArray(t.tags)) {
+      for (const tag of t.tags) {
+        const tagLower = tag.toLowerCase()
+        let tagArr = byTags.get(tagLower)
+        if (!tagArr) {
+          tagArr = []
+          byTags.set(tagLower, tagArr)
+        }
+        tagArr.push(t)
+      }
     }
 
     if (t.paymentMethod) {
@@ -100,6 +113,7 @@ export function buildIndexes(transactions) {
     byType,
     byPerson,
     byPaymentMethod,
+    byTags,
     bySource,
     summaries: {
       totalIncome,

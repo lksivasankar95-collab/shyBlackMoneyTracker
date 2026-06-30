@@ -1,4 +1,4 @@
-import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft } from 'lucide-react'
+import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft, PieChart, Wallet, Repeat, FileText, DollarSign, ArrowUpCircle, CheckCircle2, AlertCircle } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
@@ -78,6 +78,50 @@ export default function InsightsPage() {
               </div>
               <span className="text-xs text-gray-500">{t('insights.healthRating')}</span>
             </div>
+          </div>
+        </GlassCard>
+      )}
+
+      {insights.smartInsights?.length > 0 && (
+        <GlassCard className="mt-4 border-neon/10">
+          <div className="flex items-center gap-2 mb-3">
+            <Lightbulb size={16} className="text-neon" />
+            <h2 className="text-sm font-semibold">Smart Insights</h2>
+          </div>
+          <div className="space-y-2">
+            {insights.smartInsights.map((si, i) => {
+              const iconMap = {
+                spending_increase: si.severity === 'success' ? TrendingDown : TrendingUp,
+                category_increase: ArrowUpCircle,
+                largest_category: PieChart,
+                savings_trend: si.severity === 'success' ? TrendingUp : TrendingDown,
+                budget_exceeded: DollarSign,
+                low_balance: Wallet,
+                frequent_spending: Repeat,
+                monthly_summary: FileText,
+              }
+              const colorMap = {
+                alert: 'text-red-400 bg-red-500/10',
+                warning: 'text-yellow-400 bg-yellow-500/10',
+                info: 'text-blue-400 bg-blue-500/10',
+                success: 'text-neon bg-neon/10',
+              }
+              const Icon = iconMap[si.type] || Lightbulb
+              const colorClass = colorMap[si.severity] || 'text-gray-400 bg-gray-500/10'
+              return (
+                <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/[0.03]">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${colorClass}`}>
+                    <Icon size={15} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-300">{si.message}</p>
+                    {si.detail && (
+                      <p className="text-[10px] text-gray-500 mt-0.5">{si.detail}</p>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </GlassCard>
       )}

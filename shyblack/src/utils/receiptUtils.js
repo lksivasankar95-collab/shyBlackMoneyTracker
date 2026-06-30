@@ -16,6 +16,7 @@ export function createReceipt(data) {
     id: generateId(),
     imageId: data.imageId || null,
     imageData: data.imageData || null,
+    fileName: data.fileName || '',
     merchant: data.merchant || '',
     amount: data.amount || 0,
     category: data.category || 'other_expense',

@@ -18,14 +18,8 @@ import QuickActionCenter from './components/QuickActionCenter'
 import ScrollRestoration from './components/ScrollRestoration'
 import { App as CapApp } from '@capacitor/app'
 
-const DEBUG = import.meta.env.DEV
-const debug = (msg, data) => {
-  if (DEBUG) console.log(`[App] ${msg}`, data !== undefined ? data : '')
-}
-
 const onboardingDone = () => {
   const data = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
-  debug('onboardingDone', { hasCompletedOnboarding: data && data.hasCompletedOnboarding === true })
   return data && data.hasCompletedOnboarding === true
 }
 
@@ -68,6 +62,7 @@ const RecoveryCenterPage = lazy(() => import('./pages/RecoveryCenterPage'))
 const ForecastCenterPage = lazy(() => import('./pages/ForecastCenterPage'))
 const AppInfoPage = lazy(() => import('./pages/AppInfoPage'))
 const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'))
+const BillsPage = lazy(() => import('./pages/BillsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -109,6 +104,7 @@ const pages = {
   'forecast-center': ForecastCenterPage,
   'app-info': AppInfoPage,
   'privacy-center': PrivacyCenter,
+  bills: BillsPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -170,13 +166,10 @@ function LockGate({ isLocked, onUnlock }) {
 
   if (!isLocked) return null
 
-  debug('LockGate: showing PinLockScreen')
-
   return (
     <PinLockScreen
       onUnlock={onUnlock}
       onResetData={() => {
-        debug('LockGate: reset all data requested')
         clearAllData()
         privacy.clearPin()
         onUnlock()
@@ -249,74 +242,51 @@ function AppContent() {
 
 export default function App() {
   const [isOnboarded, setIsOnboarded] = useState(() => {
-    const done = onboardingDone()
-    debug('isOnboarded initial', done)
-    return done
+    return onboardingDone()
   })
   const [isLocked, setIsLocked] = useState(() => {
-    debug('initializing privacy state')
     privacy.initLockState()
-    const locked = privacy.isLocked()
-    debug('isLocked initial', locked)
-    return locked
+    return privacy.isLocked()
   })
 
   const handleOnboardingComplete = useCallback(() => {
-    debug('onboarding complete')
     setIsOnboarded(true)
   }, [])
 
   const sessionStarted = useRef(false)
 
   const handleUnlock = useCallback(() => {
-    debug('handleUnlock called')
     sessionStarted.current = true
     privacy.unlockSession()
     setIsLocked(false)
-    debug('session unlocked')
   }, [])
 
   const isLockedRef = useRef(isLocked)
   useEffect(() => { isLockedRef.current = isLocked }, [isLocked])
-  const resumeHandled = useRef(false)
+  const pendingResume = useRef(null)
 
   useEffect(() => {
-    debug('visibility effect mounted')
-    console.log('[DIAG:Bug#1] visibility effect mounted - adding resume listeners')
 
     const handleResume = () => {
-      if (resumeHandled.current) {
-        console.log('[DIAG:Bug#1] handleResume SKIPPED - resumeHandled guard active')
-        return
-      }
       if (!sessionStarted.current) {
-        console.log('[DIAG:Bug#1] handleResume SKIPPED - cold start, initLockState already set lock correctly')
-        resumeHandled.current = true
-        setTimeout(() => { resumeHandled.current = false }, 200)
+        // First mount — don't process resume until user has explicitly unlocked
         return
       }
-      resumeHandled.current = true
-      setTimeout(() => { resumeHandled.current = false }, 200)
-      const shouldLock = privacy.shouldLockOnResume()
-      console.log(`[DIAG:Bug#1] handleResume: shouldLockOnResume()=${shouldLock}, isLockedRef=${isLockedRef.current}, timeout=${privacy.getTimeout()}, isPinSet=${privacy.isPinSet()}`)
-      debug('shouldLockOnResume result', shouldLock)
-      if (shouldLock !== isLockedRef.current) {
-        console.log(`[DIAG:Bug#1] CHANGING isLocked: ${isLockedRef.current} → ${shouldLock}`)
-        debug('updating isLocked to', shouldLock)
-        setIsLocked(shouldLock)
-      } else {
-        console.log('[DIAG:Bug#1] isLocked unchanged')
-      }
+      // Debounce: only process the last resume event within 500ms
+      if (pendingResume.current) clearTimeout(pendingResume.current)
+      pendingResume.current = setTimeout(() => {
+        pendingResume.current = null
+        const shouldLock = privacy.shouldLockOnResume()
+        if (shouldLock !== isLockedRef.current) {
+          setIsLocked(shouldLock)
+        }
+      }, 100)
     }
 
     const handleVisibility = () => {
       if (document.hidden) {
-        console.log('[DIAG:Bug#1] visibilitychange: app backgrounded')
-        debug('app backgrounded (visibilitychange)')
         privacy.onAppBackground()
       } else {
-        console.log('[DIAG:Bug#1] visibilitychange: app resumed')
-        debug('app resumed (visibilitychange)')
         handleResume()
       }
     }
@@ -326,26 +296,27 @@ export default function App() {
     let capListener = null
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
-        console.log('[DIAG:Bug#1] Capacitor appStateChange: resumed')
-        debug('app resumed (Capacitor)')
         handleResume()
       } else {
-        console.log('[DIAG:Bug#1] Capacitor appStateChange: backgrounded')
-        debug('app backgrounded (Capacitor)')
         privacy.onAppBackground()
       }
     }).then(l => { capListener = l }).catch(() => {})
 
     return () => {
-      console.log('[DIAG:Bug#1] visibility effect CLEANUP')
-      debug('visibility effect cleanup')
       document.removeEventListener('visibilitychange', handleVisibility)
+      if (pendingResume.current) clearTimeout(pendingResume.current)
       if (capListener) capListener.remove()
     }
   }, [])
 
   if (!isOnboarded) {
-    return <Onboarding onComplete={handleOnboardingComplete} />
+    return (
+      <ErrorBoundary>
+        <I18nProvider>
+          <Onboarding onComplete={handleOnboardingComplete} />
+        </I18nProvider>
+      </ErrorBoundary>
+    )
   }
 
   return (

@@ -431,6 +431,224 @@ export function getScoreBreakdown(transactions) {
   }
 }
 
+export function generateSmartInsights(transactions, budgets = {}, debts = []) {
+  if (transactions.length < 3) return []
+
+  const insights = []
+  const now = new Date()
+  const thisMonth = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+  })
+  const lastMonth = transactions.filter((t) => {
+    const d = new Date(t.date)
+    return d.getMonth() === now.getMonth() - 1 && d.getFullYear() === now.getFullYear()
+  })
+
+  const thisExpenses = thisMonth.filter((t) => t.type === 'expense')
+  const lastExpenses = lastMonth.filter((t) => t.type === 'expense')
+  const thisIncome = thisMonth.filter((t) => t.type === 'income')
+  const lastIncome = lastMonth.filter((t) => t.type === 'income')
+
+  const thisExpenseTotal = thisExpenses.reduce((s, t) => s + t.amount, 0)
+  const lastExpenseTotal = lastExpenses.reduce((s, t) => s + t.amount, 0)
+  const thisIncomeTotal = thisIncome.reduce((s, t) => s + t.amount, 0)
+
+  // 1. Spending increased by X%
+  const comparison = compareSpending(transactions)
+  if (comparison && comparison.direction === 'up' && comparison.change > 0) {
+    insights.push({
+      type: 'spending_increase',
+      severity: comparison.change > 20 ? 'alert' : 'warning',
+      message: `Spending increased by ${comparison.change}% compared to last month`,
+      detail: `₹${Math.round(comparison.current).toLocaleString()} this month vs ₹${Math.round(comparison.previous).toLocaleString()} last month`,
+      category: null,
+    })
+  } else if (comparison && comparison.direction === 'down' && comparison.change < 0) {
+    insights.push({
+      type: 'spending_increase',
+      severity: 'success',
+      message: `Spending decreased by ${Math.abs(comparison.change)}% compared to last month`,
+      detail: `₹${Math.round(comparison.current).toLocaleString()} this month vs ₹${Math.round(comparison.previous).toLocaleString()} last month`,
+      category: null,
+    })
+  }
+
+  // 2. Category-level month-over-month comparison
+  const catBreakdownThis = getCategoryBreakdown(transactions, 'expense', now.getFullYear(), now.getMonth())
+  const catBreakdownLast = getCategoryBreakdown(transactions, 'expense', now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear(), now.getMonth() === 0 ? 11 : now.getMonth() - 1)
+
+  if (catBreakdownThis.length > 0 && catBreakdownLast.length > 0) {
+    catBreakdownThis.forEach((cat) => {
+      const lastCat = catBreakdownLast.find((c) => c.category === cat.category)
+      if (lastCat && lastCat.amount > 0) {
+        const change = ((cat.amount - lastCat.amount) / lastCat.amount) * 100
+        if (change > 10) {
+          const label = ALL_CATEGORIES.find((c) => c.id === cat.category)?.label || cat.category
+          insights.push({
+            type: 'category_increase',
+            severity: change > 30 ? 'alert' : 'warning',
+            message: `"${label}" expenses ${Math.round(change)}% higher than last month`,
+            detail: `₹${Math.round(cat.amount).toLocaleString()} this month vs ₹${Math.round(lastCat.amount).toLocaleString()} last month`,
+            category: cat.category,
+          })
+        }
+      }
+    })
+  }
+
+  // 3. Largest expense category
+  if (catBreakdownThis.length > 0 && thisExpenseTotal > 0) {
+    const topCat = catBreakdownThis[0]
+    const topPct = (topCat.amount / thisExpenseTotal) * 100
+    const label = ALL_CATEGORIES.find((c) => c.id === topCat.category)?.label || topCat.category
+    insights.push({
+      type: 'largest_category',
+      severity: topPct > 50 ? 'warning' : 'info',
+      message: `"${label}" is your largest expense at ${Math.round(topPct)}% of total`,
+      detail: `₹${Math.round(topCat.amount).toLocaleString()} spent this month`,
+      category: topCat.category,
+    })
+  }
+
+  // 4. Savings trend over last 3 months
+  const monthly = getMonthlyData(transactions, 3)
+  if (monthly.length >= 2) {
+    const savingsHistory = monthly.map((m) => m.income - m.expense)
+    const improving = savingsHistory[savingsHistory.length - 1] > savingsHistory[0]
+    const declining = savingsHistory[savingsHistory.length - 1] < savingsHistory[0]
+    if (improving) {
+      insights.push({
+        type: 'savings_trend',
+        severity: 'success',
+        message: 'Savings are trending upward over the last 3 months',
+        detail: `Net savings improved from ₹${Math.round(savingsHistory[0]).toLocaleString()} to ₹${Math.round(savingsHistory[savingsHistory.length - 1]).toLocaleString()}`,
+        category: null,
+      })
+    } else if (declining) {
+      insights.push({
+        type: 'savings_trend',
+        severity: 'alert',
+        message: 'Savings are declining over the last 3 months',
+        detail: `Net savings dropped from ₹${Math.round(savingsHistory[0]).toLocaleString()} to ₹${Math.round(savingsHistory[savingsHistory.length - 1]).toLocaleString()}`,
+        category: null,
+      })
+    } else {
+      insights.push({
+        type: 'savings_trend',
+        severity: 'info',
+        message: 'Savings have remained stable over the last 3 months',
+        detail: `Average net: ₹${Math.round(savingsHistory.reduce((s, v) => s + v, 0) / savingsHistory.length).toLocaleString()}`,
+        category: null,
+      })
+    }
+  }
+
+  // 5. Budget exceeded warning
+  if (budgets && typeof budgets === 'object') {
+    Object.entries(budgets).forEach(([category, budget]) => {
+      const limit = budget.limit || 0
+      if (limit <= 0) return
+      const spent = catBreakdownThis.find((c) => c.category === category)?.amount || 0
+      const pct = limit > 0 ? Math.round((spent / limit) * 100) : 0
+      if (pct >= 100) {
+        const label = ALL_CATEGORIES.find((c) => c.id === category)?.label || category
+        insights.push({
+          type: 'budget_exceeded',
+          severity: 'alert',
+          message: `"${label}" budget exceeded by ₹${Math.round(spent - limit).toLocaleString()}`,
+          detail: `Budget: ₹${Math.round(limit).toLocaleString()} · Spent: ₹${Math.round(spent).toLocaleString()} (${pct}%)`,
+          category,
+        })
+      } else if (pct >= 80) {
+        const label = ALL_CATEGORIES.find((c) => c.id === category)?.label || category
+        insights.push({
+          type: 'budget_exceeded',
+          severity: 'warning',
+          message: `"${label}" budget at ${pct}% — ₹${Math.round(limit - spent).toLocaleString()} remaining`,
+          detail: `Budget: ₹${Math.round(limit).toLocaleString()} · Spent: ₹${Math.round(spent).toLocaleString()}`,
+          category,
+        })
+      }
+    })
+  }
+
+  // 6. Low balance warning
+  const totalIncome = transactions.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
+  const totalExpense = transactions.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
+  const runningBalance = totalIncome - totalExpense
+  const monthlyData = getMonthlyData(transactions, 3)
+  const avgMonthlyExpense = monthlyData.length > 0
+    ? monthlyData.reduce((s, m) => s + m.expense, 0) / monthlyData.length
+    : 0
+  if (avgMonthlyExpense > 0 && runningBalance < avgMonthlyExpense * 0.2) {
+    insights.push({
+      type: 'low_balance',
+      severity: 'alert',
+      message: 'Your balance is running low — less than 20% of your average monthly expense',
+      detail: `Balance: ₹${Math.round(runningBalance).toLocaleString()} · Avg expense: ₹${Math.round(avgMonthlyExpense).toLocaleString()}`,
+      category: null,
+    })
+  } else if (avgMonthlyExpense > 0 && runningBalance < avgMonthlyExpense * 0.5) {
+    insights.push({
+      type: 'low_balance',
+      severity: 'warning',
+      message: 'Your balance is below 50% of your average monthly expense',
+      detail: `Balance: ₹${Math.round(runningBalance).toLocaleString()} · Avg expense: ₹${Math.round(avgMonthlyExpense).toLocaleString()}`,
+      category: null,
+    })
+  }
+
+  // 7. Frequent spending pattern (>3x/week on average)
+  const expenseCategories = [...new Set(thisExpenses.map((t) => t.category))]
+  expenseCategories.forEach((cat) => {
+    const weekCounts = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }
+    thisExpenses.forEach((t) => {
+      if (t.category !== cat) return
+      const d = new Date(t.date)
+      const weekNum = Math.min(Math.floor((d.getDate() - 1) / 7), 4)
+      weekCounts[weekNum]++
+    })
+    const activeWeeks = Object.values(weekCounts).filter((c) => c > 0).length
+    const totalCount = Object.values(weekCounts).reduce((s, c) => s + c, 0)
+    const avgPerWeek = activeWeeks > 0 ? totalCount / activeWeeks : 0
+    if (avgPerWeek > 3) {
+      const label = ALL_CATEGORIES.find((c) => c.id === cat)?.label || cat
+      insights.push({
+        type: 'frequent_spending',
+        severity: 'warning',
+        message: `"${label}" used ${Math.round(avgPerWeek)}x/week on average this month`,
+        detail: `${totalCount} transactions across ${activeWeeks} week${activeWeeks > 1 ? 's' : ''}`,
+        category: cat,
+      })
+    }
+  })
+
+  // 8. Monthly financial summary
+  const savings = thisIncomeTotal - thisExpenseTotal
+  const savingsRate = thisIncomeTotal > 0 ? (savings / thisIncomeTotal) * 100 : 0
+  let summaryMsg = ''
+  if (thisIncomeTotal > 0) {
+    summaryMsg = `Income: ₹${Math.round(thisIncomeTotal).toLocaleString()} · Expense: ₹${Math.round(thisExpenseTotal).toLocaleString()} · Savings: ${Math.round(savingsRate)}% rate`
+  } else {
+    summaryMsg = `Expenses: ₹${Math.round(thisExpenseTotal).toLocaleString()} · No income recorded this month`
+  }
+  if (catBreakdownThis.length > 0) {
+    const top = catBreakdownThis[0]
+    const topLabel = ALL_CATEGORIES.find((c) => c.id === top.category)?.label || top.category
+    summaryMsg += ` · Top: "${topLabel}"`
+  }
+  insights.push({
+    type: 'monthly_summary',
+    severity: savings >= 0 ? 'success' : 'alert',
+    message: `This month: ${savings >= 0 ? 'Net positive' : 'Deficit'} (${Math.round(savingsRate)}% savings rate)`,
+    detail: summaryMsg,
+    category: null,
+  })
+
+  return insights
+}
+
 export function predictMonthEndSpend(transactions) {
   const now = new Date()
   const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()

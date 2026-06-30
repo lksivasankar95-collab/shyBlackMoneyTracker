@@ -1,14 +1,15 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   Repeat2, Plus, Trash2, Edit3, Search, Calendar, CheckCircle2, XCircle,
-  ChevronRight, AlertTriangle, Filter,
+  ChevronRight, AlertTriangle, Filter, PauseCircle, Play, SkipForward,
+  Bell, BellOff, Shield, Zap, Briefcase, Building2, CreditCard, TrendingUp,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, ALL_CATEGORIES } from '../utils/constants'
-import { getRecurringStats, advanceNextDate } from '../utils/recurring'
+import { getRecurringStats, advanceNextDate, getRecurringCalendarData, detectDuplicateGeneration } from '../utils/recurring'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -25,9 +26,29 @@ const emptyForm = {
   isActive: true,
 }
 
+const CATEGORY_ICON_MAP = {
+  salary: Briefcase,
+  rent: Building2,
+  emi: CreditCard,
+  sip: TrendingUp,
+  subscription: Repeat2,
+  insurance: Shield,
+  utility_bills: Zap,
+}
+
+const CATEGORY_COLOR_MAP = {
+  salary: 'text-green-400 bg-green-500/10',
+  rent: 'text-blue-400 bg-blue-500/10',
+  emi: 'text-red-400 bg-red-500/10',
+  sip: 'text-purple-400 bg-purple-500/10',
+  subscription: 'text-cyan-400 bg-cyan-500/10',
+  insurance: 'text-yellow-400 bg-yellow-500/10',
+  utility_bills: 'text-orange-400 bg-orange-500/10',
+}
+
 export default function RecurringTransactionsPage() {
   const { t } = useTranslation()
-  const { recurring, addRecurring, updateRecurring, toggleRecurring, removeRecurring } = useFinance()
+  const { recurring, transactions, addRecurring, updateRecurring, toggleRecurring, removeRecurring, pauseRecurring, resumeRecurring, skipNextOccurrence, editFutureOccurrences } = useFinance()
   const { addToast } = useToast()
   const [search, setSearch] = useState('')
   const [showAddModal, setShowAddModal] = useState(false)
@@ -35,6 +56,12 @@ export default function RecurringTransactionsPage() {
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [form, setForm] = useState({ ...emptyForm })
   const [filterType, setFilterType] = useState('all')
+  const [showEditFutureModal, setShowEditFutureModal] = useState(false)
+  const [editFutureTarget, setEditFutureTarget] = useState(null)
+  const [futureForm, setFutureForm] = useState({ amount: '', category: '', note: '' })
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(new Date().getMonth() + 1)
+  const [calendarYear, setCalendarYear] = useState(new Date().getFullYear())
 
   const stats = useMemo(() => getRecurringStats(recurring), [recurring])
 
@@ -46,6 +73,15 @@ export default function RecurringTransactionsPage() {
   ], [t])
 
   const categories = form.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+
+  const duplicateStatus = useMemo(() => {
+    try { return detectDuplicateGeneration(recurring, transactions) } catch { return [] }
+  }, [recurring, transactions])
+
+  const calendarData = useMemo(() => {
+    if (!showCalendar) return []
+    try { return getRecurringCalendarData(recurring, calendarYear, calendarMonth) } catch { return [] }
+  }, [recurring, calendarYear, calendarMonth, showCalendar])
 
   const filtered = useMemo(() => {
     let items = recurring
@@ -60,6 +96,7 @@ export default function RecurringTransactionsPage() {
     if (filterType === 'inactive') items = items.filter((r) => (r.isActive !== undefined ? r.isActive : r.active !== false) === false)
     if (filterType === 'income') items = items.filter((r) => r.type === 'income')
     if (filterType === 'expense') items = items.filter((r) => r.type === 'expense')
+    if (filterType === 'paused') items = items.filter((r) => r.paused)
     return items
   }, [recurring, search, filterType])
 
@@ -89,6 +126,16 @@ export default function RecurringTransactionsPage() {
       isActive: item.isActive !== undefined ? item.isActive : (item.active !== false),
     })
     setShowAddModal(true)
+  }, [])
+
+  const openEditFuture = useCallback((item) => {
+    setEditFutureTarget(item)
+    setFutureForm({
+      amount: String(item.amount || ''),
+      category: item.category || '',
+      note: item.note || '',
+    })
+    setShowEditFutureModal(true)
   }, [])
 
   const handleSave = useCallback(() => {
@@ -131,6 +178,38 @@ export default function RecurringTransactionsPage() {
     addToast('Recurring transaction toggled', 'info')
   }, [toggleRecurring, addToast])
 
+  const handlePause = useCallback((id) => {
+    pauseRecurring(id)
+    addToast('Recurring paused', 'info')
+  }, [pauseRecurring, addToast])
+
+  const handleResume = useCallback((id) => {
+    resumeRecurring(id)
+    addToast('Recurring resumed', 'success')
+  }, [resumeRecurring, addToast])
+
+  const handleSkip = useCallback((id) => {
+    skipNextOccurrence(id)
+    addToast('Next occurrence skipped', 'info')
+  }, [skipNextOccurrence, addToast])
+
+  const handleEditFuture = useCallback(() => {
+    if (!editFutureTarget) return
+    const updates = {}
+    if (futureForm.amount) updates.amount = parseFloat(futureForm.amount)
+    if (futureForm.category) updates.category = futureForm.category
+    updates.note = futureForm.note.trim()
+    editFutureOccurrences(editFutureTarget.id, updates)
+    addToast('Future occurrences updated', 'success')
+    setShowEditFutureModal(false)
+    setEditFutureTarget(null)
+  }, [editFutureTarget, futureForm, editFutureOccurrences, addToast])
+
+  const handleNotifyToggle = useCallback((item) => {
+    updateRecurring(item.id, { notify: !(item.notify ?? true) })
+    addToast(item.notify === false ? 'Notifications enabled' : 'Notifications disabled', 'info')
+  }, [updateRecurring, addToast])
+
   const getCategoryLabel = (catId) => {
     const cat = ALL_CATEGORIES.find((c) => c.id === catId)
     return cat ? cat.label : catId
@@ -143,6 +222,20 @@ export default function RecurringTransactionsPage() {
   }
 
   const isItemActive = (item) => item.isActive !== undefined ? item.isActive : (item.active !== false)
+
+  const getCategoryIcon = (catId) => {
+    const Icon = CATEGORY_ICON_MAP[catId]
+    return Icon || Repeat2
+  }
+
+  const getCategoryColorClass = (catId) => {
+    return CATEGORY_COLOR_MAP[catId] || (catId === 'salary' ? 'text-green-400 bg-green-500/10' : 'text-gray-400 bg-gray-500/10')
+  }
+
+  const hasDueToday = (item) => {
+    const dup = duplicateStatus.find((d) => d.recurring.id === item.id)
+    return dup ? dup.generatedToday : false
+  }
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -183,8 +276,8 @@ export default function RecurringTransactionsPage() {
             className="input-field !pl-9 text-xs"
           />
         </div>
-        <div className="flex gap-1">
-          {['all', 'active', 'inactive', 'income', 'expense'].map((f) => (
+        <div className="flex gap-1 flex-wrap">
+          {['all', 'active', 'inactive', 'paused', 'income', 'expense'].map((f) => (
             <button
               key={f}
               onClick={() => setFilterType(f)}
@@ -192,11 +285,76 @@ export default function RecurringTransactionsPage() {
                 filterType === f ? 'border-neon/50 bg-neon/10 text-neon' : 'border-glass-border text-gray-500 hover:text-white'
               }`}
             >
-              {f === 'all' ? 'All' : f.charAt(0).toUpperCase() + f.slice(1)}
+              {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
         </div>
       </div>
+
+      <button
+        onClick={() => setShowCalendar(!showCalendar)}
+        className="w-full flex items-center justify-center gap-2 py-2 mb-4 rounded-xl border border-glass-border text-xs text-gray-500 hover:text-white hover:bg-white/[0.03] transition-all"
+      >
+        <Calendar size={14} />
+        {showCalendar ? 'Hide Calendar' : 'Show Calendar'}
+        <ChevronRight size={12} className={`transition-transform ${showCalendar ? 'rotate-90' : ''}`} />
+      </button>
+
+      {showCalendar && (
+        <GlassCard className="!p-3 mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              onClick={() => {
+                if (calendarMonth === 1) { setCalendarYear((y) => y - 1); setCalendarMonth(12) }
+                else setCalendarMonth((m) => m - 1)
+              }}
+              className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.05] transition-all"
+            >
+              <ChevronRight size={14} className="rotate-180" />
+            </button>
+            <span className="text-xs font-semibold">
+              {new Date(calendarYear, calendarMonth - 1).toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+            </span>
+            <button
+              onClick={() => {
+                if (calendarMonth === 12) { setCalendarYear((y) => y + 1); setCalendarMonth(1) }
+                else setCalendarMonth((m) => m + 1)
+              }}
+              className="p-1 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.05] transition-all"
+            >
+              <ChevronRight size={14} />
+            </button>
+          </div>
+          {calendarData.length === 0 && (
+            <p className="text-xs text-gray-500 text-center py-4">No recurring items this month</p>
+          )}
+          {calendarData.slice(0, 14).map((day) => (
+            <div key={day.date} className="flex items-center gap-2 py-1.5 border-b border-white/[0.03] last:border-0">
+              <span className="text-[10px] text-gray-500 w-20 shrink-0">{formatDate(day.date)}</span>
+              <div className="flex flex-wrap gap-1">
+                {day.items.map((item) => (
+                  <span key={item.id} className="text-[10px] px-1.5 py-0.5 rounded-full bg-neon/10 text-neon">
+                    {item.note || getCategoryLabel(item.category)} ({formatCurrency(item.amount)})
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+          {calendarData.length > 14 && (
+            <p className="text-[10px] text-gray-600 text-center mt-2">+{calendarData.length - 14} more days</p>
+          )}
+        </GlassCard>
+      )}
+
+      {duplicateStatus.some((d) => d.generatedToday) && (
+        <div className="mb-4 p-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-start gap-2.5">
+          <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-semibold text-yellow-400">Duplicate Warning</p>
+            <p className="text-[10px] text-yellow-300/70">{duplicateStatus.filter((d) => d.generatedToday).length} recurring transactions already generated today</p>
+          </div>
+        </div>
+      )}
 
       {filtered.length === 0 && (
         <EmptyState
@@ -212,67 +370,123 @@ export default function RecurringTransactionsPage() {
       )}
 
       <div className="space-y-2">
-        {filtered.map((item) => (
-          <GlassCard key={item.id}>
-            <div className="flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                item.type === 'income' ? 'bg-neon/10' : 'bg-red-500/10'
-              }`}>
-                <div className={`w-2.5 h-2.5 rounded-full ${item.type === 'income' ? 'bg-neon' : 'bg-red-400'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className={`text-sm font-semibold ${!isItemActive(item) ? 'text-gray-500' : ''}`}>
-                    {item.note || getCategoryLabel(item.category)}
-                  </p>
-                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                    isItemActive(item) ? 'bg-neon/10 text-neon' : 'bg-gray-500/10 text-gray-500'
-                  }`}>
-                    {getFrequencyLabel(item)}
-                  </span>
+        {filtered.map((item) => {
+          const CatIcon = getCategoryIcon(item.category)
+          const catColorClass = getCategoryColorClass(item.category)
+          const isPaused = item.paused
+          const dup = duplicateStatus.find((d) => d.recurring.id === item.id)
+
+          return (
+            <GlassCard key={item.id}>
+              <div className="flex items-center gap-3">
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
+                  catColorClass
+                }`}>
+                  <CatIcon size={16} />
                 </div>
-                <p className="text-xs text-gray-500">
-                  {formatCurrency(item.amount)}
-                  {item.category && ` · ${getCategoryLabel(item.category)}`}
-                </p>
-                {item.nextDate && (
-                  <p className="text-[10px] text-gray-600 flex items-center gap-1 mt-0.5">
-                    <Calendar size={10} />
-                    Next: {formatDate(item.nextDate)}
-                    {item.endDate && ` · Ends: ${formatDate(item.endDate)}`}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className={`text-sm font-semibold ${!isItemActive(item) || isPaused ? 'text-gray-500' : ''}`}>
+                      {item.note || getCategoryLabel(item.category)}
+                    </p>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      isPaused ? 'bg-yellow-500/10 text-yellow-400' :
+                      isItemActive(item) ? 'bg-neon/10 text-neon' : 'bg-gray-500/10 text-gray-500'
+                    }`}>
+                      {isPaused ? 'Paused' : getFrequencyLabel(item)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500">
+                    {formatCurrency(item.amount)}
+                    {item.category && ` · ${getCategoryLabel(item.category)}`}
                   </p>
-                )}
+                  {item.nextDate && (
+                    <p className="text-[10px] text-gray-600 flex items-center gap-1 mt-0.5">
+                      <Calendar size={10} />
+                      Next: {formatDate(item.nextDate)}
+                      {item.endDate && ` · Ends: ${formatDate(item.endDate)}`}
+                    </p>
+                  )}
+                  {dup && dup.generatedToday && (
+                    <p className="text-[10px] text-yellow-400 flex items-center gap-1 mt-0.5">
+                      <CheckCircle2 size={10} />
+                      Generated today
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-1 flex-wrap justify-end">
+                  <button
+                    onClick={() => handleNotifyToggle(item)}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      (item.notify ?? true)
+                        ? 'text-gray-500 hover:text-cyan-400 hover:bg-cyan-500/10'
+                        : 'text-gray-600 hover:text-gray-400 hover:bg-white/[0.05]'
+                    }`}
+                    title={(item.notify ?? true) ? 'Disable notifications' : 'Enable notifications'}
+                  >
+                    {(item.notify ?? true) ? <Bell size={14} /> : <BellOff size={14} />}
+                  </button>
+                  {isPaused ? (
+                    <button
+                      onClick={() => handleResume(item.id)}
+                      className="p-1.5 rounded-lg text-green-400 hover:text-green-300 hover:bg-green-500/10 transition-all"
+                      title="Resume"
+                    >
+                      <Play size={14} />
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handlePause(item.id)}
+                      className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
+                      title="Pause"
+                    >
+                      <PauseCircle size={14} />
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleSkip(item.id)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-purple-400 hover:bg-purple-500/10 transition-all"
+                    title="Skip Next"
+                  >
+                    <SkipForward size={14} />
+                  </button>
+                  <button
+                    onClick={() => openEditFuture(item)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-indigo-400 hover:bg-indigo-500/10 transition-all"
+                    title="Edit Future"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button
+                    onClick={() => handleToggle(item.id)}
+                    className={`p-1.5 rounded-lg transition-all ${
+                      isItemActive(item)
+                        ? 'text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10'
+                        : 'text-neon hover:text-neon hover:bg-neon/10'
+                    }`}
+                    title={isItemActive(item) ? 'Disable' : 'Enable'}
+                  >
+                    {isItemActive(item) ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
+                  </button>
+                  <button
+                    onClick={() => openEdit(item)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                    title="Edit"
+                  >
+                    <Edit3 size={14} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget(item.id)}
+                    className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                    title="Delete"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
-              <div className="flex gap-1">
-                <button
-                  onClick={() => handleToggle(item.id)}
-                  className={`p-1.5 rounded-lg transition-all ${
-                    isItemActive(item)
-                      ? 'text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10'
-                      : 'text-neon hover:text-neon hover:bg-neon/10'
-                  }`}
-                  title={isItemActive(item) ? 'Disable' : 'Enable'}
-                >
-                  {isItemActive(item) ? <XCircle size={14} /> : <CheckCircle2 size={14} />}
-                </button>
-                <button
-                  onClick={() => openEdit(item)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
-                  title="Edit"
-                >
-                  <Edit3 size={14} />
-                </button>
-                <button
-                  onClick={() => setDeleteTarget(item.id)}
-                  className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                  title="Delete"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </div>
-          </GlassCard>
-        ))}
+            </GlassCard>
+          )
+        })}
       </div>
 
       <Modal
@@ -410,6 +624,73 @@ export default function RecurringTransactionsPage() {
               {editTarget ? 'Update' : 'Add'}
             </button>
             <button onClick={() => { setShowAddModal(false); setEditTarget(null) }} className="flex-1 btn-secondary text-sm">Cancel</button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={showEditFutureModal}
+        onClose={() => { setShowEditFutureModal(false); setEditFutureTarget(null) }}
+        title="Edit Future Occurrences"
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500">Update amount, category, or note for all future occurrences of this recurring transaction.</p>
+          {editFutureTarget && (
+            <div className="p-3 rounded-xl bg-white/[0.03]">
+              <p className="text-xs font-semibold">{editFutureTarget.note || getCategoryLabel(editFutureTarget.category)}</p>
+              <p className="text-[10px] text-gray-500">{formatCurrency(editFutureTarget.amount)} · {getFrequencyLabel(editFutureTarget)}</p>
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">New Amount <span className="text-gray-600">(optional)</span></label>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={futureForm.amount}
+              onChange={(e) => setFutureForm((f) => ({ ...f, amount: e.target.value.replace(/\D/g, '') }))}
+              placeholder="Leave empty to keep current"
+              className="input-field text-lg font-bold tabular-nums"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">New Category <span className="text-gray-600">(optional)</span></label>
+            <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto">
+              {(editFutureTarget?.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => setFutureForm((f) => ({ ...f, category: cat.id }))}
+                  className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${
+                    futureForm.category === cat.id
+                      ? 'border-neon/50 bg-neon/10 text-neon'
+                      : 'border-glass-border text-gray-500 hover:text-white'
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">New Note <span className="text-gray-600">(optional)</span></label>
+            <input
+              type="text"
+              value={futureForm.note}
+              onChange={(e) => setFutureForm((f) => ({ ...f, note: e.target.value }))}
+              placeholder="Leave empty to keep current"
+              className="input-field"
+              maxLength={100}
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={handleEditFuture}
+              disabled={!futureForm.amount && !futureForm.category && !futureForm.note.trim()}
+              className="flex-1 btn-primary text-sm disabled:opacity-40"
+            >
+              Update Future
+            </button>
+            <button onClick={() => { setShowEditFutureModal(false); setEditFutureTarget(null) }} className="flex-1 btn-secondary text-sm">Cancel</button>
           </div>
         </div>
       </Modal>

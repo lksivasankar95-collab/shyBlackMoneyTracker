@@ -12,12 +12,15 @@ const localStorageStub = {
 }
 global.localStorage = localStorageStub
 
+const { safeStorage } = await import('../utils/safeStorage.js')
+
 // After stubbing localStorage, import the modules under test
 const { runMigrations, getSchemaVersion, setSchemaVersion, isMigrationNeeded, APP_SCHEMA_VERSION } =
   await import('../utils/schema.js')
 
 beforeEach(() => {
   Object.keys(store).forEach((k) => delete store[k])
+  safeStorage.invalidateCache()
 })
 
 describe('getSchemaVersion', () => {

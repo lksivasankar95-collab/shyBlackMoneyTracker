@@ -44,6 +44,15 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, o
             {subtitle}
           </p>
         )}
+        {transaction.tags && transaction.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1">
+            {transaction.tags.map((tag) => (
+              <span key={tag} className="px-1.5 py-0.5 rounded-md bg-purple-500/10 text-purple-400 text-[10px] font-medium leading-none">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
         {transaction.person?.name && compact && (
           <p className="text-[11px] text-gray-600 mt-0.5 truncate flex items-center gap-1">
             <User size={10} className="shrink-0" />

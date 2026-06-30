@@ -159,27 +159,21 @@ export function suppressLockForTransition(timeoutMs = 5000) {
 }
 
 export function shouldLockOnResume() {
-  if (!isPinSet()) {
-    console.log('[DIAG:Bug#1] shouldLockOnResume: false (no PIN set)')
-    return false
-  }
-  if (suppressLock) {
-    console.log('[DIAG:Bug#1] shouldLockOnResume: false (suppressLock active)')
-    return false
-  }
+  if (!isPinSet()) return false
+  // If lock is already active, never auto-dismiss it.
+  // The lock can only be removed by explicit unlockSession() via PIN or biometric.
+  // Check this BEFORE suppressLock to prevent bypass via stale suppress flag.
+  if (locked) return true
+  if (suppressLock) return false
   const timeout = getTimeout()
   const elapsed = Date.now() - lastActiveTime
-  console.log(`[DIAG:Bug#1] shouldLockOnResume: timeout=${timeout}s, elapsed=${elapsed}ms, lastActiveTime=${new Date(lastActiveTime).toISOString()}`)
   if (timeout === 0) {
     locked = true
-    console.log('[DIAG:Bug#1] shouldLockOnResume: true (timeout=0, always lock)')
     return true
   }
   if (elapsed >= timeout * 1000) {
     locked = true
-    console.log(`[DIAG:Bug#1] shouldLockOnResume: true (elapsed ${elapsed}ms >= ${timeout * 1000}ms)`)
     return true
   }
-  console.log(`[DIAG:Bug#1] shouldLockOnResume: false (elapsed ${elapsed}ms < ${timeout * 1000}ms - not past timeout yet)`)
   return false
 }

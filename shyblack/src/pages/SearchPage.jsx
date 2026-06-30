@@ -12,6 +12,7 @@ import { getTransfers } from '../utils/transfers'
 import { getEmis } from '../utils/emi'
 import { getDocuments } from '../utils/documents'
 import { getAccounts } from '../utils/networth'
+import { getTags } from '../utils/tags'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
@@ -40,7 +41,7 @@ export default function SearchPage({ onNavigate }) {
   const { transactions, debts, goals } = useFinance()
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
-  const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '' })
+  const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '', person: '', account: '', tags: [], sortBy: 'date-desc' })
   const [showFilters, setShowFilters] = useState(false)
   const inputRef = useRef(null)
 
@@ -71,18 +72,45 @@ export default function SearchPage({ onNavigate }) {
     }
     const matchType = (type) => !filters.type || type === filters.type
     const matchCategory = (cat) => !filters.category || cat === filters.category
+    const matchPerson = (person) => !filters.person || (person?.name && person.name.toLowerCase().includes(filters.person.toLowerCase()))
+    const allAccts = getAccounts()
+    const matchAccount = (tx) => {
+      if (!filters.account) return true
+      const aq = filters.account.toLowerCase()
+      return allAccts.some((a) => a.name.toLowerCase().includes(aq)) && (tx.account || tx.source || '').toLowerCase().includes(aq)
+    }
+    const matchTags = (txTags) => {
+      if (!filters.tags || filters.tags.length === 0) return true
+      const txTagSet = new Set((txTags || []).map((t) => t.toLowerCase()))
+      return filters.tags.some((tag) => txTagSet.has(tag.toLowerCase()))
+    }
+    const sortResults = (arr) => {
+      if (!filters.sortBy) return arr
+      return [...arr].sort((a, b) => {
+        switch (filters.sortBy) {
+          case 'date-asc': return a.date?.localeCompare(b.date)
+          case 'date-desc': return b.date?.localeCompare(a.date)
+          case 'amount-asc': return (Math.abs(a.amount) || 0) - (Math.abs(b.amount) || 0)
+          case 'amount-desc': return (Math.abs(b.amount) || 0) - (Math.abs(a.amount) || 0)
+          default: return 0
+        }
+      })
+    }
 
     if (activeTab === 'all' || activeTab === 'transactions') {
       const archived = getArchivedTransactions(q || undefined)
       const allTxs = [...transactions, ...archived]
-      results.transactions = allTxs.filter((t) => {
-        if (q && !matchText(t.note) && !matchText(t.category) && !matchText(t.date)) return false
+      results.transactions = sortResults(allTxs.filter((t) => {
+        if (q && !matchText(t.note) && !matchText(t.category) && !matchText(t.date) && !matchText(t.tags?.join(' ')) && !matchText(t.person?.name)) return false
         if (!matchAmount(Math.abs(t.amount))) return false
         if (!matchDate(t.date)) return false
         if (!matchType(t.type)) return false
         if (!matchCategory(t.category)) return false
+        if (!matchPerson(t.person)) return false
+        if (!matchAccount(t)) return false
+        if (!matchTags(t.tags)) return false
         return true
-      }).slice(0, 100)
+      })).slice(0, 100)
     }
 
     if (activeTab === 'all' || activeTab === 'debts') {
@@ -140,12 +168,12 @@ export default function SearchPage({ onNavigate }) {
   }, [debouncedQuery, transactions, debts, goals, activeTab, filters])
 
   const clearFilters = useCallback(() => {
-    setFilters({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '' })
+    setFilters({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '', person: '', account: '', tags: [], sortBy: 'date-desc' })
     setQuery('')
     inputRef.current?.focus()
   }, [])
 
-  const hasActiveFilters = Object.values(filters).some((v) => v !== '') || query !== ''
+  const hasActiveFilters = Object.entries(filters).some(([k, v]) => k !== 'sortBy' && (Array.isArray(v) ? v.length > 0 : v !== '')) || query !== ''
 
   const archiveStats = useMemo(() => getArchiveStats(), [])
 
@@ -187,7 +215,7 @@ export default function SearchPage({ onNavigate }) {
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-            showFilters || Object.values(filters).some((v) => v !== '')
+            showFilters || Object.entries(filters).some(([k, v]) => k !== 'sortBy' && (Array.isArray(v) ? v.length > 0 : v !== ''))
               ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
               : 'text-gray-500 border border-white/[0.06] hover:text-white'
           }`}
@@ -236,6 +264,16 @@ export default function SearchPage({ onNavigate }) {
               </select>
             </div>
             <div>
+              <label className="text-[9px] text-gray-600 block mb-0.5">Person</label>
+              <input type="text" placeholder="Filter by person" value={filters.person} onChange={(e) => setFilters({ ...filters, person: e.target.value })}
+                className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
+            </div>
+            <div>
+              <label className="text-[9px] text-gray-600 block mb-0.5">Account</label>
+              <input type="text" placeholder="Filter by account" value={filters.account} onChange={(e) => setFilters({ ...filters, account: e.target.value })}
+                className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
+            </div>
+            <div>
               <label className="text-[9px] text-gray-600 block mb-0.5">{t('search.minAmount')}</label>
               <input type="number" placeholder={t('search.minPlaceholder')} value={filters.minAmount} onChange={(e) => setFilters({ ...filters, minAmount: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
@@ -245,6 +283,36 @@ export default function SearchPage({ onNavigate }) {
               <input type="number" placeholder={t('search.maxPlaceholder')} value={filters.maxAmount} onChange={(e) => setFilters({ ...filters, maxAmount: e.target.value })}
                 className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none" />
             </div>
+          </div>
+          <div className="mt-2">
+            <label className="text-[9px] text-gray-600 block mb-1">Tags</label>
+            <div className="flex flex-wrap gap-1.5">
+              {getTags().map((tag) => {
+                const selected = filters.tags.includes(tag.name)
+                return (
+                  <button
+                    key={tag.id}
+                    onClick={() => setFilters({ ...filters, tags: selected ? filters.tags.filter((t) => t !== tag.name) : [...filters.tags, tag.name] })}
+                    className={`px-2 py-0.5 rounded text-[10px] font-medium transition-all ${
+                      selected ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-white/[0.04] text-gray-500 border border-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                )
+              })}
+              {getTags().length === 0 && <span className="text-[10px] text-gray-600">No tags found</span>}
+            </div>
+          </div>
+          <div className="mt-2 pt-2 border-t border-white/[0.06]">
+            <label className="text-[9px] text-gray-600 block mb-1">Sort by</label>
+            <select value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value })}
+              className="w-full bg-matte-200 rounded-lg px-2 py-1.5 text-xs border border-white/[0.06] focus:border-blue-400/30 focus:outline-none">
+              <option value="date-desc">Date (newest)</option>
+              <option value="date-asc">Date (oldest)</option>
+              <option value="amount-desc">Amount (highest)</option>
+              <option value="amount-asc">Amount (lowest)</option>
+            </select>
           </div>
         </GlassCard>
       )}

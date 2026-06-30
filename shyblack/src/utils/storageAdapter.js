@@ -43,8 +43,7 @@ class LocalStorageAdapter {
     let serialized
     try {
       serialized = JSON.stringify(value)
-    } catch (err) {
-      console.error('[StorageAdapter] Serialization failed for key', key, err)
+    } catch {
       return false
     }
     try {
@@ -130,8 +129,12 @@ class LocalStorageAdapter {
     const purgeOrder = [
       `${this._prefix}search_idx`,
       `${this._prefix}budget_notif`,
+      `${this._prefix}streak`,
+      `${this._prefix}achievements`,
+      `${this._prefix}archive_pending`,
     ]
     const targetKey = this._prefixKey(skipKey)
+    // Round 1 — remove each purgeable key and retry the write
     for (const purgeKey of purgeOrder) {
       if (purgeKey === targetKey) continue
       try { localStorage.removeItem(purgeKey) } catch {}
@@ -140,6 +143,23 @@ class LocalStorageAdapter {
         return true
       } catch {}
     }
+    // Round 2 — try removing OLD snapshot chain entries (safe because they
+    // are auto-created and the most recent one is usually sufficient).
+    try {
+      const chainKey = `${this._prefix}snapshot_chain`
+      const raw = localStorage.getItem(chainKey)
+      if (raw) {
+        const chain = JSON.parse(raw)
+        if (Array.isArray(chain) && chain.length > 1) {
+          const trimmed = [chain[0]] // keep only the newest
+          localStorage.setItem(chainKey, JSON.stringify(trimmed))
+          try {
+            localStorage.setItem(targetKey, serialized)
+            return true
+          } catch {}
+        }
+      }
+    } catch {}
     return false
   }
 }

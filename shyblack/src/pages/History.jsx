@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
-  Search, X, SlidersHorizontal, Calendar, ArrowUpDown, Filter,
+  Search, X, SlidersHorizontal, Calendar, ArrowUpDown, Filter, Tag,
   ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
@@ -40,7 +40,7 @@ function getDateRange(preset) {
 
 export default function History() {
   const { t } = useTranslation()
-  const { transactions, deleteTransaction } = useFinance()
+  const { transactions, deleteTransaction, tags } = useFinance()
 
   const SORT_OPTIONS = [
     { id: 'newest', label: t('transactions.sort_newest') },
@@ -64,6 +64,7 @@ export default function History() {
   const [dateTo, setDateTo] = useState('')
   const [minAmount, setMinAmount] = useState('')
   const [maxAmount, setMaxAmount] = useState('')
+  const [filterTags, setFilterTags] = useState([])
   const [sortId, setSortId] = useState('newest')
   const [showFilters, setShowFilters] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
@@ -94,6 +95,7 @@ export default function History() {
     setDateTo('')
     setMinAmount('')
     setMaxAmount('')
+    setFilterTags([])
     setSortId('newest')
   }, [])
 
@@ -104,9 +106,10 @@ export default function History() {
     if (filterCategory) count++
     if (dateFrom || dateTo) count++
     if (minAmount || maxAmount) count++
+    if (filterTags.length > 0) count++
     if (sortId !== 'newest') count++
     return count
-  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, sortId])
+  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, sortId])
 
   const handleDeleteRequest = useCallback((id) => {
     setPendingDelete(id)
@@ -120,7 +123,7 @@ export default function History() {
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, sortId])
+  }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, sortId])
 
   const filtered = useMemo(() => {
     let result = transactions
@@ -149,6 +152,12 @@ export default function History() {
       if (!isNaN(max)) result = result.filter((t) => t.amount <= max)
     }
 
+    if (filterTags.length > 0) {
+      result = result.filter(
+        (t) => t.tags && t.tags.some((tag) => filterTags.includes(tag))
+      )
+    }
+
     if (search.trim()) {
       const q = search.toLowerCase().trim()
       const qNum = Number(q)
@@ -175,11 +184,28 @@ export default function History() {
     })
 
     return result
-  }, [transactions, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, search, sortId])
+  }, [transactions, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, search, sortId])
 
   const visibleFiltered = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
   const grouped = useMemo(() => groupBy(visibleFiltered, 'date'), [visibleFiltered])
   const hasMore = filtered.length > visibleCount
+  const loadMoreRef = useRef(null)
+
+  useEffect(() => {
+    if (!hasMore) return
+    const el = loadMoreRef.current
+    if (!el) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((c) => Math.min(c + PAGE_SIZE, filtered.length))
+        }
+      },
+      { rootMargin: '200px' }
+    )
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [hasMore, filtered.length])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -375,6 +401,35 @@ export default function History() {
               ))}
             </div>
           </div>
+
+          {/* Tags */}
+          {tags.length > 0 && (
+            <div className="mt-3">
+              <label className="text-[10px] text-gray-500 font-medium mb-1.5 flex items-center gap-1">
+                <Tag size={11} />
+                {t('transactions.tags')}
+              </label>
+              <div className="flex gap-1.5 flex-wrap">
+                {tags.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => setFilterTags((prev) =>
+                      prev.includes(tag.name)
+                        ? prev.filter((t) => t !== tag.name)
+                        : [...prev, tag.name]
+                    )}
+                    className={`px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                      filterTags.includes(tag.name)
+                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                        : 'text-gray-500 border border-white/[0.06] hover:text-white'
+                    }`}
+                  >
+                    #{tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </GlassCard>
       )}
 
@@ -420,6 +475,7 @@ export default function History() {
           </div>
           {hasMore && (
             <button
+              ref={loadMoreRef}
               onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
               className="w-full mt-4 py-3 rounded-xl text-xs font-medium text-gray-400 border border-glass-border hover:text-white hover:border-neon/30 hover:bg-white/[0.02] transition-all"
             >

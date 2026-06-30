@@ -1,5 +1,9 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
+export const RECURRING_TYPES = ['daily', 'weekly', 'monthly', 'yearly']
+
+export const RECURRING_CATEGORIES = ['salary', 'rent', 'emi', 'sip', 'subscription', 'insurance', 'utility_bills']
+
 export function getRecurringTransactions() {
   return safeStorage.get(STORAGE_KEYS.RECURRING, [])
 }
@@ -68,6 +72,7 @@ export function getDueRecurringTransactions(recurring) {
   recurring.forEach((r) => {
     const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
     if (!r.nextDate || !isActive) return
+    if (r.paused) return
     const next = new Date(r.nextDate + 'T00:00:00')
     if (next <= now) due.push(r)
   })
@@ -80,6 +85,7 @@ export function getUpcomingRecurringTransactions(recurring, count = 5) {
     .filter((r) => {
       const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
       if (!r.nextDate || !isActive) return false
+      if (r.paused) return false
       return r.nextDate > todayStr
     })
     .sort((a, b) => new Date(a.nextDate) - new Date(b.nextDate))
@@ -168,4 +174,147 @@ export function getRecurringStats(recurring) {
     income: active.filter((r) => r.type === 'income').reduce((s, r) => s + r.amount, 0),
     expense: active.filter((r) => r.type === 'expense').reduce((s, r) => s + r.amount, 0),
   }
+}
+
+export function pauseRecurring(id) {
+  const recurring = getRecurringTransactions()
+  const idx = recurring.findIndex((r) => r.id === id)
+  if (idx === -1) return null
+  recurring[idx] = {
+    ...recurring[idx],
+    paused: true,
+    pausedAt: Date.now(),
+    updatedAt: Date.now(),
+  }
+  saveRecurringTransactions(recurring)
+  return recurring[idx]
+}
+
+export function resumeRecurring(id) {
+  const recurring = getRecurringTransactions()
+  const idx = recurring.findIndex((r) => r.id === id)
+  if (idx === -1) return null
+  recurring[idx] = {
+    ...recurring[idx],
+    paused: false,
+    pausedAt: undefined,
+    nextDate: getNextDueDate(recurring[idx], new Date().toISOString().split('T')[0]),
+    updatedAt: Date.now(),
+  }
+  saveRecurringTransactions(recurring)
+  return recurring[idx]
+}
+
+export function editFutureOccurrences(id, updates, transactions) {
+  const recurring = getRecurringTransactions()
+  const idx = recurring.findIndex((r) => r.id === id)
+  if (idx === -1) return { recurring: null, updatedTransactions: transactions }
+  const today = new Date().toISOString().split('T')[0]
+  const updatedTransactions = (transactions || []).map((tx) => {
+    if (tx.source === 'recurring' && tx.date >= today) {
+      const txUpdates = {}
+      if (updates.amount !== undefined) txUpdates.amount = updates.amount
+      if (updates.category !== undefined) txUpdates.category = updates.category
+      if (updates.note !== undefined) txUpdates.note = updates.note
+      return Object.keys(txUpdates).length ? { ...tx, ...txUpdates } : tx
+    }
+    return tx
+  })
+  const updated = {
+    ...recurring[idx],
+    ...updates,
+    id: recurring[idx].id,
+    updatedAt: Date.now(),
+  }
+  if (updates.recurrenceType) updated.frequency = updates.recurrenceType
+  if (updates.isActive !== undefined) updated.active = updates.isActive
+  recurring[idx] = updated
+  saveRecurringTransactions(recurring)
+  return { recurring: updated, updatedTransactions }
+}
+
+export function skipNextOccurrence(id) {
+  const recurring = getRecurringTransactions()
+  const idx = recurring.findIndex((r) => r.id === id)
+  if (idx === -1) return null
+  const item = recurring[idx]
+  const nextDate = advanceNextDate(item.nextDate, item.frequency || 'monthly')
+  recurring[idx] = {
+    ...item,
+    nextDate,
+    lastSkippedAt: Date.now(),
+    updatedAt: Date.now(),
+  }
+  saveRecurringTransactions(recurring)
+  return recurring[idx]
+}
+
+export function getNextDueDate(item, fromDate) {
+  if (!item.nextDate) return fromDate
+  const from = fromDate || new Date().toISOString().split('T')[0]
+  let candidate = item.nextDate
+  const freq = item.frequency || 'monthly'
+  let iterations = 0
+  while (candidate < from && iterations < 60) {
+    candidate = advanceNextDate(candidate, freq)
+    iterations++
+  }
+  return candidate
+}
+
+export function getRecurringCalendarData(recurring, year, month) {
+  const monthStr = `${year}-${String(month).padStart(2, '0')}`
+  const result = []
+  const daysInMonth = new Date(year, month, 0).getDate()
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${monthStr}-${String(d).padStart(2, '0')}`
+    const items = recurring.filter((r) => {
+      const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
+      if (!isActive) return false
+      if (r.paused) return false
+      if (r.endDate && dateStr > r.endDate) return false
+      if (r.startDate && dateStr < r.startDate) return false
+      const next = r.nextDate || r.startDate
+      if (!next) return false
+      if (dateStr < next) return false
+      const freq = r.frequency || 'monthly'
+      let cursor = next
+      let found = false
+      let iter = 0
+      while (cursor <= dateStr && iter < 60) {
+        if (cursor === dateStr) { found = true; break }
+        cursor = advanceNextDate(cursor, freq)
+        iter++
+      }
+      return found
+    })
+    if (items.length > 0) {
+      result.push({ date: dateStr, items })
+    }
+  }
+  return result
+}
+
+export function detectDuplicateGeneration(recurring, transactions) {
+  const today = new Date().toISOString().split('T')[0]
+  const results = []
+  const active = recurring.filter((r) => {
+    const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
+    return isActive && !r.paused
+  })
+  active.forEach((r) => {
+    const alreadyGenerated = transactions.some((tx) => {
+      if (tx.source !== 'recurring') return false
+      if (tx.date !== today) return false
+      if (tx.category !== r.category) return false
+      if (tx.amount !== r.amount) return false
+      return true
+    })
+    results.push({
+      recurring: r,
+      alreadyGenerated,
+      generatedToday: alreadyGenerated,
+    })
+  })
+  return results
 }

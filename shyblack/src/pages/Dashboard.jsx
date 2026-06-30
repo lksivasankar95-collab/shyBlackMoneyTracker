@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, memo } from 'react'
 import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
   AlertCircle, RefreshCw, Repeat2, RotateCcw, SkipForward, Sparkles, Target, Heart, FileText, BarChart3,
@@ -13,6 +13,7 @@ import { getUpcomingRecurringTransactions } from '../utils/recurring'
 import { getCategorySummary } from '../utils/categoryDrilldown'
 import { setCategoryDetailId } from '../pages/CategoryDetail'
 import { getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
+import { getBills, getUpcomingBills, getOverdueBills, getBillStats } from '../utils/bills'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
 import TransactionItem from '../components/TransactionItem'
@@ -25,7 +26,7 @@ import DashboardEmiWidget from '../components/DashboardEmiWidget'
 import QuickActions from '../components/QuickActions'
 import CategoryIcon from '../components/CategoryIcon'
 
-export default function Dashboard({ onNavigate }) {
+const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
   const {
     transactions, getBalance, getMonthlySummary, savingsGoal,
@@ -240,6 +241,55 @@ export default function Dashboard({ onNavigate }) {
         )
       })()}
 
+      {/* ── Upcoming Bills ──────────────────────────── */}
+      {(() => {
+        const allBills = getBills()
+        if (allBills.length === 0) return null
+        const billsDue = getUpcomingBills(allBills, 7)
+        const overdue = getOverdueBills(allBills)
+        const combined = [...overdue, ...billsDue].slice(0, 5)
+        if (combined.length === 0) return null
+        return (
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2.5">
+              <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                <ReceiptIcon size={12} className="text-neon" />
+                Upcoming Bills
+              </h2>
+              <button onClick={() => onNavigate('bills')} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
+                Manage <ChevronRight size={12} className="inline" />
+              </button>
+            </div>
+            <GlassCard>
+              <div className="divide-y divide-glass-border">
+                {combined.map((bill) => {
+                  const dueDate = new Date(bill.dueDate)
+                  const now = new Date()
+                  now.setHours(0, 0, 0, 0)
+                  const isOverdue = dueDate < now
+                  return (
+                    <div key={bill.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-red-400' : 'bg-amber-400'} shrink-0`} />
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{bill.name}</p>
+                          <p className="text-[10px] text-gray-500">
+                            {isOverdue ? `Overdue · ${dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`text-xs font-semibold tabular-nums shrink-0 ml-2 ${isOverdue ? 'text-red-400' : 'text-amber-400'}`}>
+                        {formatCurrency(bill.amount)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+            </GlassCard>
+          </div>
+        )
+      })()}
+
       {/* ── 4. Quick Actions ────────────────────────── */}
       <div className="mb-4">
         <div className="flex items-center justify-between mb-2.5">
@@ -281,6 +331,21 @@ export default function Dashboard({ onNavigate }) {
 
       {/* ── 6. Quick Stats ──────────────────────────── */}
       <div className="grid grid-cols-2 gap-2 mb-4">
+        {(() => {
+          const billStats = getBillStats(getBills())
+          if (billStats.total > 0) {
+            return (
+              <button onClick={() => onNavigate('bills')} className="text-left">
+                <GlassCard className="!p-3">
+                  <ReceiptIcon size={14} className="text-neon mb-1" />
+                  <p className="text-lg font-bold text-white tabular-nums">{billStats.overdue > 0 ? billStats.overdue : billStats.upcoming}</p>
+                  <p className="text-[10px] text-gray-500">{billStats.overdue > 0 ? 'Bills Overdue' : 'Bills Due'}</p>
+                </GlassCard>
+              </button>
+            )
+          }
+          return null
+        })()}
         {documentStats.total > 0 && (
           <button onClick={() => onNavigate('documents')} className="text-left">
             <GlassCard className="!p-3">
@@ -525,4 +590,8 @@ export default function Dashboard({ onNavigate }) {
       )}
     </div>
   )
-}
+})
+
+export default memo(function Dashboard({ onNavigate }) {
+  return <DashboardContent onNavigate={onNavigate} />
+})

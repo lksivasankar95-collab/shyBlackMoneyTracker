@@ -197,7 +197,7 @@ export default function DocumentVaultPage({ onNavigate }) {
 
   const handleAdd = useCallback(() => {
     if (!formData.title.trim()) return
-    if (!formData.fileData) {
+    if (!formData.fileData && !editingDoc) {
       addToast(t('documents.selectFile'), 'error')
       return
     }
@@ -208,6 +208,7 @@ export default function DocumentVaultPage({ onNavigate }) {
       relatedEntityType: formData.relatedEntityType || null,
       relatedEntityId: formData.relatedEntityId || null,
     }
+    if (!data.fileData) delete data.fileData
     if (editingDoc) {
       editDocument(editingDoc.id, data)
       addToast(t('documents.documentUpdated'), 'success')
@@ -228,6 +229,10 @@ export default function DocumentVaultPage({ onNavigate }) {
       tags: (doc.tags || []).join(', '),
       relatedEntityType: doc.relatedEntityType || '',
       relatedEntityId: doc.relatedEntityId || '',
+      fileName: doc.fileName || '',
+      fileType: doc.fileType || 'unknown',
+      fileSize: doc.fileSize || 0,
+      fileData: null,
     })
     if (doc.fileDataId) {
       const fileData = getDocumentFileData(doc.fileDataId)

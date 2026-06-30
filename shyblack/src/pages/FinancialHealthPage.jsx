@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react'
 import {
-  Heart, TrendingUp, TrendingDown, Target, DollarSign, AlertTriangle,
-  CheckCircle, Lightbulb, Activity, ArrowUpRight, ArrowDownRight,
-  Wallet, Shield, BarChart3, PiggyBank,
+  Heart, TrendingDown, Target, CheckCircle, Lightbulb, Activity,
+  ArrowUpRight, ArrowDownRight, Shield, BarChart3, PiggyBank,
+  Umbrella, TrendingUp as ChartUp,
 } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
@@ -17,16 +17,18 @@ import EmptyState from '../components/EmptyState'
 const CATEGORY_ICONS = {
   savingsRate: PiggyBank,
   expenseControl: TrendingDown,
+  emergencyFund: Umbrella,
   debtRatio: Shield,
-  budgetAdherence: Target,
+  budgetPerformance: Target,
   incomeStability: Activity,
 }
 
 const CATEGORY_COLORS = {
   savingsRate: '#39ff14',
   expenseControl: '#f97316',
+  emergencyFund: '#06b6d4',
   debtRatio: '#ef4444',
-  budgetAdherence: '#a855f7',
+  budgetPerformance: '#a855f7',
   incomeStability: '#3b82f6',
 }
 
@@ -37,17 +39,17 @@ function formatCategoryDetail(detail) {
 
 export default function FinancialHealthPage() {
   const { t } = useTranslation()
-  const { transactions, budgets, debts, goals, budgetsV2, financialScore, smartRecommendations, spendingInsights, savingsRate, emiInsightsData, debtInsightsData, recurringInsightsData, budgetHealthV2, overspentCategories } = useFinance()
+  const { transactions, budgets, debts, goals, budgetsV2, savingsGoal, smartRecommendations, spendingInsights, emiInsightsData, debtInsightsData, recurringInsightsData, budgetHealthV2, overspentCategories } = useFinance()
   const [activeTab, setActiveTab] = useState('overview')
 
   const health = useMemo(
-    () => calculateHealthScore(transactions, budgets, debts, goals),
-    [transactions, budgets, debts, goals]
+    () => calculateHealthScore(transactions, budgets, debts, goals, budgetsV2, savingsGoal),
+    [transactions, budgets, debts, goals, budgetsV2, savingsGoal]
   )
 
   const history = useMemo(
-    () => getHealthHistory(transactions, budgets, debts, goals, 6),
-    [transactions, budgets, debts, goals]
+    () => getHealthHistory(transactions, budgets, debts, goals, 6, budgetsV2, savingsGoal),
+    [transactions, budgets, debts, goals, budgetsV2, savingsGoal]
   )
 
   const velocity = useMemo(() => getScoreVelocity(history), [history])
@@ -146,6 +148,34 @@ export default function FinancialHealthPage() {
 
       {activeTab === 'overview' && (
         <>
+          {/* Radar-like Bar Chart */}
+          {hasHistory && (
+            <GlassCard brand className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <Activity size={14} className="text-neon" />
+                <h2 className="text-sm font-semibold">{t('health.category_breakdown') || 'Category Breakdown'}</h2>
+              </div>
+              <div className="h-40 -mx-1">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={health.categories.map((c) => ({ ...c, pct: c.max > 0 ? Math.round((c.score / c.max) * 100) : 0 }))} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                    <XAxis dataKey="label" tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
+                    <Tooltip
+                      contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }}
+                      labelStyle={{ color: '#9ca3af' }}
+                      formatter={(value, name, props) => [`${props.payload.score}/${props.payload.max}`, props.payload.label]}
+                    />
+                    <Bar dataKey="pct" radius={[3, 3, 0, 0]} maxBarSize={32}>
+                      {health.categories.map((entry, idx) => (
+                        <Cell key={idx} fill={CATEGORY_COLORS[entry.key] || '#39ff14'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </GlassCard>
+          )}
+
           {/* Category Scores */}
           <div className="space-y-2.5 mb-4">
             {health.categories.map((cat) => {
@@ -183,6 +213,33 @@ export default function FinancialHealthPage() {
             })}
           </div>
 
+          {/* Month-over-Month Comparison */}
+          {history.filter((h) => h.score !== null).length >= 2 && (
+            <GlassCard brand className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ChartUp size={14} className="text-neon" />
+                <h2 className="text-sm font-semibold">{t('health.month_comparison') || 'Month Comparison'}</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {history.filter((h) => h.score !== null).slice(-3).map((h, i, arr) => {
+                  const prev = arr[i - 1]
+                  const change = prev ? h.score - prev.score : 0
+                  return (
+                    <div key={h.label} className="text-center p-2 rounded-lg bg-white/[0.03]">
+                      <p className="text-[10px] text-gray-500">{h.label}</p>
+                      <p className="text-sm font-bold text-white">{h.score}</p>
+                      {prev && (
+                        <span className={`text-[9px] font-medium ${change >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                          {change >= 0 ? '+' : ''}{change}
+                        </span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </GlassCard>
+          )}
+
           {/* Score History */}
           {hasHistory && (
             <GlassCard brand>
@@ -213,6 +270,7 @@ export default function FinancialHealthPage() {
           {health.categories.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.key] || Activity
             const color = CATEGORY_COLORS[cat.key] || '#39ff14'
+            const catRec = health.recommendations.find((r) => r.category === cat.key)
             return (
               <GlassCard key={cat.key}>
                 <div className="flex items-start gap-3">
@@ -228,6 +286,12 @@ export default function FinancialHealthPage() {
                     <div className="w-full h-2 bg-matte-200 rounded-full overflow-hidden mt-2">
                       <div className="h-full rounded-full transition-all duration-500" style={{ width: `${cat.max > 0 ? (cat.score / cat.max) * 100 : 0}%`, backgroundColor: color }} />
                     </div>
+                    {catRec && (
+                      <div className="mt-2 p-2 rounded-lg bg-white/[0.03] text-[10px] text-gray-400 leading-relaxed border border-white/[0.05]">
+                        <span className="font-medium text-gray-300">Suggestion: </span>
+                        {catRec.text}
+                      </div>
+                    )}
                   </div>
                 </div>
               </GlassCard>

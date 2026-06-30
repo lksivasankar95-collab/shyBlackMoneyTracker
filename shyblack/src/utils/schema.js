@@ -114,19 +114,48 @@ export function runMigrations() {
     .filter((v) => v > currentVersion && v <= APP_SCHEMA_VERSION)
     .sort((a, b) => a - b)
 
-  let lastVersion = currentVersion
+  // Snapshot all storage keys that migrations may modify — rollback-safe.
+  const backupKeys = [
+    STORAGE_KEYS.TRANSACTIONS,
+    STORAGE_KEYS.NET_WORTH_ACCOUNTS,
+    STORAGE_KEYS.EMIS,
+    STORAGE_KEYS.DEBTS,
+    STORAGE_KEYS.DOCUMENTS,
+    STORAGE_KEYS.DOCUMENT_FILES,
+    STORAGE_KEYS.RELATIONSHIPS,
+    STORAGE_KEYS.BUDGETS_V2,
+    STORAGE_KEYS.RECEIPT_SCANS,
+    STORAGE_KEYS.WEALTH_ASSETS,
+  ]
+  const backup = {}
+  for (const k of backupKeys) {
+    try { backup[k] = safeStorage.getRaw(k) } catch {}
+  }
+
   for (const version of migrationKeys) {
     try {
       SCHEMA_MIGRATIONS[version]()
-      lastVersion = version
-      setSchemaVersion(version)
     } catch (error) {
-      console.error('[schema] migration v' + version + ' failed:', error)
-      return { migrated: false, from: currentVersion, to: lastVersion, error: error.message }
+      // Rollback every key to its pre-migration value.
+      for (const k of backupKeys) {
+        try {
+          if (backup[k] !== undefined && backup[k] !== null) {
+            const parsed = JSON.parse(backup[k])
+            safeStorage.set(k, parsed)
+          } else {
+            safeStorage.remove(k)
+          }
+        } catch {}
+      }
+      safeStorage.invalidateCache()
+      setSchemaVersion(currentVersion)
+      return { migrated: false, from: currentVersion, to: currentVersion, error: error.message }
     }
   }
 
-  return { migrated: migrationKeys.length > 0, from: currentVersion, to: lastVersion }
+  // All migrations succeeded — commit.
+  setSchemaVersion(APP_SCHEMA_VERSION)
+  return { migrated: migrationKeys.length > 0, from: currentVersion, to: APP_SCHEMA_VERSION }
 }
 
 export function isMigrationNeeded() {

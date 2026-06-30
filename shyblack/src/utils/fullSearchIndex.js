@@ -17,6 +17,8 @@ export function buildFullSearchIndex(allData) {
     const tokens = [
       tx.note, tx.category, tx.id,
       tx.person?.name, tx.paymentMethod, tx.source,
+      tx.account,
+      ...(tx.tags || []),
     ].filter(Boolean).map((s) => s.toLowerCase())
     results.transactions.push({ id: tx.id, tokens, date: tx.date, amount: tx.amount, type: tx.type })
   }

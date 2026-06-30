@@ -204,3 +204,60 @@ export async function checkDebtReminders(debts) {
     })
   }
 }
+
+export async function checkBillReminders(bills) {
+  if (!bills || bills.length === 0) return
+
+  const { getOverdueBills, getBillsDueToday, getUpcomingBills } = await import('./bills')
+  const perm = await checkNotificationPermission()
+  if (!perm.granted) return
+
+  const now = new Date()
+  const todayStr = now.toISOString().split('T')[0]
+
+  const overdue = getOverdueBills(bills)
+  const dueToday = getBillsDueToday(bills)
+  const upcoming = getUpcomingBills(bills, 3)
+
+  let notifications = []
+
+  overdue.forEach((b, i) => {
+    notifications.push({
+      type: NOTIF_TYPES.BILL_REMINDER,
+      id: 700000 + i,
+      body: `Overdue: ${b.name} - ₹${b.amount.toLocaleString()}`,
+      iconColor: '#DC2626',
+    })
+  })
+
+  dueToday.forEach((b, i) => {
+    notifications.push({
+      type: NOTIF_TYPES.BILL_REMINDER,
+      id: 700100 + i,
+      body: `Due Today: ${b.name} - ₹${b.amount.toLocaleString()}`,
+      iconColor: '#F97316',
+    })
+  })
+
+  upcoming.forEach((b, i) => {
+    const dueDate = new Date(b.dueDate)
+    const diffDays = Math.ceil((dueDate - now) / (1000 * 60 * 60 * 24))
+    notifications.push({
+      type: NOTIF_TYPES.BILL_REMINDER,
+      id: 700200 + i,
+      body: `${b.name} - ₹${b.amount.toLocaleString()} due in ${diffDays} day${diffDays > 1 ? 's' : ''}`,
+      iconColor: '#39FF14',
+    })
+  })
+
+  if (notifications.length === 0) return
+
+  for (const n of notifications) {
+    await sendNotification(n.type, {
+      id: n.id,
+      body: n.body,
+      iconColor: n.iconColor,
+      schedule: { at: new Date(Date.now() + 3000 + notifications.indexOf(n) * 1000), allowWhileIdle: true },
+    })
+  }
+}

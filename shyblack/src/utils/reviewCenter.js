@@ -48,24 +48,27 @@ function generatePeriodSummary(transactions, debts, emis, goals, accounts, label
   }
 }
 
+function pad(n) { return String(n).padStart(2, '0') }
+
 export function generateMonthlyReview(transactions, debts, emis, goals, accounts, year, month) {
-  const startDate = new Date(year, month, 1).toISOString().split('T')[0]
-  const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0]
+  const startDate = `${year}-${pad(month + 1)}-01`
+  const lastDay = new Date(year, month + 1, 0).getDate()
+  const endDate = `${year}-${pad(month + 1)}-${pad(lastDay)}`
   const monthName = new Date(year, month).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   return generatePeriodSummary(transactions, debts, emis, goals, accounts, monthName, startDate, endDate)
 }
 
 export function generateQuarterlyReview(transactions, debts, emis, goals, accounts, year, quarter) {
   const startMonth = quarter * 3
-  const startDate = new Date(year, startMonth, 1).toISOString().split('T')[0]
-  const endDate = new Date(year, startMonth + 3, 0).toISOString().split('T')[0]
+  const startDate = `${year}-${pad(startMonth + 1)}-01`
+  const endDate = `${year}-${pad(startMonth + 3)}-${pad(new Date(year, startMonth + 3, 0).getDate())}`
   const label = `Q${quarter + 1} ${year}`
   return generatePeriodSummary(transactions, debts, emis, goals, accounts, label, startDate, endDate)
 }
 
 export function generateYearlyReview(transactions, debts, emis, goals, accounts, year) {
-  const startDate = new Date(year, 0, 1).toISOString().split('T')[0]
-  const endDate = new Date(year, 11, 31).toISOString().split('T')[0]
+  const startDate = `${year}-01-01`
+  const endDate = `${year}-12-31`
   return generatePeriodSummary(transactions, debts, emis, goals, accounts, String(year), startDate, endDate)
 }
 

@@ -37,15 +37,30 @@ export const STORAGE_KEYS = {
   BACKUPS: `${STORAGE_PREFIX}backups`,
 }
 
+const memoryCache = new Map()
+
 function getAdapter() {
   return getStorageAdapter()
 }
 
+function invalidateCache(key) {
+  memoryCache.delete(key)
+}
+
 export const safeStorage = {
   get(key, fallback = null) {
+    if (memoryCache.has(key)) {
+      const cached = memoryCache.get(key)
+      // Treat null/undefined cache entries as cache misses so the adapter is
+      // always consulted for falsy stored values (e.g. set(key, null)).
+      if (cached !== null && cached !== undefined) return cached
+    }
     try {
-      return getAdapter().get(key, fallback)
+      const value = getAdapter().get(key, fallback)
+      memoryCache.set(key, value)
+      return value
     } catch {
+      invalidateCache(key)
       return fallback
     }
   },
@@ -60,6 +75,7 @@ export const safeStorage = {
 
   set(key, value) {
     try {
+      memoryCache.set(key, value)
       return getAdapter().set(key, value)
     } catch {
       return false
@@ -68,6 +84,7 @@ export const safeStorage = {
 
   remove(key) {
     try {
+      invalidateCache(key)
       return getAdapter().remove(key)
     } catch {
       return false
@@ -76,6 +93,7 @@ export const safeStorage = {
 
   clear() {
     try {
+      memoryCache.clear()
       return getAdapter().clear()
     } catch {
       return false
@@ -95,6 +113,30 @@ export const safeStorage = {
       return getAdapter().isAvailable()
     } catch {
       return false
+    }
+  },
+
+  getBatch(keys) {
+    const results = {}
+    for (const key of keys) {
+      results[key] = this.get(key, null)
+    }
+    return results
+  },
+
+  setBatch(pairs) {
+    const results = {}
+    for (const { key, value } of pairs) {
+      results[key] = this.set(key, value)
+    }
+    return results
+  },
+
+  invalidateCache(key) {
+    if (key) {
+      invalidateCache(key)
+    } else {
+      memoryCache.clear()
     }
   },
 }

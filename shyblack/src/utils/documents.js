@@ -87,16 +87,14 @@ export function updateDocument(id, updates) {
   const idx = docs.findIndex((d) => d.id === id)
   if (idx === -1) return null
 
-  const allowed = ['title', 'category', 'notes', 'tags', 'relatedEntityType', 'relatedEntityId', 'starred']
+  const allowed = ['title', 'category', 'notes', 'tags', 'relatedEntityType', 'relatedEntityId', 'starred', 'fileName', 'fileType', 'fileSize']
   for (const key of allowed) {
     if (key in updates) {
       if (key === 'tags') {
         docs[idx][key] = Array.isArray(updates[key])
           ? updates[key].map((t) => t.trim().toLowerCase()).filter(Boolean)
           : []
-      } else if (key === 'title') {
-        docs[idx][key] = (updates[key] || '').trim()
-      } else if (key === 'notes') {
+      } else if (key === 'title' || key === 'notes' || key === 'fileName') {
         docs[idx][key] = (updates[key] || '').trim()
       } else {
         docs[idx][key] = updates[key]

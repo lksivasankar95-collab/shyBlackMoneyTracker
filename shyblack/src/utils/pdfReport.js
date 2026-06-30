@@ -292,14 +292,102 @@ function drawTxnSummary(doc, data) {
   }
 }
 
+// ── Export Stats Page ───────────────────────────────
+
+function drawExportStatsPage(doc, data) {
+  doc.addPage()
+  doc.setFillColor(...COL_BG)
+  doc.rect(0, 0, PW, PH, 'F')
+
+  doc.setFontSize(16)
+  doc.setTextColor(...COL_NEON)
+  doc.text('Report Statistics', M, 30)
+
+  doc.setFontSize(9)
+  doc.setTextColor(...COL_MUTED)
+  doc.text(`Generated: ${new Date().toLocaleString('en-IN')}`, M, 42)
+
+  const stats = [
+    { label: 'Total Transactions', value: String(data.totalTxns) },
+    { label: 'Total Income', value: fmt(data.totalIncome) },
+    { label: 'Total Expense', value: fmt(data.totalExpense) },
+    { label: 'Net Savings', value: fmt(data.savings) },
+    { label: 'Savings Rate', value: data.savingsRate != null ? `${data.savingsRate.toFixed(1)}%` : 'N/A' },
+    { label: 'Avg Transaction Value', value: data.totalTxns > 0 ? fmt((data.totalIncome + data.totalExpense) / data.totalTxns) : 'N/A' },
+    { label: 'Largest Income', value: fmt(data.largestIncome) },
+    { label: 'Largest Expense', value: fmt(data.largestExpense) },
+    { label: 'Top Category', value: data.mostUsedCategory },
+    { label: 'Expense Categories', value: String(data.expBreakdown.length) },
+  ]
+
+  const cardW = (CW - 8) / 2
+  stats.forEach((stat, i) => {
+    const col = i % 2
+    const row = Math.floor(i / 2)
+    const x = M + col * (cardW + 8)
+    const y = 56 + row * 22
+    doc.setFillColor(...COL_CARD)
+    doc.roundedRect(x, y, cardW, 18, 2, 2, 'F')
+    doc.setFontSize(6)
+    doc.setTextColor(...COL_MUTED)
+    doc.text(stat.label, x + 6, y + 7)
+    doc.setFontSize(9)
+    doc.setTextColor(...COL_WHITE)
+    doc.text(stat.value, x + 6, y + 15)
+  })
+
+  const totalPages = doc.internal.getNumberOfPages()
+  addPageNumber(doc, totalPages, totalPages)
+}
+
+// ── Summary Chart Page ──────────────────────────────
+
+function drawSummaryChartPage(doc, data) {
+  doc.addPage()
+  doc.setFillColor(...COL_BG)
+  doc.rect(0, 0, PW, PH, 'F')
+
+  let y = 25
+  drawSummaryCards(doc, data)
+
+  y = 82
+  if (data.expBreakdown.length > 0) {
+    y = drawCategoryChart(doc, data.expBreakdown, y)
+  } else {
+    doc.setFontSize(9)
+    doc.setTextColor(...COL_MUTED)
+    doc.text('No expense data available for this period.', M, y + 10)
+    y += 20
+  }
+
+  if (data.monthlyData.length > 0) {
+    y = drawTrendChart(doc, data.monthlyData, y + 8)
+    if (data.monthlyData.length > 1) {
+      y = drawSavingsChart(doc, data.monthlyData, y + 8)
+    }
+  }
+
+  if (y > PH - 20) {
+    doc.addPage()
+    doc.setFillColor(...COL_BG)
+    doc.rect(0, 0, PW, PH, 'F')
+    y = 20
+  }
+  drawTxnSummary(doc, { ...data, recentTransactions: data.recentTransactions })
+
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 2; i <= totalPages; i++) {
+    doc.setPage(i)
+    doc.setFillColor(...COL_BG)
+    doc.rect(0, 0, PW, PH, 'F')
+    addPageNumber(doc, i, totalPages)
+  }
+}
+
 function buildReport(type, transactions, config) {
   let title = ''
   let periodLabel = ''
   let filtered = [...transactions]
-  let computeSummaryCards = () => ({ totalIncome: 0, totalExpense: 0, savings: 0, savingsRate: 0 })
-  let computeCategoryBreakdown = () => []
-  let computeMonthlyData = () => []
-  let computeTxnSummary = () => ({ totalTxns: 0, largestExpense: 0, largestIncome: 0, mostUsedCategory: 'N/A', recentTransactions: [] })
   if (type === 'monthly') {
     const { month, year } = config
     title = `Monthly Report \u2014 ${getFullMonth(month)} ${year}`
@@ -324,6 +412,29 @@ function buildReport(type, transactions, config) {
     const start = `${year}-01-01`
     const end = `${year}-12-31`
     filtered = transactions.filter((t) => t.date >= start && t.date <= end)
+  } else if (type === 'custom') {
+    const { dateFrom, dateTo, categoryId, month, year } = config
+    title = config.title || 'Custom Report'
+    periodLabel = config.periodLabel || ''
+    if (dateFrom && dateTo) {
+      filtered = transactions.filter((t) => t.date >= dateFrom && t.date <= dateTo)
+    }
+    if (categoryId) {
+      filtered = filtered.filter((t) => t.category === categoryId)
+    }
+    if (month != null && year != null) {
+      const range = getMonthDateRange(month, year)
+      filtered = filtered.filter((t) => t.date >= range.start && t.date <= range.end)
+    }
+    if (!periodLabel) {
+      const parts = []
+      if (dateFrom && dateTo) parts.push(`${dateFrom} \u2014 ${dateTo}`)
+      if (categoryId) {
+        const catLabel = getCatLabel(categoryId)
+        parts.push(`Category: ${catLabel}`)
+      }
+      periodLabel = parts.join(' | ') || 'All Transactions'
+    }
   }
   const totalIncome = filtered.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0)
   const totalExpense = filtered.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
@@ -402,6 +513,85 @@ export function generateDateRangeReport(transactions, dateFrom, dateTo) {
 export function generateAnnualReport(transactions, year) {
   const data = buildReport('annual', transactions, { year })
   return generatePDF('annual', data)
+}
+
+// ── Enhanced Custom Report Generator ────────────────
+
+export function generateCustomReport(transactions, options = {}) {
+  const {
+    type = 'custom',
+    month = null,
+    year = null,
+    dateFrom = null,
+    dateTo = null,
+    category = null,
+    includeCharts = true,
+    includeSummary = true,
+    pageSize = 'a4',
+  } = options
+
+  const data = buildReport('custom', transactions, {
+    month,
+    year,
+    dateFrom,
+    dateTo,
+    categoryId: category,
+    title: options.title || 'Custom Report',
+    periodLabel: options.periodLabel || '',
+  })
+
+  const doc = new jsPDF('p', 'mm', pageSize)
+  doc.setFont('helvetica')
+
+  const coverTitle = options.title || data.title || 'Financial Report'
+  const coverPeriod = options.periodLabel || data.periodLabel || ''
+  drawCover(doc, coverTitle, coverPeriod)
+
+  if (includeCharts) {
+    drawSummaryChartPage(doc, data)
+  } else {
+    doc.addPage()
+    doc.setFillColor(...COL_BG)
+    doc.rect(0, 0, PW, PH, 'F')
+    drawSummaryCards(doc, data)
+    let y = 82
+    if (data.expBreakdown.length > 0) {
+      y = drawCategoryChart(doc, data.expBreakdown, y)
+    }
+    if (data.monthlyData.length > 0) {
+      y = drawTrendChart(doc, data.monthlyData, y + 8)
+      if (data.monthlyData.length > 1) {
+        y = drawSavingsChart(doc, data.monthlyData, y + 8)
+      }
+    }
+    if (y > PH - 50) { doc.addPage(); y = 20; doc.setFillColor(...COL_BG); doc.rect(0, 0, PW, PH, 'F') }
+    drawTxnSummary(doc, { ...data, recentTransactions: data.recentTransactions })
+
+    const totalPages = doc.internal.getNumberOfPages()
+    for (let i = 2; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFillColor(...COL_BG)
+      doc.rect(0, 0, PW, PH, 'F')
+      addPageNumber(doc, i, totalPages)
+    }
+  }
+
+  if (includeSummary) {
+    drawExportStatsPage(doc, data)
+  }
+
+  const totalPages = doc.internal.getNumberOfPages()
+  for (let i = 2; i <= totalPages; i++) {
+    doc.setPage(i)
+    doc.setFillColor(...COL_BG)
+    doc.rect(0, 0, PW, PH, 'F')
+    addPageNumber(doc, i, totalPages)
+  }
+
+  let blob
+  try { blob = doc.output('blob') } catch { blob = null }
+  const dataUri = doc.output('datauristring')
+  return { blob, dataUri, doc, pageCount: totalPages }
 }
 
 function generatePDF(type, data) {

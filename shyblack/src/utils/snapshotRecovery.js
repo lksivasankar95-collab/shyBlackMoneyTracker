@@ -1,7 +1,7 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 const SNAPSHOT_KEY = `${STORAGE_KEYS.SNAPSHOT}_chain`
-const MAX_SNAPSHOTS = 5
+const MAX_SNAPSHOTS = 0
 const SNAPSHOT_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000
 
 function isValidTransaction(t) {
@@ -24,7 +24,8 @@ function pruneSnapshots(chain) {
     return true
   })
   valid.sort((a, b) => b.ts - a.ts)
-  return valid.slice(0, MAX_SNAPSHOTS)
+  if (MAX_SNAPSHOTS > 0) return valid.slice(0, MAX_SNAPSHOTS)
+  return valid
 }
 
 export function getSnapshotChain() {
