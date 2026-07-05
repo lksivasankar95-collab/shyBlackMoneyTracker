@@ -9,6 +9,16 @@
     "LocalNotifications": {
       "smallIcon": "ic_stat_finora",
       "iconColor": "#39FF14"
+    },
+    "Filesystem": {
+      "android": {
+        "publicStorage": true
+      }
+    },
+    "Share": {
+      "android": {
+        "useFileProvider": true
+      }
     }
   }
 }

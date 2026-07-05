@@ -126,7 +126,7 @@ export async function createBackupRecord(type = BACKUP_TYPES.MANUAL, includeModu
   backups.unshift(record)
   const rotated = rotateBackups(backups)
   saveBackupGenerations(rotated)
-  recordBackupEvent(type === BACKUP_TYPES.ENCRYPTED ? 'encrypted_export' : 'export', true)
+  recordBackupEvent('export', true)
   return record
 }
 
@@ -337,42 +337,6 @@ export async function decryptBackup(encryptedObj, password) {
   return JSON.parse(new TextDecoder().decode(plaintext))
 }
 
-export async function exportEncryptedBackup(password) {
-  const backup = collectBackupData()
-  const encryptedObj = await encryptBackup(backup, password)
-  const json = JSON.stringify(encryptedObj)
-  const filename = `finora_encrypted_${new Date().toISOString().split('T')[0]}.enc.json`
-  let exported = false
-
-  try {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem')
-    await Filesystem.writeFile({
-      path: `FINORA/${filename}`,
-      data: btoa(unescape(encodeURIComponent(json))),
-      directory: Directory.Documents,
-      recursive: true,
-    })
-    exported = true
-  } catch {
-    try {
-      const blob = new Blob([json], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      setTimeout(() => URL.revokeObjectURL(url), 5000)
-      exported = true
-    } catch {
-      exported = false
-    }
-  }
-  recordBackupEvent('encrypted_export', exported)
-  return exported
-}
-
 export async function parseAndValidateEncryptedBackup(jsonString, password) {
   let parsed
   try {
@@ -462,43 +426,281 @@ export function collectBackupData() {
   }
 }
 
+/* ── Structured Logger ── */
+
+function logExport(stage, details = '') {
+  const msg = `[BACKUP] ${stage}${details ? ` — ${details}` : ''}`
+  if (typeof console !== 'undefined') {
+    console.log(msg)
+  }
+  return msg
+}
+
+/* ── Base64 Encoding (UTF-8 safe, no deprecated APIs) ── */
+
+function utf8ToBase64(str) {
+  const bytes = new TextEncoder().encode(str)
+  let binary = ''
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
+function base64ToUtf8(base64) {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i)
+  }
+  return new TextDecoder().decode(bytes)
+}
+
+/* ── Capacitor Filesystem Helpers ── */
+
+let _filesystemModule = null
+
+async function getFilesystem() {
+  if (!_filesystemModule) {
+    try {
+      _filesystemModule = await import('@capacitor/filesystem')
+    } catch (err) {
+      logExport('FILESYSTEM_IMPORT_FAILED', err.message)
+      throw new Error('Capacitor Filesystem not available: ' + (err.message || 'import failed'))
+    }
+  }
+  return _filesystemModule
+}
+
+async function verifyFileExists(path, directory) {
+  try {
+    const { Filesystem } = await getFilesystem()
+    const stat = await Filesystem.stat({ path, directory })
+    const exists = stat && typeof stat.size === 'number'
+    if (exists) {
+      logExport('VERIFY_SUCCESS', `${path} — size: ${stat.size} bytes`)
+    }
+    return exists ? { exists: true, size: stat.size, uri: stat.uri, mtime: stat.mtime } : { exists: false }
+  } catch (err) {
+    logExport('VERIFY_FAILED', `${path} — ${err.message}`)
+    return { exists: false, error: err.message }
+  }
+}
+
+/* ── Export Configuration ── */
+
+const EXPORT_DIRECTORY = 'FINORA'
+
+function getExportFilename(prefix = 'finora_backup') {
+  const date = new Date().toISOString().split('T')[0]
+  const timestamp = Date.now()
+  return `${prefix}_${date}_${timestamp}.json`
+}
+
+/* ── Production Export — with full verification ── */
+
 export async function exportBackup() {
+  logExport('EXPORT_STARTED')
+  const startTime = Date.now()
+
   const backup = collectBackupData()
+  logExport('DATA_COLLECTED', `modules: ${Object.keys(backup.data).length}`)
+
   const json = JSON.stringify(backup, null, 2)
-  const filename = `finora_backup_${new Date().toISOString().split('T')[0]}.json`
+  const jsonSize = typeof Blob !== 'undefined'
+    ? new Blob([json]).size
+    : new TextEncoder().encode(json).length
+  logExport('JSON_GENERATED', `size: ${jsonSize} bytes`)
+
+  if (jsonSize === 0) {
+    const msg = 'Generated backup JSON is empty'
+    logExport('EXPORT_FAILED', msg)
+    return { success: false, error: msg, stage: 'serialization' }
+  }
+
+  const filename = getExportFilename('finora_backup')
+  const fullPath = `${EXPORT_DIRECTORY}/${filename}`
+  const base64 = utf8ToBase64(json)
+  logExport('BASE64_ENCODED', `length: ${base64.length}`)
+
+  let filesystem = null
+  try {
+    filesystem = await getFilesystem()
+  } catch (err) {
+    logExport('FILESYSTEM_UNAVAILABLE', err.message)
+    const fallbackOk = fallbackDownload(json, filename)
+    if (fallbackOk) {
+      logExport('FALLBACK_DOWNLOAD_OK')
+      recordBackupEvent('export', true)
+      return { success: true, method: 'web-fallback', filename, path: filename }
+    }
+    recordBackupEvent('export', false)
+    return { success: false, error: err.message, stage: 'filesystem-init' }
+  }
 
   try {
-    const { Filesystem, Directory } = await import('@capacitor/filesystem')
-    await Filesystem.writeFile({
-      path: `FINORA/${filename}`,
-      data: btoa(unescape(encodeURIComponent(json))),
-      directory: Directory.Documents,
+    const { Filesystem, Directory } = filesystem
+
+    const savedFile = await Filesystem.writeFile({
+      path: fullPath,
+      data: base64,
+      directory: Directory.Downloads,
       recursive: true,
     })
-    recordBackupEvent('export', true)
-    return { success: true, method: 'filesystem', filename }
-  } catch {
-    try {
-      fallbackDownload(json, filename)
-      recordBackupEvent('export', true)
-      return { success: true, method: 'download', filename }
-    } catch {
+    logExport('WRITE_SUCCESS', `uri: ${savedFile.uri}`)
+
+    const verification = await verifyFileExists(fullPath, Directory.Downloads)
+    if (!verification.exists) {
+      const msg = 'File write reported success but file not found on disk'
+      logExport('VERIFICATION_FAILED', msg)
       recordBackupEvent('export', false)
-      return { success: false, filename }
+      return { success: false, error: msg, stage: 'verification', filename }
     }
+
+    if (verification.size === 0) {
+      const msg = 'File exists but is empty (0 bytes)'
+      logExport('VERIFICATION_EMPTY', msg)
+      recordBackupEvent('export', false)
+      return { success: false, error: msg, stage: 'verification-size', filename }
+    }
+
+    const elapsed = Date.now() - startTime
+    logExport('EXPORT_COMPLETED', `file: ${filename}, size: ${verification.size}, time: ${elapsed}ms`)
+    recordBackupEvent('export', true)
+
+    return {
+      success: true,
+      method: 'filesystem',
+      filename,
+      path: `Downloads/${fullPath}`,
+      uri: savedFile.uri,
+      size: verification.size,
+      elapsed,
+    }
+  } catch (err) {
+    logExport('WRITE_FAILED', err.message || 'Unknown error')
+
+    const fallbackOk = fallbackDownload(json, filename)
+    if (fallbackOk) {
+      logExport('FALLBACK_DOWNLOAD_OK')
+      recordBackupEvent('export', true)
+      return { success: true, method: 'web-fallback', filename, path: filename }
+    }
+
+    recordBackupEvent('export', false)
+    return { success: false, error: err.message || 'File write failed', stage: 'filesystem-write', filename }
   }
 }
 
 function fallbackDownload(content, filename) {
-  const blob = new Blob([content], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 5000)
+  try {
+    const blob = new Blob([content], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      try { document.body.removeChild(a) } catch (e) { /* already removed */ }
+      try { URL.revokeObjectURL(url) } catch (e) { /* already revoked */ }
+    }, 30000)
+    return true
+  } catch (err) {
+    logExport('FALLBACK_FAILED', err.message || 'Unknown error')
+    return false
+  }
+}
+
+/* ── Encrypted Export — with full verification ── */
+
+export async function exportEncryptedBackup(password) {
+  logExport('ENCRYPTED_EXPORT_STARTED')
+  const startTime = Date.now()
+
+  const backup = collectBackupData()
+  logExport('DATA_COLLECTED', `modules: ${Object.keys(backup.data).length}`)
+
+  let encryptedObj
+  try {
+    encryptedObj = await encryptBackup(backup, password)
+    logExport('ENCRYPTION_OK')
+  } catch (err) {
+    logExport('ENCRYPTION_FAILED', err.message || 'Unknown error')
+    throw new Error('Encryption failed: ' + (err.message || 'unknown error'))
+  }
+
+  const json = JSON.stringify(encryptedObj)
+  const jsonSize = typeof Blob !== 'undefined'
+    ? new Blob([json]).size
+    : new TextEncoder().encode(json).length
+  logExport('JSON_GENERATED', `size: ${jsonSize} bytes`)
+
+  const filename = getExportFilename('finora_encrypted')
+  const fullPath = `${EXPORT_DIRECTORY}/${filename}`
+  const base64 = utf8ToBase64(json)
+
+  let filesystem
+  try {
+    filesystem = await getFilesystem()
+  } catch (err) {
+    logExport('FILESYSTEM_UNAVAILABLE', err.message)
+    const fallbackOk = fallbackDownload(json, filename)
+    if (fallbackOk) {
+      logExport('ENCRYPTED_FALLBACK_OK')
+      recordBackupEvent('encrypted_export', true)
+      return { success: true, method: 'web-fallback', filename }
+    }
+    recordBackupEvent('encrypted_export', false)
+    throw new Error('Filesystem not available and fallback failed: ' + err.message)
+  }
+
+  try {
+    const { Filesystem, Directory } = filesystem
+
+    const savedFile = await Filesystem.writeFile({
+      path: fullPath,
+      data: base64,
+      directory: Directory.Downloads,
+      recursive: true,
+    })
+    logExport('ENCRYPTED_WRITE_SUCCESS', `uri: ${savedFile.uri}`)
+
+    const verification = await verifyFileExists(fullPath, Directory.Downloads)
+    if (!verification.exists || verification.size === 0) {
+      const msg = verification.size === 0 ? 'File is empty' : 'File not found after write'
+      logExport('ENCRYPTED_VERIFICATION_FAILED', msg)
+      recordBackupEvent('encrypted_export', false)
+      throw new Error(msg)
+    }
+
+    const elapsed = Date.now() - startTime
+    logExport('ENCRYPTED_EXPORT_COMPLETED', `size: ${verification.size}, time: ${elapsed}ms`)
+    recordBackupEvent('encrypted_export', true)
+
+    return {
+      success: true,
+      method: 'filesystem',
+      filename,
+      path: `Downloads/${fullPath}`,
+      uri: savedFile.uri,
+      size: verification.size,
+      elapsed,
+    }
+  } catch (err) {
+    logExport('ENCRYPTED_WRITE_FAILED', err.message || 'Unknown error')
+
+    const fallbackOk = fallbackDownload(json, filename)
+    if (fallbackOk) {
+      logExport('ENCRYPTED_FALLBACK_OK')
+      recordBackupEvent('encrypted_export', true)
+      return { success: true, method: 'web-fallback', filename }
+    }
+
+    recordBackupEvent('encrypted_export', false)
+    throw new Error(err.message || 'Encrypted export failed')
+  }
 }
 
 export function validateBackupData(data) {

@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <external-path name="my_images" path="." />
-    <cache-path name="my_cache_images" path="." />
+    <!-- External storage root (/storage/emulated/0/) -->
+    <external-path name="external_root" path="." />
+    <!-- App internal files directory -->
+    <files-path name="internal_files" path="." />
+    <!-- App cache directory -->
+    <cache-path name="cache" path="." />
+    <!-- App-specific external files -->
+    <external-files-path name="external_files" path="." />
+    <!-- External cache directory -->
+    <external-cache-path name="external_cache" path="." />
 </paths>

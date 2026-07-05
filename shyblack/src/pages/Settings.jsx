@@ -123,10 +123,10 @@ export default function Settings({ onNavigate }) {
       if (result.success) {
         addToast(t('settings.backup_exported'), 'success')
       } else {
-        addToast(t('settings.backup_export_failed'), 'error')
+        addToast(result.error || t('settings.backup_export_failed'), 'error')
       }
-    } catch {
-      addToast(t('settings.backup_export_error'), 'error')
+    } catch (err) {
+      addToast(err.message || t('settings.backup_export_error'), 'error')
     }
   }
 
@@ -174,13 +174,18 @@ export default function Settings({ onNavigate }) {
     if (encPassword !== encPassword2) { setEncError(t('settings.pins_mismatch')); return }
     setEncWorking(true)
     try {
-      await exportEncryptedBackup(encPassword)
-      setEncModal(null)
-      setEncPassword('')
-      setEncPassword2('')
-      addToast(t('settings.backup_exported'), 'success')
-    } catch {
-      setEncError(t('settings.backup_export_failed'))
+      const result = await exportEncryptedBackup(encPassword)
+      if (result.success) {
+        setEncModal(null)
+        setEncPassword('')
+        setEncPassword2('')
+        setEncError('')
+        addToast(t('settings.backup_exported'), 'success')
+      } else {
+        setEncError(result.error || t('settings.backup_export_failed'))
+      }
+    } catch (err) {
+      setEncError(err.message || t('settings.backup_export_failed'))
     }
     setEncWorking(false)
   }, [encPassword, encPassword2, addToast, t])

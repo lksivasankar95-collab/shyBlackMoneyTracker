@@ -1,6 +1,92 @@
 import { Filesystem, Directory } from '@capacitor/filesystem'
 import * as privacy from './privacy'
 
+/* ── Logger ── */
+
+function log(method, details) {
+  const msg = `[DOWNLOAD] ${method}${details ? ` — ${details}` : ''}`
+  if (typeof console !== 'undefined') console.log(msg)
+  return msg
+}
+
+/* ── Constants ── */
+
+const EXPORT_DIR = 'FINORA'
+const SHARE_DIR = `${EXPORT_DIR}/_share`
+
+const MIME_MAP = {
+  pdf: 'application/pdf',
+  jpg: 'image/jpeg', jpeg: 'image/jpeg',
+  png: 'image/png', gif: 'image/gif',
+  webp: 'image/webp',
+  csv: 'text/csv',
+  xlsx: 'application/vnd.ms-excel',
+  html: 'text/html',
+  json: 'application/json',
+  txt: 'text/plain',
+}
+
+/* ── Helpers ── */
+
+function getMimeType(ext) {
+  return MIME_MAP[ext?.toLowerCase()] || 'application/octet-stream'
+}
+
+function getExt(filename) {
+  return filename?.split('.').pop()?.toLowerCase() || 'bin'
+}
+
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      if (!reader.result) {
+        reject(new Error('FileReader returned no result'))
+        return
+      }
+      resolve(reader.result.split(',')[1] || reader.result)
+    }
+    reader.onerror = () => reject(new Error('FileReader error'))
+    reader.onabort = () => reject(new Error('FileReader aborted'))
+    reader.readAsDataURL(blob)
+  })
+}
+
+async function verifyFile(path, directory) {
+  try {
+    const stat = await Filesystem.stat({ path, directory })
+    const ok = stat && typeof stat.size === 'number' && stat.size >= 0
+    log('VERIFY', `${path} — exists: ${ok}, size: ${ok ? stat.size : 'N/A'}`)
+    return ok ? { exists: true, size: stat.size, uri: stat.uri } : { exists: false }
+  } catch (err) {
+    log('VERIFY_FAILED', `${path} — ${err.message}`)
+    return { exists: false, error: err.message }
+  }
+}
+
+async function cleanupOldShareFiles() {
+  try {
+    const { Filesystem } = await import('@capacitor/filesystem')
+    const result = await Filesystem.readdir({
+      path: `${EXPORT_DIR}/_share`,
+      directory: Directory.Downloads,
+    })
+    if (result?.files?.length > 0) {
+      for (const file of result.files) {
+        try {
+          await Filesystem.deleteFile({
+            path: `${EXPORT_DIR}/_share/${file.name || file}`,
+            directory: Directory.Downloads,
+          })
+        } catch (e) { /* individual cleanup failure is non-fatal */ }
+      }
+      log('CLEANUP', `Removed ${result.files.length} stale share files`)
+    }
+  } catch (e) { /* readdir may fail if directory doesn't exist */ }
+}
+
+/* ── Public API ── */
+
 export function dataUriToBlob(dataUri) {
   if (!dataUri || typeof dataUri !== 'string') return null
   try {
@@ -24,71 +110,66 @@ export function dataUriToBase64(dataUri) {
   return parts.length === 2 ? parts[1] : null
 }
 
-function getMimeTypeFromExtension(ext) {
-  const mimeMap = {
-    pdf: 'application/pdf',
-    jpg: 'image/jpeg', jpeg: 'image/jpeg',
-    png: 'image/png', gif: 'image/gif',
-    webp: 'image/webp',
-    csv: 'text/csv',
-    xlsx: 'application/vnd.ms-excel',
-    html: 'text/html',
-    json: 'application/json',
-    txt: 'text/plain',
-  }
-  return mimeMap[ext?.toLowerCase()] || 'application/octet-stream'
-}
-
 export async function downloadBlob(blob, filename) {
   if (!blob) return { success: false, error: 'No blob data' }
+  log('DOWNLOAD_START', filename)
 
-  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
-  const mimeType = getMimeTypeFromExtension(ext)
+  const ext = getExt(filename)
+  const mimeType = getMimeType(ext)
   const base64 = await blobToBase64(blob)
 
   privacy.suppressLockForTransition(5000)
 
   try {
     const savedFile = await Filesystem.writeFile({
-      path: `FINORA/${filename}`,
+      path: `${EXPORT_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Documents,
+      directory: Directory.Downloads,
       recursive: true,
     })
+    log('WRITE_OK', `uri: ${savedFile.uri}`)
 
+    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.Downloads)
+    if (!verification.exists) {
+      log('VERIFY_FAILED', 'File not found after write')
+
+      const legacyOk = downloadBlobLegacy(blob, filename)
+      if (legacyOk) {
+        return { success: true, path: filename, filename, mimeType, method: 'legacy' }
+      }
+      return { success: false, error: 'File not found after write', stage: 'verification' }
+    }
+
+    if (verification.size === 0) {
+      log('VERIFY_ZERO', 'File exists but is 0 bytes')
+      return { success: false, error: 'Written file is empty (0 bytes)', stage: 'verification-size' }
+    }
+
+    log('DOWNLOAD_COMPLETE', `${filename} — ${verification.size} bytes`)
     return {
       success: true,
       uri: savedFile.uri,
-      path: `Downloads/FINORA/${filename}`,
+      path: `Downloads/${EXPORT_DIR}/${filename}`,
       filename,
       mimeType,
+      size: verification.size,
     }
   } catch (err) {
-    console.error('[downloadUtils] Filesystem write failed, trying legacy fallback:', err)
-    const ok = downloadBlobLegacy(blob, filename)
-    if (ok) return { success: true, path: filename, filename, mimeType, method: 'legacy' }
-    return { success: false, error: err.message || 'File write failed' }
-  }
-}
-
-async function blobToBase64(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      const result = reader.result
-      const base64 = result.split(',')[1] || result
-      resolve(base64)
+    log('DOWNLOAD_FAILED', err.message)
+    const legacyOk = downloadBlobLegacy(blob, filename)
+    if (legacyOk) {
+      return { success: true, path: filename, filename, mimeType, method: 'legacy' }
     }
-    reader.onerror = reject
-    reader.readAsDataURL(blob)
-  })
+    return { success: false, error: err.message || 'File write failed', stage: 'filesystem-write' }
+  }
 }
 
 export async function downloadDataUri(dataUri, filename) {
   if (!dataUri || !filename) return { success: false, error: 'Missing data' }
+  log('DOWNLOAD_DATAURI_START', filename)
 
-  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
-  const mimeType = getMimeTypeFromExtension(ext)
+  const ext = getExt(filename)
+  const mimeType = getMimeType(ext)
   const base64 = dataUriToBase64(dataUri)
 
   if (!base64) return { success: false, error: 'Invalid data URI' }
@@ -97,41 +178,60 @@ export async function downloadDataUri(dataUri, filename) {
 
   try {
     const savedFile = await Filesystem.writeFile({
-      path: `FINORA/${filename}`,
+      path: `${EXPORT_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Documents,
+      directory: Directory.Downloads,
       recursive: true,
     })
+    log('WRITE_OK', `uri: ${savedFile.uri}`)
+
+    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.Downloads)
+    if (!verification.exists || verification.size === 0) {
+      log('VERIFY_FAILED', 'File invalid after write')
+      const legacyOk = downloadDataUriLegacy(dataUri, filename)
+      if (legacyOk) {
+        return { success: true, path: filename, filename, mimeType, method: 'legacy' }
+      }
+      return { success: false, error: 'File verification failed', stage: 'verification' }
+    }
 
     return {
       success: true,
       uri: savedFile.uri,
-      path: `Downloads/FINORA/${filename}`,
+      path: `Downloads/${EXPORT_DIR}/${filename}`,
       filename,
       mimeType,
+      size: verification.size,
     }
   } catch (err) {
-    console.error('[downloadUtils] downloadDataUri failed, trying legacy fallback:', err)
-    const ok = downloadDataUriLegacy(dataUri, filename)
-    if (ok) return { success: true, path: filename, filename, mimeType, method: 'legacy' }
-    return { success: false, error: err.message || 'File write failed' }
+    log('DOWNLOAD_DATAURI_FAILED', err.message)
+    const legacyOk = downloadDataUriLegacy(dataUri, filename)
+    if (legacyOk) {
+      return { success: true, path: filename, filename, mimeType, method: 'legacy' }
+    }
+    return { success: false, error: err.message || 'File write failed', stage: 'filesystem-write' }
   }
 }
 
 export function downloadBlobLegacy(blob, filename) {
   if (!blob) return false
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.style.display = 'none'
-  document.body.appendChild(a)
-  a.click()
-  setTimeout(() => {
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, 1000)
-  return true
+  try {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      try { document.body.removeChild(a) } catch (e) { /* already removed */ }
+      try { URL.revokeObjectURL(url) } catch (e) { /* already revoked */ }
+    }, 30000)
+    return true
+  } catch (err) {
+    log('LEGACY_FAILED', err.message)
+    return false
+  }
 }
 
 export function downloadDataUriLegacy(dataUri, filename) {
@@ -156,18 +256,24 @@ export function createPreviewUrl(dataUri) {
 }
 
 export async function shareBlob(blob, filename, title) {
-  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
-  const mimeType = getMimeTypeFromExtension(ext)
+  if (!blob || !filename) return { shared: false, method: 'error', error: 'Missing blob or filename' }
+  log('SHARE_START', filename)
+
+  const ext = getExt(filename)
+  const mimeType = getMimeType(ext)
 
   if (typeof navigator !== 'undefined' && navigator.share) {
     try {
       const file = new File([blob], filename, { type: mimeType })
       await navigator.share({ files: [file], title: title || 'Document' })
-      return { shared: true, method: 'share' }
+      log('SHARE_OK', 'Web Share API')
+      return { shared: true, method: 'web-share' }
     } catch (err) {
       if (err.name === 'AbortError') {
+        log('SHARE_CANCELLED', 'User cancelled')
         return { shared: false, method: 'cancelled' }
       }
+      log('SHARE_WEB_FAILED', err.message)
     }
   }
 
@@ -175,13 +281,22 @@ export async function shareBlob(blob, filename, title) {
     const { Share: CapShare } = await import('@capacitor/share')
     privacy.suppressLockForTransition(5000)
 
+    await cleanupOldShareFiles()
+
     const base64 = await blobToBase64(blob)
     const savedFile = await Filesystem.writeFile({
-      path: `FINORA/_share/${filename}`,
+      path: `${SHARE_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Cache,
+      directory: Directory.Downloads,
       recursive: true,
     })
+    log('SHARE_WRITE_OK', `uri: ${savedFile.uri}`)
+
+    const verification = await verifyFile(`${SHARE_DIR}/${filename}`, Directory.Downloads)
+    if (!verification.exists || verification.size === 0) {
+      log('SHARE_VERIFY_FAILED', 'Share file invalid')
+      return { shared: false, method: 'error', error: 'Share file could not be verified' }
+    }
 
     await CapShare.share({
       title: title || filename,
@@ -190,19 +305,28 @@ export async function shareBlob(blob, filename, title) {
       dialogTitle: 'Share via',
     })
 
+    log('SHARE_OK', 'Capacitor Share')
     return { shared: true, method: 'capacitor' }
   } catch (err) {
-    if (err.message?.includes?.('canceled') || err.message?.includes?.('abort') || err.message?.includes?.('AbortError')) {
+    const msg = err?.message || ''
+    if (msg.includes('canceled') || msg.includes('abort') || msg.includes('AbortError')) {
+      log('SHARE_CANCELLED', 'User cancelled')
       return { shared: false, method: 'cancelled' }
     }
-    return { shared: false, method: 'error', error: err.message }
+    log('SHARE_FAILED', msg)
+    return { shared: false, method: 'error', error: msg }
   }
 }
 
 export async function openFileNative(blob, filename) {
+  if (!blob || !filename) return { success: false, error: 'Missing blob or filename' }
+  log('OPEN_START', filename)
 
   const result = await downloadBlob(blob, filename)
-  if (!result.success) return result
+  if (!result.success) {
+    log('OPEN_DOWNLOAD_FAILED', result.error)
+    return result
+  }
 
   privacy.suppressLockForTransition(5000)
 
@@ -213,11 +337,15 @@ export async function openFileNative(blob, filename) {
       url: result.uri,
       dialogTitle: 'Open with',
     })
+    log('OPEN_OK', result.uri)
     return { success: true, action: 'opened', uri: result.uri }
   } catch (err) {
-    if (err.message?.includes?.('canceled') || err.message?.includes?.('abort')) {
+    const msg = err?.message || ''
+    if (msg.includes('canceled') || msg.includes('abort')) {
+      log('OPEN_CANCELLED')
       return { success: true, action: 'cancelled', uri: result.uri }
     }
+    log('OPEN_FAILED', msg)
     return { success: true, action: 'saved', uri: result.uri }
   }
 }
