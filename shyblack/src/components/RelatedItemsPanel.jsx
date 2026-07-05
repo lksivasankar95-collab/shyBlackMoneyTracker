@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
 import {
   FileText, Landmark, Users, Target, Wallet, ArrowUpDown, X, Link2, Plus,
-  ExternalLink,
 } from 'lucide-react'
-import { getRelationshipsForEntity, getRelatedEntities, getEntityLabel, getAllEntitiesByType, createRelationship, deleteRelationship, ENTITY_TYPES } from '../utils/relationships'
-import { formatCurrency } from '../utils/helpers'
+import { getRelatedEntities, getEntityLabel, getAllEntitiesByType, createRelationship, deleteRelationship, ENTITY_TYPES } from '../utils/relationships'
 import GlassCard from './GlassCard'
 import { useTranslation } from '../i18n'
 
@@ -26,7 +24,7 @@ const TYPE_COLORS = {
   transaction: 'text-emerald-400 bg-emerald-500/10',
 }
 
-export default function RelatedItemsPanel({ entityType, entityId, onNavigate }) {
+export default function RelatedItemsPanel({ entityType, entityId, onNavigate: _onNavigate }) {
   const { t } = useTranslation()
   const [showLinker, setShowLinker] = useState(false)
   const [linkTargetType, setLinkTargetType] = useState('document')

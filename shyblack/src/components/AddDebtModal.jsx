@@ -45,7 +45,7 @@ export default function AddDebtModal({ open, onClose, onSave }) {
     } finally {
       setImportingContact(false)
     }
-  }, [addToast])
+  }, [addToast, t])
 
   const handleClose = useCallback(() => {
     reset()

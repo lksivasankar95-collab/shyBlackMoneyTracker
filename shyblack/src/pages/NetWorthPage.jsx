@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   Wallet, Landmark, TrendingUp, ArrowUpRight, ArrowDownRight,
-  Plus, Pencil, Trash2, Check, X, BarChart3, PieChart as PieChartIcon, DollarSign,
+  Plus, Pencil, Trash2, BarChart3, PieChart as PieChartIcon, 
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -11,8 +11,8 @@ import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
-  getAccounts, saveAccounts, createAccount, updateAccount, deleteAccount,
-  calculateNetWorth, getNetWorthHistory, getMonthlyGrowth, ACCOUNT_TYPES,
+  getAccounts, createAccount, updateAccount, deleteAccount,
+  calculateNetWorth, getNetWorthHistory, getMonthlyGrowth, 
 } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -85,11 +85,6 @@ export default function NetWorthPage() {
     addToast(t('networth.account_removed'), 'info')
   }
 
-  const chartData = history.map((h) => ({
-    ...h,
-    assetsLabel: t('networth.total_assets'),
-    liabilitiesLabel: t('networth.total_debts'),
-  }))
 
   const breakdownData = netWorth.breakdown
     .filter((b) => b.value !== 0)

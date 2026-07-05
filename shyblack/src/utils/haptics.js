@@ -11,19 +11,19 @@ export async function hapticLight() {
   try {
     const H = getHapticsPlugin()
     if (H) await H.impact({ style: 'LIGHT' })
-  } catch {}
+  } catch { /* silent */ }
 }
 
 export async function hapticMedium() {
   try {
     const H = getHapticsPlugin()
     if (H) await H.impact({ style: 'MEDIUM' })
-  } catch {}
+  } catch { /* silent */ }
 }
 
 export async function hapticSuccess() {
   try {
     const H = getHapticsPlugin()
     if (H) await H.notification({ type: 'SUCCESS' })
-  } catch {}
+  } catch { /* silent */ }
 }

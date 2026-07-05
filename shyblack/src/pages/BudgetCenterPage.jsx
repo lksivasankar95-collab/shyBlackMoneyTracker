@@ -1,15 +1,15 @@
-import { useState, useMemo, useCallback, useRef } from 'react'
+import { useState, useMemo, useCallback} from 'react'
 import {
   Plus, Trash2, Edit3, Archive, RotateCcw, Target, AlertTriangle,
-  Wallet, TrendingUp, CheckCircle2, X, BarChart3, CircleDollarSign,
-  Calendar, Search,
+  BarChart3, CircleDollarSign,
+  Search,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
-import { BUDGET_PERIODS, BUDGET_HEALTH } from '../utils/budgetUtils'
+import { BUDGET_PERIODS } from '../utils/budgetUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -85,7 +85,7 @@ export default function BudgetCenterPage() {
     }
     setShowForm(false)
     setEditTarget(null)
-  }, [form, editTarget, addBudgetV2, updateBudgetV2, addToast])
+  }, [form, editTarget, addBudgetV2, updateBudgetV2, addToast, t])
 
   const periodOptions = useMemo(() => [
     { value: BUDGET_PERIODS.WEEKLY, label: t('budgets.weekly') },

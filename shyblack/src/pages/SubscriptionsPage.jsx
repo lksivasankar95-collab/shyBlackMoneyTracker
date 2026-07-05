@@ -1,11 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Repeat2, Plus, Trash2, Smartphone, CheckCircle2, XCircle, Calendar, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Repeat2, Plus, Trash2, Smartphone, XCircle, AlertTriangle, ChevronRight } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
 import { getSubscriptionSummary } from '../utils/recurring'
-import { PAYMENT_METHODS } from '../utils/constants'
+
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'

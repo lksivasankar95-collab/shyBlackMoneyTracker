@@ -1,4 +1,4 @@
-import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analytics'
+import { getMonthlyData, getCategoryBreakdown } from './analytics'
 import { getLoggingStreak, getMonthlyScoreHistory } from './insights'
 import { getSubscriptionSummary } from './recurring'
 import { getGoals } from './goals'
@@ -26,8 +26,6 @@ export function generateMonthlyReview(transactions, recurring) {
   const now = new Date()
   const year = now.getFullYear()
   const month = now.getMonth()
-  const prevMonth = month === 0 ? 11 : month - 1
-  const prevYear = month === 0 ? year - 1 : year
 
   const data = getMonthlyData(transactions, 2)
   if (data.length === 0) return null

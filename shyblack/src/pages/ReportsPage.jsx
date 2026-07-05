@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Download, FileText, BarChart3, Calendar, Share2, Save, Loader2, ExternalLink, CheckCircle2, Tag, Globe, FileSpreadsheet, Code, Layers, History } from 'lucide-react'
+import { Download, FileText, BarChart3, Calendar, Share2, Loader2, ExternalLink, CheckCircle2, Tag, FileSpreadsheet, Code, Layers, History } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
-  exportToCSV, generateMonthlyStatement, generateStatementHTML, downloadCSV, downloadHTML,
+  generateMonthlyStatement, generateStatementHTML, downloadHTML,
   transactionsToCsv, downloadCsv, downloadXlsx, exportToExcelWithSummary,
   exportWithChartsToHTML, downloadHtml, generateExportSummary,
   exportByMonth, exportByYear, exportByCategory, exportByCustomRange,
@@ -44,7 +44,7 @@ export default function ReportsPage() {
   const { t } = useTranslation()
   const { transactions, tags } = useFinance()
   const { addToast } = useToast()
-  const now = new Date()
+  const now = useMemo(() => new Date(), [])
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth())
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [reportType, setReportType] = useState('monthly')
@@ -65,7 +65,6 @@ export default function ReportsPage() {
   const [exportWithCharts, setExportWithCharts] = useState(true)
   const [batchExport, setBatchExport] = useState(false)
   const [exportHistory, setExportHistory] = useState([])
-  const [showExportPreview, setShowExportPreview] = useState(false)
 
   const filteredTxs = useMemo(() => {
     let result = [...transactions]
@@ -173,11 +172,6 @@ export default function ReportsPage() {
     setPdfLoading(false)
   }, [filteredTxs, exportFormat, exportScope, batchExport, exportWithCharts, exportSummary, getExportFilename, customDateFrom, customDateTo, customCategory, selectedMonth, selectedYear, now, addToast])
 
-  const handleExportCSV = useCallback(() => {
-    const csv = exportToCSV(filteredTxs)
-    downloadCSV(csv)
-    addToast(t('notifications.csv_exported'), 'success')
-  }, [filteredTxs, addToast, t])
 
   const handleExportStatement = useCallback(() => {
     if (statement) {
@@ -231,7 +225,7 @@ export default function ReportsPage() {
     } finally {
       setPdfLoading(false)
     }
-  }, [transactions, reportType, selectedMonth, selectedYear, dateFrom, dateTo, addToast, t])
+  }, [filteredTxs, reportType, selectedMonth, selectedYear, dateFrom, dateTo, addToast, t])
 
   const handleOpenPDF = useCallback(async () => {
     if (!pdfBlob) return

@@ -18,7 +18,7 @@ export function saveForecastConfig(config) {
 
 export function calculateCashFlowForecast({
   transactions,
-  budgets,
+  budgets: _budgets,
   recurring,
   emis,
   debts,
@@ -30,7 +30,6 @@ export function calculateCashFlowForecast({
   optimisticAdjustment = 1.1,
 }) {
   const now = new Date()
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
 
   // Historical analysis
   const monthlyData = getMonthlyHistory(transactions, 6)

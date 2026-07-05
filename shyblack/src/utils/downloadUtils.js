@@ -1,4 +1,4 @@
-import { Filesystem, Directory, Encoding } from '@capacitor/filesystem'
+import { Filesystem, Directory } from '@capacitor/filesystem'
 import * as privacy from './privacy'
 
 export function dataUriToBlob(dataUri) {
@@ -200,8 +200,6 @@ export async function shareBlob(blob, filename, title) {
 }
 
 export async function openFileNative(blob, filename) {
-  const ext = filename?.split('.').pop()?.toLowerCase() || 'bin'
-  const mimeType = getMimeTypeFromExtension(ext)
 
   const result = await downloadBlob(blob, filename)
   if (!result.success) return result

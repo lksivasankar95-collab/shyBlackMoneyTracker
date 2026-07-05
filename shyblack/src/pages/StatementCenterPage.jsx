@@ -12,7 +12,7 @@ import { useToast } from '../components/Toast'
 
 export default function StatementCenterPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, debts, emis, accounts, documents } = useFinance()
+  const { transactions, debts, emis, accounts } = useFinance()
   const { addToast } = useToast()
 
   const STATEMENT_TYPES = [
@@ -28,17 +28,13 @@ export default function StatementCenterPage({ onNavigate }) {
   const [downloadResult, setDownloadResult] = useState(null)
   const [showDownloadInfo, setShowDownloadInfo] = useState(false)
 
-  const now = new Date()
+  const now = useMemo(() => new Date(), [])
   const months = Array.from({ length: 12 }, (_, i) => {
     const d = new Date(now.getFullYear(), i, 1)
     return { value: i, label: d.toLocaleString('en-US', { month: 'long' }) }
   })
   const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - 2 + i)
 
-  const activeEmis = useMemo(() => {
-    const allEmis = emis.length > 0 ? emis : []
-    return allEmis.filter((e) => e.status !== 'closed')
-  }, [emis])
 
 
 
@@ -87,7 +83,7 @@ export default function StatementCenterPage({ onNavigate }) {
     } finally {
       setGenerating(false)
     }
-  }, [selectedType, config, emis, debts, transactions, accounts, now, addToast])
+  }, [selectedType, config, emis, debts, transactions, accounts, now, addToast, t])
 
   const handleOpenPDF = useCallback(async () => {
     if (!generated?.blob) return
@@ -117,7 +113,7 @@ export default function StatementCenterPage({ onNavigate }) {
     } else if (result.method === 'unsupported') {
       addToast(t('statements.share_unsupported_toast'), 'info')
     }
-  }, [generated, addToast])
+  }, [generated, addToast, t])
 
   if (!selectedType) {
     return (

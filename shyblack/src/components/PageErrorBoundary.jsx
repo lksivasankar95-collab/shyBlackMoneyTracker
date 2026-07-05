@@ -20,7 +20,7 @@ export default class PageErrorBoundary extends Component {
       })
       if (log.length > 10) log.shift()
       sessionStorage.setItem('finora_crash_log', JSON.stringify(log))
-    } catch {}
+    } catch { /* silent */ }
   }
 
   componentDidUpdate(prevProps) {

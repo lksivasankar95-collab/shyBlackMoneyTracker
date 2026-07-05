@@ -1,6 +1,5 @@
 import { formatCurrency } from './helpers'
-import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, ALL_CATEGORIES } from './constants'
-import { getMonthlyData, getCategoryBreakdown } from './analytics'
+import { ALL_CATEGORIES } from './constants'
 import { calculateNetWorth } from './networth'
 import { DEBT_TYPES, DEBT_STATUS } from './debts'
 

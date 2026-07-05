@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   Repeat2, Plus, Trash2, Edit3, Search, Calendar, CheckCircle2, XCircle,
-  ChevronRight, AlertTriangle, Filter, PauseCircle, Play, SkipForward,
+  ChevronRight, AlertTriangle, PauseCircle, Play, SkipForward,
   Bell, BellOff, Shield, Zap, Briefcase, Building2, CreditCard, TrendingUp,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
@@ -9,7 +9,7 @@ import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, ALL_CATEGORIES } from '../utils/constants'
-import { getRecurringStats, advanceNextDate, getRecurringCalendarData, detectDuplicateGeneration } from '../utils/recurring'
+import { getRecurringStats, getRecurringCalendarData, detectDuplicateGeneration } from '../utils/recurring'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -232,10 +232,6 @@ export default function RecurringTransactionsPage() {
     return CATEGORY_COLOR_MAP[catId] || (catId === 'salary' ? 'text-green-400 bg-green-500/10' : 'text-gray-400 bg-gray-500/10')
   }
 
-  const hasDueToday = (item) => {
-    const dup = duplicateStatus.find((d) => d.recurring.id === item.id)
-    return dup ? dup.generatedToday : false
-  }
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">

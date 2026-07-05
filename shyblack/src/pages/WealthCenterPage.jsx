@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
-  ArrowLeft, Plus, Trash2, Edit3, TrendingUp, TrendingDown,
-  Target, BarChart3, PieChart, Heart, Banknote, Building2,
+  ArrowLeft, Plus, Trash2, Edit3, TrendingUp, 
+  Target, PieChart, Banknote, Building2,
   Landmark, CircleDot, Bitcoin, HelpCircle, X, Search,
-  CheckCircle2, Link2, Unlink,
+  
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -45,7 +45,7 @@ export default function WealthCenterPage({ onNavigate }) {
   const {
     wealthAssets, addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb,
     netWorthData, assetAllocation, portfolioSummary, wealthScore,
-    accounts, emis, debts, goals,
+    accounts, goals,
   } = useFinance()
 
   const [activeTab, setActiveTab] = useState(0)
@@ -647,7 +647,6 @@ function HealthTab({ score, netWorthData, portfolioSummary, assetAllocation, for
 }
 
 function AssetFormModal({ form, setForm, editTarget, onClose, onSubmit, goals }) {
-  const [showGoals, setShowGoals] = useState(false)
   const goalOptions = goals || []
 
   return (

@@ -1,4 +1,4 @@
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useMemo, useRef, useEffect } from 'react'
 import { LayoutDashboard, PlusCircle, History, BarChart3, Settings } from 'lucide-react'
 import { useTranslation } from '../i18n'
 
@@ -6,13 +6,13 @@ export default function BottomNav({ active, onNavigate }) {
   const { t } = useTranslation()
   const navRef = useRef(null)
 
-  const navItems = [
+  const navItems = useMemo(() => [
     { id: 'dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
     { id: 'add', label: t('nav.add'), icon: PlusCircle },
     { id: 'history', label: t('nav.history'), icon: History },
     { id: 'analytics', label: t('nav.analytics'), icon: BarChart3 },
     { id: 'settings', label: t('nav.settings'), icon: Settings },
-  ]
+  ], [t])
 
   const handleKeyDown = useCallback((e) => {
     const currentIndex = navItems.findIndex((item) => item.id === active)

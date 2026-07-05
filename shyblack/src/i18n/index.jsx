@@ -25,14 +25,14 @@ function getSavedLanguage() {
   try {
     const saved = localStorage.getItem(LANG_KEY)
     if (saved && SUPPORTED_LANGS.includes(saved)) return saved
-  } catch {}
+  } catch { /* silent */ }
   return DEFAULT_LANG
 }
 
 function saveLanguage(lang) {
   try {
     localStorage.setItem(LANG_KEY, lang)
-  } catch {}
+  } catch { /* silent */ }
 }
 
 i18n.use(initReactI18next).init({
@@ -80,11 +80,13 @@ export function I18nProvider({ children }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTranslation() {
   const ctx = useContext(LanguageContext)
   return { t: ctx.t, lang: ctx.lang, setLang: ctx.setLang, isLoaded: ctx.isLoaded, supportedLanguages: ctx.supportedLanguages }
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useCurrentLanguage() {
   const ctx = useContext(LanguageContext)
   return { lang: ctx.lang, setLang: ctx.setLang, supportedLanguages: ctx.supportedLanguages }

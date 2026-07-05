@@ -1,7 +1,7 @@
-import { useState, useMemo, useRef, useEffect } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
-  TrendingUp, AlertTriangle, DollarSign, Settings,
-  BarChart3, Activity, ChevronDown, ChevronUp,
+  TrendingUp, AlertTriangle, Settings,
+  BarChart3, 
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
@@ -12,7 +12,6 @@ import {
   saveForecastConfig,
 } from '../utils/cashFlowForecast'
 import GlassCard from '../components/GlassCard'
-import EmptyState from '../components/EmptyState'
 
 export default function CashFlowForecastPage() {
   const { t } = useTranslation()

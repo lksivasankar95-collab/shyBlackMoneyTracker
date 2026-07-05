@@ -1,8 +1,8 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback} from 'react'
 import {
   ArrowLeft, Shield, Download, Upload, Trash2, RefreshCw,
-  CheckCircle2, XCircle, AlertTriangle, Clock, HardDrive,
-  FileText, Lock, Unlock, RotateCcw, Eye, Search,
+  XCircle, AlertTriangle, Clock, 
+  FileText, Lock, RotateCcw, 
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
@@ -11,7 +11,7 @@ import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
 import { getBackupGenerations, deleteBackup, clearAllBackups, BACKUP_TYPES } from '../utils/backup'
 import { createManualBackup, createEmergencyBackup, verifyBackup, restoreBackup, performRollback, getBackupHealth, getAutoSnapshots, deleteAutoSnapshot, restoreAutoSnapshot, getBackupDashboardStats } from '../utils/backupManager'
-import { formatCurrency } from '../utils/helpers'
+
 
 const BACKUP_TYPE_LABELS = {
   [BACKUP_TYPES.MANUAL]: 'Manual',
@@ -137,7 +137,7 @@ export default function RecoveryCenterPage({ onNavigate }) {
     setSnapshotRestoreTarget(null)
   }, [snapshotRestoreTarget, addToast, refresh])
 
-  const stats = useMemo(() => getBackupDashboardStats(), [backups])
+  const stats = useMemo(() => getBackupDashboardStats(), [])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in">

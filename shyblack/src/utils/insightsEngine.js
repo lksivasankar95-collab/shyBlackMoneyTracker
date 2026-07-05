@@ -46,7 +46,6 @@ export function generateSpendingInsights(transactions) {
     })
 
     if (monthly.length >= 3) {
-      const prevMonth2 = monthly[monthly.length - 3]
       const prevCat = getCategoryBreakdown(transactions.slice(0, -1), 'expense',
         new Date(now.getFullYear(), now.getMonth() - 1).getFullYear(),
         new Date(now.getFullYear(), now.getMonth() - 1).getMonth()
@@ -235,14 +234,13 @@ export function generateRecurringInsights(recurring) {
   return insights
 }
 
-export function calculateFinancialScore(transactions, budgets, debts, emis, recurring) {
+export function calculateFinancialScore(transactions, budgets, debts, emis, _recurring) {
   if (transactions.length === 0) {
     return { score: 0, grade: 'N/A', summary: 'Not enough data to calculate score.', breakdown: [] }
   }
 
   const monthly = getMonthlyData(transactions, 3)
   const avgIncome = monthly.length > 0 ? monthly.reduce((s, m) => s + m.income, 0) / monthly.length : 0
-  const avgExpense = monthly.length > 0 ? monthly.reduce((s, m) => s + m.expense, 0) / monthly.length : 0
 
   const breakdown = []
   let totalScore = 0
@@ -317,7 +315,7 @@ export function calculateFinancialScore(transactions, budgets, debts, emis, recu
   return { score: finalScore, grade, summary, breakdown }
 }
 
-export function generateSmartRecommendations(transactions, budgets, debts, emis, goals, recurring) {
+export function generateSmartRecommendations(transactions, budgets, debts, emis, _goals, _recurring) {
   const recommendations = []
   const now = new Date()
   const currentMonth = now.getMonth()
@@ -325,7 +323,6 @@ export function generateSmartRecommendations(transactions, budgets, debts, emis,
 
   const monthly = getMonthlyData(transactions, 3)
   const avgIncome = monthly.length > 0 ? monthly.reduce((s, m) => s + m.income, 0) / monthly.length : 0
-  const avgExpense = monthly.length > 0 ? monthly.reduce((s, m) => s + m.expense, 0) / monthly.length : 0
 
   const activeBudgets = (budgets || []).filter((b) => b.active && b.amount > 0)
   for (const b of activeBudgets) {

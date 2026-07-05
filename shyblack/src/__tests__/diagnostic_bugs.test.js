@@ -467,15 +467,17 @@ describe('BUG #5 - Missing translation keys', () => {
     console.log('[BUG#5 PROOF] nav.history key now EXISTS in en.json')
   })
 
-  it('PROOF: Dashboard.jsx line 441 uses t(\'nav.statements_export\')', () => {
+  it('PROOF: Dashboard.jsx uses nav.statements_export translation key', () => {
     const source = fs.readFileSync(
       path.resolve(__dirname, '../pages/Dashboard.jsx'),
       'utf-8'
     )
     const hasStatementsExport = source.includes("t('nav.statements_export')") ||
-      source.includes('t("nav.statements_export")')
+      source.includes('t("nav.statements_export")') ||
+      source.includes("labelKey: 'nav.statements_export'") ||
+      source.includes('labelKey: "nav.statements_export"')
     expect(hasStatementsExport).toBe(true)
-    console.log('[BUG#5 PROOF] Dashboard.jsx contains t(\'nav.statements_export\') ✓')
+    console.log('[BUG#5 PROOF] Dashboard.jsx references nav.statements_export ✓')
     console.log('[BUG#5 PROOF] But nav.statements_export key DOES NOT EXIST in en.json')
   })
 

@@ -629,7 +629,24 @@
     "score_excellent_desc": "ನಿಮ್ಮ ಆರ್ಥಿಕ ಸ್ಥಿತಿ ಉತ್ತಮವಾಗಿದೆ!",
     "score_good_desc": "ನೀವು ಚೆನ್ನಾಗಿ ಮಾಡುತ್ತಿದ್ದೀರಿ, ಮುಂದುವರಿಸಿ!",
     "score_fair_desc": "ಕೆಲವು ಕ್ಷೇತ್ರಗಳಲ್ಲಿ ಗಮನ ಅಗತ್ಯವಿದೆ",
-    "score_poor_desc": "ನಿಮ್ಮ ಹಣಕಾಸನ್ನು ಪರಿಶೀಲಿಸುವ ಸಮಯ"
+    "score_poor_desc": "ನಿಮ್ಮ ಹಣಕಾಸನ್ನು ಪರಿಶೀಲಿಸುವ ಸಮಯ",
+    "overview": "Overview",
+    "details": "Details",
+    "recommendations": "Recommendations",
+    "tips": "Recommendations",
+    "doing_great": "Doing Great!",
+    "doing_great_desc": "Your finances are on track. Keep up the good work!",
+    "overspent_budgets": "Overspent Budgets",
+    "budgets_warning": "Budgets at Warning Level",
+    "budgets_warning_desc": "{{}} budget(s) have reached 80%+ of their limit",
+    "priority_high": "High Priority",
+    "priority_medium": "Medium",
+    "priority_suggestion": "Suggestion",
+    "no_data": "No financial data yet",
+    "no_data_desc": "Add transactions to see your financial health score",
+    "out_of_100": "out of 100",
+    "score_history": "Score History",
+    "vs_last_month": "{{}}{{}} vs last month"
   },
 
   "insights": {

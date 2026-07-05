@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect } from 'react'
-import { Terminal, Database, ShieldCheck, RefreshCw, Users, Repeat2, Tag, X, Camera, HardDrive, Smartphone, FolderOpen, Link2, Wallet, Activity, AlertCircle, Bell } from 'lucide-react'
+import { Terminal, Database, ShieldCheck, RefreshCw, Users, X, Camera, HardDrive, Smartphone, Activity, Bell } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
@@ -8,7 +8,7 @@ import { getActiveAdapterType } from '../utils/storageAdapter'
 import GlassCard from '../components/GlassCard'
 import { getReminderPreference } from '../utils/reminders'
 import { checkNotificationPermission } from '../utils/notifications'
-import { getNotificationDiagnostics as getUnifiedDiagnostics, initializeNotificationChannel } from '../utils/notifications'
+import { getNotificationDiagnostics as getUnifiedDiagnostics} from '../utils/notifications'
 
 async function getNotifPlugin() {
   try {
@@ -112,10 +112,10 @@ export default function DiagnosticsPage({ onNavigate }) {
           } else if (daily?.schedule?.at) {
             nextSchedule = new Date(daily.schedule.at).toLocaleString()
           }
-        } catch {}
+        } catch { /* silent */ }
         try {
           channelInfo = await plugin.getChannel({ id: 'finora_finance' })
-        } catch {}
+        } catch { /* silent */ }
       }
       if (mounted) {
         setNotifDiag({

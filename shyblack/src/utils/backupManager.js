@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { generateId } from './helpers'
-import { getBackupGenerations, saveBackupGenerations, createBackupRecord, getBackupById, deleteBackup, clearAllBackups, verifyBackupIntegrity, validateBackupForRestore, restoreSelectedModules, rollbackToPrevious, getBackupHealthScore, getRollbackTarget, BACKUP_TYPES } from './backup'
+import { getBackupGenerations, createBackupRecord, getBackupById, verifyBackupIntegrity, validateBackupForRestore, restoreSelectedModules, rollbackToPrevious, getBackupHealthScore, BACKUP_TYPES } from './backup'
 import { saveSnapshot } from './snapshotRecovery'
 import { recordBackupEvent } from './backupHealth'
 
@@ -35,7 +35,7 @@ function collectSnapshotData() {
   ]
   const data = {}
   for (const key of keys) {
-    try { data[key] = safeStorage.get(key, null) } catch {}
+    try { data[key] = safeStorage.get(key, null) } catch { /* silent */ }
   }
   return data
 }
@@ -56,7 +56,7 @@ export function deleteAutoSnapshot(id) {
   try {
     const chain = getAutoSnapshots()
     safeStorage.set(SNAPSHOTS_BACKUP_KEY, chain.filter((s) => s.id !== id))
-  } catch {}
+  } catch { /* silent */ }
 }
 
 export function restoreAutoSnapshot(id) {

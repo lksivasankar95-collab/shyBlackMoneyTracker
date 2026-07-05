@@ -1,4 +1,4 @@
-import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft, PieChart, Wallet, Repeat, FileText, DollarSign, ArrowUpCircle, CheckCircle2, AlertCircle } from 'lucide-react'
+import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft, PieChart, Wallet, Repeat, FileText, DollarSign, ArrowUpCircle, AlertCircle } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'

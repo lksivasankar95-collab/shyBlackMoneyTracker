@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
-  Search, Filter, X, Calendar, ArrowUpDown, Tag,
-  ChevronRight, TrendingUp, TrendingDown, FolderOpen, Wallet,
+  Search, Filter, X, ArrowUpDown, Tag,
+  TrendingUp, TrendingDown, FolderOpen, Wallet,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -36,7 +36,7 @@ function useDebounce(value, delay) {
   return debounced
 }
 
-export default function SearchPage({ onNavigate }) {
+export default function SearchPage({ _onNavigate }) {
   const { t } = useTranslation()
   const { transactions, debts, goals } = useFinance()
   const [query, setQuery] = useState('')

@@ -1,13 +1,13 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   Target, Plus, Trash2, TrendingUp, CheckCircle2, ChevronRight,
-  AlertTriangle, Calendar, Clock, PiggyBank, Car, Home, Sparkles,
+  AlertTriangle, PiggyBank, Car, Home, Sparkles,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
-import { createGoal, updateGoal, deleteGoal, getGoalProjection } from '../utils/goals'
+import { getGoalProjection } from '../utils/goals'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -31,10 +31,9 @@ export default function GoalsPage() {
     name: '', target: '', saved: '', monthlyContribution: '', targetDate: '',
   })
 
-  const goals = contextGoals || []
   const goalsProjections = useMemo(
-    () => goals.map((g) => ({ ...g, projection: getGoalProjection(g) })),
-    [goals]
+    () => (contextGoals || []).map((g) => ({ ...g, projection: getGoalProjection(g) })),
+    [contextGoals]
   )
 
   const resetForm = useCallback(() => {
@@ -129,7 +128,7 @@ export default function GoalsPage() {
         </button>
       </div>
 
-      {goals.length === 0 && (
+      {(!contextGoals || contextGoals.length === 0) && (
         <EmptyState
           icon={Target}
           title={t('goals.no_goals')}
@@ -202,7 +201,7 @@ export default function GoalsPage() {
               }
             }
 
-            const dailyRate = g.monthlyContribution > 0
+            const _dailyRate = g.monthlyContribution > 0
               ? Math.round(g.monthlyContribution / 30)
               : 0
 

@@ -1,13 +1,13 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
-  CreditCard, Plus, Minus, CheckCircle2, Clock, AlertTriangle, AlertCircle,
-  BarChart3, Landmark, Calendar, RotateCcw, ChevronDown, ChevronUp,
-  Search, Trash2, Edit3, Lock, Unlock, Calculator, X,
+  CreditCard, Plus, Minus, CheckCircle2, Clock, AlertTriangle, 
+  BarChart3, Landmark, Calendar, RotateCcw, 
+  Search, Trash2, Edit3, Lock, Unlock, Calculator, 
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
-import { EMI_STATUS, FREQUENCY_OPTIONS, FREQUENCIES, getFrequencyLabel, LOAN_TYPES, getLoanTypeLabel, calculateEMI, getEmiDueDate, getEmiPaymentHistory, getEmiStatsForDashboard, getEmiInsights } from '../utils/emi'
+import { EMI_STATUS, FREQUENCY_OPTIONS, FREQUENCIES, getFrequencyLabel, LOAN_TYPES, getLoanTypeLabel, calculateEMI, getEmiDueDate, getEmiStatsForDashboard, getEmiInsights } from '../utils/emi'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -60,7 +60,7 @@ const emptyForm = {
   notes: '',
 }
 
-export default function EmiCenterPage({ onNavigate }) {
+export default function EmiCenterPage({ _onNavigate }) {
   const { t } = useTranslation()
   const { emis, addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, markEmiPaid, undoEmiPayment, emiSummary } = useFinance()
   const { addToast } = useToast()

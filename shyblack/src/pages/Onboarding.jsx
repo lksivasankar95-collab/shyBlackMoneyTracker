@@ -42,7 +42,7 @@ export default function Onboarding({ onComplete }) {
   const [name, setName] = useState('')
   const [currency, setCurrency] = useState('INR')
   const [monthlyIncome, setMonthlyIncome] = useState('')
-  const [savingsGoal, setSavingsGoal] = useState('')
+  const [savingsGoal, _setSavingsGoal] = useState('')
   const [sampleIncome, setSampleIncome] = useState('')
   const [sampleExpense, setSampleExpense] = useState('')
   const [sampleCategory, setSampleCategory] = useState('food')
@@ -65,11 +65,11 @@ export default function Onboarding({ onComplete }) {
 
   const handleNext = useCallback(() => {
     if (step < STEPS.length - 1) setStep((s) => s + 1)
-  }, [step])
+  }, [step, STEPS.length])
 
   const handleBack = useCallback(() => {
     if (step > 0) setStep((s) => s - 1)
-  }, [step])
+  }, [step, STEPS.length])
 
   const handleComplete = useCallback(() => {
     if (!agreePrivacy || !agreeTerms) return

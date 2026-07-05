@@ -1,21 +1,13 @@
-import { getRelationships, getEntityLabel } from './relationships'
+import { getRelationships } from './relationships'
 import { getDocuments, DOCUMENT_CATEGORIES } from './documents'
 import { getEmis } from './emi'
-import { getGoals } from './goals'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
-import { formatCurrency } from './helpers'
 
 export function generateRelationshipInsights() {
   const insights = []
   const rels = getRelationships()
   const docs = getDocuments()
   const emis = getEmis()
-
-  const docCategoryNeeded = {
-    loan: { categories: ['loan', 'emi'], label: 'loan/EMI' },
-    vehicle: { categories: ['vehicle', 'insurance'], label: 'vehicle/insurance' },
-    property: { categories: ['property', 'rental'], label: 'property' },
-  }
 
   for (const doc of docs) {
     if (doc.category === 'insurance') {

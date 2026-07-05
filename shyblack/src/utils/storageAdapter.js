@@ -70,7 +70,7 @@ class LocalStorageAdapter {
     try {
       const keys = this._getAllPrefixedKeys()
       keys.forEach((k) => {
-        try { localStorage.removeItem(k) } catch {}
+        try { localStorage.removeItem(k) } catch { /* silent */ }
       })
       return true
     } catch {
@@ -137,11 +137,11 @@ class LocalStorageAdapter {
     // Round 1 — remove each purgeable key and retry the write
     for (const purgeKey of purgeOrder) {
       if (purgeKey === targetKey) continue
-      try { localStorage.removeItem(purgeKey) } catch {}
+      try { localStorage.removeItem(purgeKey) } catch { /* silent */ }
       try {
         localStorage.setItem(targetKey, serialized)
         return true
-      } catch {}
+      } catch { /* silent */ }
     }
     // Round 2 — try removing OLD snapshot chain entries (safe because they
     // are auto-created and the most recent one is usually sufficient).
@@ -156,10 +156,10 @@ class LocalStorageAdapter {
           try {
             localStorage.setItem(targetKey, serialized)
             return true
-          } catch {}
+          } catch { /* silent */ }
         }
       }
-    } catch {}
+    } catch { /* silent */ }
     return false
   }
 }

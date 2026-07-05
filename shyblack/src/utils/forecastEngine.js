@@ -1,16 +1,9 @@
 import { getMonthlyData } from './analytics'
-import { getGoalProjection } from './goals'
 import { calculateHealthScore } from './financialHealth'
 
 const PERIOD_DAYS = [30, 60, 90, 180, 365]
 
 /* ── helpers ── */
-
-function daysFromNow(n) {
-  const d = new Date()
-  d.setDate(d.getDate() + n)
-  return d
-}
 
 function monthsFromNow(n) {
   const d = new Date()
@@ -48,7 +41,7 @@ export function forecastCashflow({
   recurring = [],
   emis = [],
   debts = [],
-  budgets = {},
+  _budgets = {},
 } = {}) {
   const monthly = monthlyFromTxs(transactions, 6)
   const avgIncome = monthly.length > 0 ? avg(monthly.map((m) => m.income)) : 0
@@ -104,7 +97,6 @@ export function forecastCashflow({
   const lowCashAlerts = []
   for (const p of periods) {
     if (p.expectedCase.projectedBalance < lowCashThreshold) {
-      const pct = PERIOD_DAYS.indexOf(p.periodDays)
       const daysToThreshold = Math.round(p.periodDays * (1 - p.expectedCase.projectedBalance / lowCashThreshold))
       lowCashAlerts.push(`Projected balance may fall below ₹${lowCashThreshold.toLocaleString()} in ${clamp(daysToThreshold, 1, p.periodDays)} days.`)
     }
@@ -238,7 +230,6 @@ export function forecastEmiPayoff(emi, extraMonthly = 0) {
   const monthlyEmi = emi.emiAmount || emi.amount || 0
   const remaining = emi.remainingAmount || 0
   const rate = (emi.interestRate || 0) / 100 / 12
-  const remainingMonths = emi.remainingMonths || 0
 
   const currentMonths = rate > 0 && monthlyEmi > rate * remaining
     ? Math.ceil(Math.log(monthlyEmi / (monthlyEmi - rate * remaining)) / Math.log(1 + rate))
@@ -549,7 +540,7 @@ export function generateForecastRecommendations({
   emis = [],
   debts = [],
   budgets = {},
-  forecastConfig = {},
+  forecastConfig: _forecastConfig = {},
 } = {}) {
   const recs = []
   const cashflow = forecastCashflow({ transactions, emis, debts, budgets })
@@ -671,8 +662,8 @@ export function getForecastDashboardStats({
   debts = [],
   goals = [],
   budgets = {},
-  wealthAssets = [],
-  accounts = [],
+  wealthAssets: _wealthAssets = [],
+  accounts: _accounts = [],
 } = {}) {
   const cashflow = forecastCashflow({ transactions, recurring, emis, debts, budgets })
   const ret = calculateRetirement({

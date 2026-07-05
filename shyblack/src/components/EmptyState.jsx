@@ -52,6 +52,7 @@ const EmptyState = memo(function EmptyState({ icon: Icon, title, description, ac
   )
 })
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function getEmptyStateConfig(page) {
   const configs = {
     transactions: {

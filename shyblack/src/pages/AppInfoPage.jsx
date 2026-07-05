@@ -1,6 +1,5 @@
-import { Info, ChevronRight } from 'lucide-react'
+import { Info } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { useFinance } from '../hooks/useFinance'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { safeStorage } from '../utils/safeStorage'
 import GlassCard from '../components/GlassCard'

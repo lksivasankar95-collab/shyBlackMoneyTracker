@@ -23,9 +23,9 @@ const emptyParsed = {
   confidence: 0,
 }
 
-export default function ReceiptCenterPage({ onNavigate }) {
+export default function ReceiptCenterPage({ _onNavigate }) {
   const { t } = useTranslation()
-  const { receipts, createTransactionFromReceipt, deleteReceiptCb, addReceipt, receiptStats } = useFinance()
+  const { receipts, createTransactionFromReceipt, deleteReceiptCb, receiptStats } = useFinance()
   const { addToast } = useToast()
   const [scanning, setScanning] = useState(false)
   const [progress, setProgress] = useState(0)

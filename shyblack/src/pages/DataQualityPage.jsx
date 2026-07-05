@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import {
-  AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, FileText, Tag, Calendar, Users, Wallet, Link2,
+  AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, FileText, Tag, Calendar, Wallet, Link2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -25,7 +25,7 @@ const SEVERITY_COLORS = {
 
 export default function DataQualityPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, debts, dataQuality } = useFinance()
+  const { transactions, dataQuality } = useFinance()
 
   const checks = useMemo(() => {
     if (!dataQuality || !dataQuality.issues) return []

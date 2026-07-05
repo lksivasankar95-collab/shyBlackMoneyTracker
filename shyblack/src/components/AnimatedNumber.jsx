@@ -25,7 +25,7 @@ export default function AnimatedNumber({ value, format = (v) => v, duration = 60
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [value, duration])
+  }, [value, duration, display])
 
   return <span>{format(display)}</span>
 }

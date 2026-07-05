@@ -1,28 +1,20 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
-  Search, Plus, X, FileText, Image, FolderOpen, Tag, Calendar, ArrowUpDown,
+  Search, Plus, X, FileText, Image, FolderOpen, ArrowUpDown,
   ChevronLeft, Trash2, Edit3, Star, Download, FileType, Share2,
-  CheckCircle2, Loader2, ExternalLink, FileDown,
+  CheckCircle2, Loader2, ExternalLink, 
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatDate } from '../utils/helpers'
 import {
   DOCUMENT_CATEGORIES, DOCUMENT_SORT_OPTIONS, FILTER_DATE_OPTIONS,
-  getDocumentById, getDocumentFileData,
+  getDocumentFileData,
 } from '../utils/documents'
 import { downloadDataUri, shareBlob, dataUriToBlob, downloadDataUriLegacy, openFileNative } from '../utils/downloadUtils'
-import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
 import * as privacy from '../utils/privacy'
-
-const FILE_ICONS = {
-  pdf: FileText,
-  jpg: Image,
-  jpeg: Image,
-  png: Image,
-}
 
 function getCategoryIcon(catId, translate) {
   const cat = DOCUMENT_CATEGORIES.find((c) => c.id === catId)
@@ -76,7 +68,6 @@ export default function DocumentVaultPage({ onNavigate }) {
   })
   const [editingDoc, setEditingDoc] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
-  const [viewerBlobUrl, setViewerBlobUrl] = useState(null)
   const viewerRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
@@ -670,7 +661,7 @@ export default function DocumentVaultPage({ onNavigate }) {
 
       {/* Document Viewer */}
       {showViewer && selectedDoc && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm" onClick={() => { setShowViewer(false); setZoomLevel(1); if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null }; setViewerBlobUrl(null) }}>
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/90 backdrop-blur-sm" onClick={() => { setShowViewer(false); setZoomLevel(1); if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null } setViewerBlobUrl(null) }}>
           {/* Viewer Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-glass-border">
             <div className="flex items-center gap-3 min-w-0">
@@ -830,7 +821,7 @@ export default function DocumentVaultPage({ onNavigate }) {
                     try {
                       const { Share } = await import('@capacitor/share')
                       await Share.share({ url: downloadResult.uri })
-                    } catch {}
+                    } catch { /* silent */ }
                   }}
                   className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-sm font-medium hover:bg-white/[0.08] transition-colors flex items-center justify-center gap-2"
                 >

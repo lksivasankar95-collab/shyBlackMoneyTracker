@@ -13,11 +13,15 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
   const dueWithin7 = emiSummary?.dueWithin7 || []
 
   const nextDueItems = useMemo(() => {
+    const innerOverdue = emiSummary?.overdue || []
+    const innerDueToday = emiSummary?.dueToday || []
+    const innerDueTomorrow = emiSummary?.dueTomorrow || []
+    const innerDueWithin7 = emiSummary?.dueWithin7 || []
     const items = [
-      ...overdue.map((e) => ({ ...e, _priority: 0, _labelKey: 'overdue' })),
-      ...dueToday.map((e) => ({ ...e, _priority: 1, _labelKey: 'due_today' })),
-      ...dueTomorrow.map((e) => ({ ...e, _priority: 2, _labelKey: 'due_tomorrow' })),
-      ...dueWithin7.filter((e) => !e.isDueToday && !e.isDueTomorrow).map((e) => ({
+      ...innerOverdue.map((e) => ({ ...e, _priority: 0, _labelKey: 'overdue' })),
+      ...innerDueToday.map((e) => ({ ...e, _priority: 1, _labelKey: 'due_today' })),
+      ...innerDueTomorrow.map((e) => ({ ...e, _priority: 2, _labelKey: 'due_tomorrow' })),
+      ...innerDueWithin7.filter((e) => !e.isDueToday && !e.isDueTomorrow).map((e) => ({
         ...e, _priority: 3,
         _labelKey: 'due_in_days',
         _dueInDays: e.dueInDays,
@@ -25,7 +29,7 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
     ]
     items.sort((a, b) => a._priority - b._priority)
     return items.slice(0, 5)
-  }, [overdue, dueToday, dueTomorrow, dueWithin7])
+  }, [emiSummary])
 
   const hasData = emiSummary && (emiSummary.totalActive > 0 || nextDueItems.length > 0)
 

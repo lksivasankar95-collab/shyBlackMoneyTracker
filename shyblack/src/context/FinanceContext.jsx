@@ -43,6 +43,7 @@ import { getReceipts, saveReceipts, createReceipt as createReceiptUtil, updateRe
 import { getWealthAssets, saveWealthAssets, createWealthAsset as createWealthAssetUtil, updateWealthAsset as updateWealthAssetUtil, deleteWealthAsset as deleteWealthAssetUtil, calculateNetWorth, getNetWorthHistory, getAssetAllocation, getPortfolioSummary, calculateWealthScore, getWealthDashboardStats, linkAssetToGoal as linkAssetToGoalUtil, unlinkAssetFromGoal as unlinkAssetFromGoalUtil, getAssetsByGoal as getAssetsByGoalUtil } from '../utils/wealthUtils'
 import { snapshotBeforeClearAll, snapshotBeforeBulkDelete, getBackupDashboardStats, createManualBackup, getAutoSnapshots, deleteAutoSnapshot, restoreAutoSnapshot } from '../utils/backupManager'
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
 
 function isValidTransaction(t) {
@@ -176,7 +177,7 @@ export function FinanceProvider({ children }) {
       try {
         safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactions)
         saveSnapshot(transactions, savingsGoalRef.current)
-      } catch {}
+      } catch { /* silent */ }
     }, 300)
     return () => { if (txPersistTimer.current) clearTimeout(txPersistTimer.current) }
   }, [transactions])
@@ -190,7 +191,7 @@ export function FinanceProvider({ children }) {
         try {
           safeStorage.set(STORAGE_KEYS.TRANSACTIONS, transactionsRef.current)
           saveSnapshot(transactionsRef.current, savingsGoalRef.current)
-        } catch {}
+        } catch { /* silent */ }
       }
     }
   }, [])
@@ -214,19 +215,19 @@ export function FinanceProvider({ children }) {
           const accts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
           const dts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
           saveNetWorthSnapshot(transactionsRef.current, dts, accts)
-        } catch {}
+        } catch { /* silent */ }
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
     return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
-  useEffect(() => { try { safeStorage.set(STORAGE_KEYS.SAVINGS, savingsGoal) } catch {} }, [savingsGoal])
-  useEffect(() => { try { saveBudgets(budgets) } catch {} }, [budgets])
-  useEffect(() => { try { saveRecurringTransactions(recurring) } catch {} }, [recurring])
-  useEffect(() => { try { saveBudgetsV2(budgetsV2) } catch {} }, [budgetsV2])
-  useEffect(() => { try { saveReceipts(receipts) } catch {} }, [receipts])
-  useEffect(() => { try { saveWealthAssets(wealthAssets) } catch {} }, [wealthAssets])
+  useEffect(() => { try { safeStorage.set(STORAGE_KEYS.SAVINGS, savingsGoal) } catch { /* silent */ } }, [savingsGoal])
+  useEffect(() => { try { saveBudgets(budgets) } catch { /* silent */ } }, [budgets])
+  useEffect(() => { try { saveRecurringTransactions(recurring) } catch { /* silent */ } }, [recurring])
+  useEffect(() => { try { saveBudgetsV2(budgetsV2) } catch { /* silent */ } }, [budgetsV2])
+  useEffect(() => { try { saveReceipts(receipts) } catch { /* silent */ } }, [receipts])
+  useEffect(() => { try { saveWealthAssets(wealthAssets) } catch { /* silent */ } }, [wealthAssets])
 
   const isFirstMount = useRef(true)
   useEffect(() => {
@@ -263,18 +264,18 @@ export function FinanceProvider({ children }) {
             ),
           }))
         })
-      } catch {}
+      } catch { /* silent */ }
     }, 1500)
     return () => clearTimeout(timer)
-  }, [])
-  useEffect(() => { try { saveTags(tags) } catch {} }, [tags])
-  useEffect(() => { try { saveSecuritySettings(security) } catch {} }, [security])
-  useEffect(() => { try { saveDebts(debts) } catch {} }, [debts])
-  useEffect(() => { try { saveGoals(goals) } catch {} }, [goals])
-  useEffect(() => { try { saveTemplates(templates) } catch {} }, [templates])
-  useEffect(() => { try { saveEmis(emis) } catch {} }, [emis])
-  useEffect(() => { try { saveAccounts(accounts) } catch {} }, [accounts])
-  useEffect(() => { try { saveDocuments(documents) } catch {} }, [documents])
+  }, [recurring, transactions])
+  useEffect(() => { try { saveTags(tags) } catch { /* silent */ } }, [tags])
+  useEffect(() => { try { saveSecuritySettings(security) } catch { /* silent */ } }, [security])
+  useEffect(() => { try { saveDebts(debts) } catch { /* silent */ } }, [debts])
+  useEffect(() => { try { saveGoals(goals) } catch { /* silent */ } }, [goals])
+  useEffect(() => { try { saveTemplates(templates) } catch { /* silent */ } }, [templates])
+  useEffect(() => { try { saveEmis(emis) } catch { /* silent */ } }, [emis])
+  useEffect(() => { try { saveAccounts(accounts) } catch { /* silent */ } }, [accounts])
+  useEffect(() => { try { saveDocuments(documents) } catch { /* silent */ } }, [documents])
 
   useEffect(() => {
     if (transactions.length < 3) return
@@ -283,7 +284,7 @@ export function FinanceProvider({ children }) {
       try {
         const overspend = detectOverspending(transactions)
         if (overspend) setNotification(overspend)
-      } catch {}
+      } catch { /* silent */ }
     }, 1000)
     return () => { if (overspendTimer.current) clearTimeout(overspendTimer.current) }
   }, [transactions])
@@ -292,7 +293,7 @@ export function FinanceProvider({ children }) {
     try {
       const updated = recalculateBudgetSpending(allTx || transactionsRef.current)
       setState((prev) => ({ ...prev, budgetsV2: updated }))
-    } catch {}
+    } catch { /* silent */ }
   }, [])
 
   const addBudgetV2 = useCallback((data) => {
@@ -369,7 +370,7 @@ export function FinanceProvider({ children }) {
         try {
           const updated = recalculateBudgetSpending(remaining)
           return { ...prev, transactions: remaining, budgetsV2: updated }
-        } catch {}
+        } catch { /* silent */ }
       }
       return { ...prev, transactions: remaining }
     })
@@ -384,7 +385,7 @@ export function FinanceProvider({ children }) {
         try {
           const recalc = recalculateBudgetSpending(updated)
           return { ...prev, transactions: updated, budgetsV2: recalc }
-        } catch {}
+        } catch { /* silent */ }
       }
       return { ...prev, transactions: updated }
     })
@@ -887,7 +888,7 @@ export function FinanceProvider({ children }) {
       }
     }, 400)
     return () => { if (insightsTimerRef.current) clearTimeout(insightsTimerRef.current) }
-  }, [transactions, savingsGoal])
+  }, [transactions, savingsGoal, debts])
 
   const insights = debouncedInsights
 
@@ -1126,11 +1127,11 @@ export function FinanceProvider({ children }) {
 
   const snapshotDiagnostics = useMemo(() => {
     try { return getRecoveryChainSummary() } catch { return null }
-  }, [transactions])
+  }, [])
 
   const storageCorruptionReport = useMemo(() => {
     try { return detectCorruption() } catch { return [] }
-  }, [transactions])
+  }, [])
 
   const backupHealth = useMemo(() => {
     try { return getBackupHealth() } catch { return { status: 'unknown', message: '' } }
@@ -1258,7 +1259,7 @@ export function FinanceProvider({ children }) {
 
   const documentStats = useMemo(() => {
     try { return getDocumentStats() } catch { return { total: 0, totalFileSize: 0, thisMonth: 0, byCategory: {}, recent: [] } }
-  }, [documents])
+  }, [])
 
   const dataQuality = useMemo(() => {
     try {
@@ -1327,7 +1328,7 @@ export function FinanceProvider({ children }) {
 
   const backupDashboardStats = useMemo(() => {
     try { return getBackupDashboardStats() } catch { return { backupCount: 0, latestBackupAt: null, healthScore: 0, healthGrade: 'F', healthStatus: 'critical', totalSize: 0 } }
-  }, [backupVersion])
+  }, [])
 
   const handleCreateBackup = useCallback(async () => {
     try {

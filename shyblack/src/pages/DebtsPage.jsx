@@ -1,9 +1,9 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
-  ArrowUpRight, ArrowDownLeft, Handshake, Plus, Wallet,
-  AlertTriangle, DollarSign, Search, X, CheckCircle2,
-  User, Clock, FileText, RotateCcw, Pencil, Trash2,
-  Filter, ArrowUpDown,
+  ArrowUpRight, ArrowDownLeft, Handshake, Plus, 
+  Search, X, CheckCircle2,
+  User, FileText, RotateCcw, Pencil, Trash2,
+  ArrowUpDown,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -67,10 +67,10 @@ function PaymentRow({ payment, onEdit, onDelete }) {
   )
 }
 
-export default function DebtsPage({ onNavigate }) {
+export default function DebtsPage({ _onNavigate }) {
   const { t } = useTranslation()
   const {
-    debts, addDebt, deleteDebt, recordRepayment,
+    debts, addDebt, deleteDebt, 
     addLedgerPayment, undoLedgerPayment, editLedgerPayment,
     deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
   } = useFinance()

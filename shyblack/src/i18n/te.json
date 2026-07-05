@@ -629,7 +629,24 @@
     "score_excellent_desc": "మీ ఆర్థిక పరిస్థితి చాలా బాగుంది!",
     "score_good_desc": "మీరు బాగా చేస్తున్నారు, కొనసాగించండి!",
     "score_fair_desc": "కొన్ని ప్రాంతాలపై దృష్టి అవసరం",
-    "score_poor_desc": "మీ ఆర్థిక స్థితిని సమీక్షించాల్సిన సమయం"
+    "score_poor_desc": "మీ ఆర్థిక స్థితిని సమీక్షించాల్సిన సమయం",
+    "overview": "Overview",
+    "details": "Details",
+    "recommendations": "Recommendations",
+    "tips": "Recommendations",
+    "doing_great": "Doing Great!",
+    "doing_great_desc": "Your finances are on track. Keep up the good work!",
+    "overspent_budgets": "Overspent Budgets",
+    "budgets_warning": "Budgets at Warning Level",
+    "budgets_warning_desc": "{{}} budget(s) have reached 80%+ of their limit",
+    "priority_high": "High Priority",
+    "priority_medium": "Medium",
+    "priority_suggestion": "Suggestion",
+    "no_data": "No financial data yet",
+    "no_data_desc": "Add transactions to see your financial health score",
+    "out_of_100": "out of 100",
+    "score_history": "Score History",
+    "vs_last_month": "{{}}{{}} vs last month"
   },
 
   "insights": {

@@ -1,70 +1,177 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect} from 'react'
 import {
   Heart, TrendingDown, Target, CheckCircle, Lightbulb, Activity,
   ArrowUpRight, ArrowDownRight, Shield, BarChart3, PiggyBank,
-  Umbrella, TrendingUp as ChartUp,
+  Umbrella, TrendingUp as ChartUp, ArrowLeft, AlertTriangle,
+  DollarSign, Clock, RefreshCw, Award, TrendingUp,
 } from 'lucide-react'
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
   calculateHealthScore, getHealthHistory, getScoreVelocity,
 } from '../utils/financialHealth'
+import {
+  calculateScore2, detectRisks, generateRecommendations2,
+  loadScoreHistory, saveScoreSnapshot, getHistoryView,
+  getScoreTrend,
+} from '../utils/healthScore2'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
-const CATEGORY_ICONS = {
-  savingsRate: PiggyBank,
-  expenseControl: TrendingDown,
-  emergencyFund: Umbrella,
-  debtRatio: Shield,
-  budgetPerformance: Target,
-  incomeStability: Activity,
-}
-
 const CATEGORY_COLORS = {
-  savingsRate: '#39ff14',
-  expenseControl: '#f97316',
-  emergencyFund: '#06b6d4',
-  debtRatio: '#ef4444',
-  budgetPerformance: '#a855f7',
   incomeStability: '#3b82f6',
+  savingsScore: '#39ff14',
+  expenseControl: '#f97316',
+  budgetDiscipline: '#a855f7',
+  cashFlowHealth: '#06b6d4',
+  debtHealth: '#ef4444',
+  goalProgress: '#22c55e',
+  netWorthGrowth: '#f59e0b',
+  tradingCashMgmt: '#ec4899',
+  emergencyFundHealth: '#14b8a6',
+  recurringPaymentStability: '#8b5cf6',
+  financialConsistency: '#6366f1',
 }
 
-function formatCategoryDetail(detail) {
-  if (!detail) return ''
-  return detail
+const CATEGORY_ICONS = {
+  incomeStability: TrendingUp,
+  savingsScore: PiggyBank,
+  expenseControl: TrendingDown,
+  budgetDiscipline: Target,
+  cashFlowHealth: DollarSign,
+  debtHealth: Shield,
+  goalProgress: Award,
+  netWorthGrowth: ChartUp,
+  tradingCashMgmt: Activity,
+  emergencyFundHealth: Umbrella,
+  recurringPaymentStability: Clock,
+  financialConsistency: RefreshCw,
 }
 
-export default function FinancialHealthPage() {
+const RISK_ICONS = {
+  overspending: TrendingDown,
+  negative_cashflow: DollarSign,
+  high_debt: Shield,
+  low_savings: PiggyBank,
+  budget_violations: Target,
+  recurring_payment_risk: Clock,
+  goal_delay: Award,
+  trading_risk: Activity,
+  emergency_fund_risk: Umbrella,
+  income_instability: TrendingUp,
+}
+
+
+function ScoreGauge({ score }) {
+  const color = score >= 80 ? '#39ff14' : score >= 70 ? '#22c55e' : score >= 60 ? '#eab308' : score >= 40 ? '#f97316' : '#ef4444'
+  const circumference = 251.2
+  const offset = circumference - (score / 100) * circumference
+  return (
+    <div className="relative inline-flex items-center justify-center mb-2">
+      <svg width="96" height="96" viewBox="0 0 96 96" className="transform -rotate-90">
+        <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
+        <circle
+          cx="48" cy="48" r="40"
+          fill="none"
+          stroke={color}
+          strokeWidth="6"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 1s ease-out' }}
+        />
+      </svg>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <span className="text-3xl font-extrabold tracking-tight text-gradient-brand">{score}</span>
+      </div>
+    </div>
+  )
+}
+
+function LevelBadge({ level }) {
+  const colors = {
+    Excellent: 'bg-neon/10 text-neon',
+    'Very Good': 'bg-emerald-500/10 text-emerald-400',
+    Good: 'bg-green-500/10 text-green-400',
+    Average: 'bg-yellow-500/10 text-yellow-400',
+    'Needs Improvement': 'bg-orange-500/10 text-orange-400',
+    Critical: 'bg-red-500/10 text-red-400',
+  }
+  return (
+    <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${colors[level] || 'bg-gray-500/10 text-gray-400'}`}>
+      {level}
+    </span>
+  )
+}
+
+export default function FinancialHealthPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, budgets, debts, goals, budgetsV2, savingsGoal, smartRecommendations, spendingInsights, emiInsightsData, debtInsightsData, recurringInsightsData, budgetHealthV2, overspentCategories } = useFinance()
+  const {
+    transactions, budgets, debts, goals, budgetsV2, savingsGoal,
+    smartRecommendations, spendingInsights, emiInsightsData,
+    debtInsightsData, recurringInsightsData, budgetHealthV2,
+    overspentCategories, recurring, netWorthHistory,
+  } = useFinance()
   const [activeTab, setActiveTab] = useState('overview')
+  const [historyRange, setHistoryRange] = useState(6)
 
-  const health = useMemo(
-    () => calculateHealthScore(transactions, budgets, debts, goals, budgetsV2, savingsGoal),
-    [transactions, budgets, debts, goals, budgetsV2, savingsGoal]
+
+  const scoreResults = useMemo(
+    () => calculateScore2(transactions, budgetsV2, debts, goals, recurring, netWorthHistory),
+    [transactions, budgetsV2, debts, goals, recurring, netWorthHistory]
   )
 
-  const history = useMemo(
+  const risks = useMemo(
+    () => detectRisks(transactions, budgetsV2, debts, goals, recurring),
+    [transactions, budgetsV2, debts, goals, recurring]
+  )
+
+  const recommendations2 = useMemo(
+    () => generateRecommendations2(scoreResults.results || {}, risks),
+    [scoreResults.results, risks]
+  )
+
+  const oldHistory = useMemo(
     () => getHealthHistory(transactions, budgets, debts, goals, 6, budgetsV2, savingsGoal),
     [transactions, budgets, debts, goals, budgetsV2, savingsGoal]
   )
 
-  const velocity = useMemo(() => getScoreVelocity(history), [history])
+  const velocity = useMemo(() => getScoreVelocity(oldHistory), [oldHistory])
+
+  const savedHistory = useMemo(() => loadScoreHistory(), [])
+  const historyView = useMemo(() => getHistoryView(savedHistory, historyRange), [savedHistory, historyRange])
+
+  const trend = useMemo(() => getScoreTrend(historyView), [historyView])
+
+  useEffect(() => {
+    if (scoreResults.overall > 0) {
+      saveScoreSnapshot(scoreResults.overall, scoreResults.categories.map((c) => ({ key: c.key, score: c.score })))
+    }
+  }, [scoreResults.overall, scoreResults.categories])
 
   const allInsights = useMemo(() => {
     return [...spendingInsights, ...emiInsightsData, ...debtInsightsData, ...recurringInsightsData]
   }, [spendingInsights, emiInsightsData, debtInsightsData, recurringInsightsData])
 
   const hasData = transactions.length > 0
-  const hasHistory = history.some((h) => h.score !== null)
+  const hasHistory = savedHistory.length > 0 || oldHistory.some((h) => h.score !== null)
 
   if (!hasData) {
     return (
-      <div className="p-4 max-w-lg mx-auto animate-fade-in">
-        <h1 className="text-xl font-bold mb-6">{t('health.title')}</h1>
+      <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
+        <div className="flex items-center gap-2.5 mb-5">
+          {onNavigate && (
+            <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05]">
+              <ArrowLeft size={18} className="text-gray-400" />
+            </button>
+          )}
+          <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
+            <Heart size={18} className="text-neon" />
+          </div>
+          <h1 className="text-xl font-bold">{t('health.title')}</h1>
+        </div>
         <GlassCard>
           <EmptyState
             icon={Heart}
@@ -79,59 +186,45 @@ export default function FinancialHealthPage() {
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center gap-2.5 mb-5">
+        {onNavigate && (
+          <button onClick={() => onNavigate('dashboard')} className="p-2 -ml-2 rounded-xl hover:bg-white/[0.05]">
+            <ArrowLeft size={18} className="text-gray-400" />
+          </button>
+        )}
         <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
           <Heart size={18} className="text-neon" />
         </div>
-        <h1 className="text-xl font-bold">{t('health.title')}</h1>
+        <h1 className="text-xl font-bold">{t('health.title')} 2.0</h1>
       </div>
 
-      {/* Score Gauge */}
       <GlassCard brand className="mb-4 text-center">
-        <div className="relative inline-flex items-center justify-center mb-2">
-          <svg width="96" height="96" viewBox="0 0 96 96" className="transform -rotate-90">
-            <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="6" />
-            <circle
-              cx="48" cy="48" r="40"
-              fill="none"
-              stroke={health.score >= 60 ? '#39ff14' : health.score >= 40 ? '#eab308' : '#ef4444'}
-              strokeWidth="6"
-              strokeLinecap="round"
-              strokeDasharray={`${(health.score / 100) * 251.2} 251.2`}
-              style={{
-                transition: 'stroke-dasharray 1s ease-out',
-                filter: `drop-shadow(0 0 6px ${health.score >= 60 ? 'rgba(57,255,20,0.3)' : health.score >= 40 ? 'rgba(234,179,8,0.3)' : 'rgba(239,68,68,0.3)'})`,
-              }}
-            />
-          </svg>
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-3xl font-extrabold tracking-tight text-gradient-brand">{health.score}</span>
-          </div>
-        </div>
-        <div className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-          health.level === 'Excellent' ? 'bg-neon/10 text-neon' :
-          health.level === 'Good' ? 'bg-green-500/10 text-green-400' :
-          health.level === 'Fair' ? 'bg-yellow-500/10 text-yellow-400' :
-          'bg-red-500/10 text-red-400'
-        }`}>
-          {t(`health.${health.level.toLowerCase()}`)}
-        </div>
-        <p className="text-[11px] text-gray-500 mt-2">{t('health.out_of_100')}</p>
+        <ScoreGauge score={scoreResults.overall} />
+        <LevelBadge level={scoreResults.level} />
+        <p className="text-[11px] text-gray-500 mt-2">out of 100</p>
 
-        {velocity && (
-          <div className="flex items-center justify-center gap-1.5 mt-2">
-            {velocity.direction === 'up' ? (
-              <ArrowUpRight size={14} className="text-neon" />
-            ) : velocity.direction === 'down' ? (
-              <ArrowDownRight size={14} className="text-red-400" />
-            ) : null}
-            <span className={`text-xs font-medium ${velocity.direction === 'up' ? 'text-neon' : velocity.direction === 'down' ? 'text-red-400' : 'text-gray-500'}`}>
-              {t('health.vs_last_month', { sign: velocity.direction === 'up' ? '+' : '', delta: velocity.delta })}
-            </span>
+        {historyView.length >= 2 && (
+          <div className="flex items-center justify-center gap-3 mt-2">
+            {trend.direction !== 'stable' && (
+              <>
+                {trend.direction === 'up' ? (
+                  <ArrowUpRight size={14} className="text-neon" />
+                ) : (
+                  <ArrowDownRight size={14} className="text-red-400" />
+                )}
+                <span className={`text-xs font-medium ${trend.direction === 'up' ? 'text-neon' : 'text-red-400'}`}>
+                  {trend.change > 0 ? '+' : ''}{trend.change} vs last month
+                </span>
+              </>
+            )}
+            {velocity && (
+              <span className={`text-[10px] ${velocity.direction === 'up' ? 'text-neon' : velocity.direction === 'down' ? 'text-red-400' : 'text-gray-500'}`}>
+                (legacy: {velocity.delta > 0 ? '+' : ''}{velocity.delta})
+              </span>
+            )}
           </div>
         )}
       </GlassCard>
 
-      {/* Tab Switcher */}
       <div className="flex bg-matte-100 rounded-lg p-0.5 mb-4">
         {['overview', 'details', 'recommendations'].map((v) => (
           <button
@@ -148,91 +241,31 @@ export default function FinancialHealthPage() {
 
       {activeTab === 'overview' && (
         <>
-          {/* Radar-like Bar Chart */}
-          {hasHistory && (
-            <GlassCard brand className="mb-4">
+          {scoreResults.categories.length > 0 && (
+            <GlassCard className="mb-4">
               <div className="flex items-center gap-2 mb-3">
-                <Activity size={14} className="text-neon" />
-                <h2 className="text-sm font-semibold">{t('health.category_breakdown') || 'Category Breakdown'}</h2>
+                <BarChart3 size={14} className="text-blue-400" />
+                <h2 className="text-sm font-semibold text-gray-300">All Categories</h2>
               </div>
-              <div className="h-40 -mx-1">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={health.categories.map((c) => ({ ...c, pct: c.max > 0 ? Math.round((c.score / c.max) * 100) : 0 }))} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <XAxis dataKey="label" tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
-                    <Tooltip
-                      contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }}
-                      labelStyle={{ color: '#9ca3af' }}
-                      formatter={(value, name, props) => [`${props.payload.score}/${props.payload.max}`, props.payload.label]}
-                    />
-                    <Bar dataKey="pct" radius={[3, 3, 0, 0]} maxBarSize={32}>
-                      {health.categories.map((entry, idx) => (
-                        <Cell key={idx} fill={CATEGORY_COLORS[entry.key] || '#39ff14'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </GlassCard>
-          )}
-
-          {/* Category Scores */}
-          <div className="space-y-2.5 mb-4">
-            {health.categories.map((cat) => {
-              const Icon = CATEGORY_ICONS[cat.key] || Activity
-              const pct = cat.max > 0 ? (cat.score / cat.max) * 100 : 0
-              return (
-                <GlassCard key={cat.key}>
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-neon/10 shrink-0">
-                      <Icon size={15} className="text-neon" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs font-medium">{cat.label}</span>
-                        <span className="text-xs font-semibold tabular-nums">{cat.score}/{cat.max}</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-matte-200 rounded-full overflow-hidden">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${Math.max(pct, 2)}%`,
-                            background: pct >= 70
-                              ? 'linear-gradient(90deg, #39ff14, #22c55e)'
-                              : pct >= 40
-                                ? 'linear-gradient(90deg, #eab308, #f97316)'
-                                : 'linear-gradient(90deg, #ef4444, #dc2626)',
-                          }}
-                        />
-                      </div>
-                      <p className="text-[10px] text-gray-500 mt-1">{cat.detail}</p>
-                    </div>
-                  </div>
-                </GlassCard>
-              )
-            })}
-          </div>
-
-          {/* Month-over-Month Comparison */}
-          {history.filter((h) => h.score !== null).length >= 2 && (
-            <GlassCard brand className="mb-4">
-              <div className="flex items-center gap-2 mb-3">
-                <ChartUp size={14} className="text-neon" />
-                <h2 className="text-sm font-semibold">{t('health.month_comparison') || 'Month Comparison'}</h2>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {history.filter((h) => h.score !== null).slice(-3).map((h, i, arr) => {
-                  const prev = arr[i - 1]
-                  const change = prev ? h.score - prev.score : 0
+              <div className="space-y-2">
+                {scoreResults.categories.map((cat) => {
+                  const Icon = CATEGORY_ICONS[cat.key] || Activity
+                  const color = CATEGORY_COLORS[cat.key] || '#6366f1'
                   return (
-                    <div key={h.label} className="text-center p-2 rounded-lg bg-white/[0.03]">
-                      <p className="text-[10px] text-gray-500">{h.label}</p>
-                      <p className="text-sm font-bold text-white">{h.score}</p>
-                      {prev && (
-                        <span className={`text-[9px] font-medium ${change >= 0 ? 'text-neon' : 'text-red-400'}`}>
-                          {change >= 0 ? '+' : ''}{change}
-                        </span>
-                      )}
+                    <div key={cat.key} className="flex items-center gap-2.5">
+                      <Icon size={12} className="shrink-0" style={{ color }} />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-0.5">
+                          <span className="text-[10px] text-gray-400 font-medium">{cat.label}</span>
+                          <span className="text-[10px] font-semibold tabular-nums">{cat.score}</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                          <div
+                            className="h-full rounded-full transition-all duration-500"
+                            style={{ width: `${cat.score}%`, backgroundColor: color }}
+                          />
+                        </div>
+                      </div>
                     </div>
                   )
                 })}
@@ -240,23 +273,119 @@ export default function FinancialHealthPage() {
             </GlassCard>
           )}
 
-          {/* Score History */}
-          {hasHistory && (
-            <GlassCard brand>
+          {risks.length > 0 && (
+            <GlassCard className="mb-4">
               <div className="flex items-center gap-2 mb-3">
-                <Activity size={14} className="text-neon" />
-                <h2 className="text-sm font-semibold">{t('health.score_history')}</h2>
+                <AlertTriangle size={14} className="text-amber-400" />
+                <h2 className="text-sm font-semibold text-gray-300">Risk Indicators ({risks.length})</h2>
               </div>
-              <div className="h-28 -mx-1">
+              <div className="space-y-1.5">
+                {risks.map((risk, i) => {
+                  const Icon = RISK_ICONS[risk.type] || AlertTriangle
+                  const borderColor = risk.severity === 'high' ? 'border-red-500/20' : risk.severity === 'warning' ? 'border-amber-500/20' : 'border-blue-500/20'
+                  return (
+                    <div key={i} className={`flex items-start gap-2.5 p-2.5 rounded-lg bg-white/[0.03] border ${borderColor}`}>
+                      <Icon size={14} className={`shrink-0 mt-0.5 ${risk.severity === 'high' ? 'text-red-400' : risk.severity === 'warning' ? 'text-amber-400' : 'text-blue-400'}`} />
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-medium text-gray-300">{risk.message}</p>
+                        <p className="text-[9px] text-gray-500 mt-0.5">{risk.detail}</p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </GlassCard>
+          )}
+
+          {hasHistory && (
+            <>
+              <div className="flex gap-1.5 mb-3">
+                {[1, 3, 6, 12].map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setHistoryRange(m)}
+                    className={`px-3 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                      historyRange === m
+                        ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                        : 'text-gray-500 hover:text-white'
+                    }`}
+                  >
+                    {m}m
+                  </button>
+                ))}
+              </div>
+
+              {historyView.length >= 2 && (
+                <GlassCard className="mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ChartUp size={14} className="text-emerald-400" />
+                    <h2 className="text-sm font-semibold text-gray-300">Score Trend ({historyRange}m)</h2>
+                    {trend.direction !== 'stable' && (
+                      <span className={`text-[10px] font-medium ml-auto ${trend.direction === 'up' ? 'text-emerald-400' : 'text-red-400'}`}>
+                        {trend.direction === 'up' ? '+' : ''}{Math.round(trend.change)}
+                      </span>
+                    )}
+                  </div>
+                  <div className="h-24 -mx-1">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={historyView} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                        <XAxis dataKey="month" tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} tickFormatter={(v) => v.slice(5)} />
+                        <YAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
+                        <Tooltip
+                          contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }}
+                          labelStyle={{ color: '#9ca3af' }}
+                        />
+                        <Line type="monotone" dataKey="score" stroke="#39ff14" strokeWidth={2} dot={{ r: 2, fill: '#39ff14' }} connectNulls />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </GlassCard>
+              )}
+
+              {historyView.length >= 2 && (
+                <GlassCard className="mb-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Activity size={14} className="text-blue-400" />
+                    <h2 className="text-sm font-semibold text-gray-300">Month Comparison</h2>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {historyView.slice(-4).map((h, i, arr) => {
+                      const prev = arr[i - 1]
+                      const change = prev ? h.score - prev.score : 0
+                      return (
+                        <div key={h.month} className="text-center p-2 rounded-lg bg-white/[0.03]">
+                          <p className="text-[9px] text-gray-500">{h.month.slice(5)}</p>
+                          <p className="text-sm font-bold text-white">{h.score}</p>
+                          {prev && (
+                            <span className={`text-[8px] font-medium ${change >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                              {change >= 0 ? '+' : ''}{change}
+                            </span>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </GlassCard>
+              )}
+            </>
+          )}
+
+          {!hasHistory && oldHistory.filter((h) => h.score !== null).length >= 2 && (
+            <GlassCard className="mb-4">
+              <div className="flex items-center gap-2 mb-3">
+                <ChartUp size={14} className="text-emerald-400" />
+                <h2 className="text-sm font-semibold text-gray-300">Score History</h2>
+              </div>
+              <div className="h-24 -mx-1">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={history} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-                    <XAxis dataKey="label" tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} />
-                    <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
+                  <LineChart data={oldHistory} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                    <XAxis dataKey="label" tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} />
+                    <YAxis domain={[0, 100]} tick={{ fontSize: 8, fill: '#6b7280' }} tickLine={false} axisLine={false} tickCount={3} />
                     <Tooltip
-                      contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 11 }}
+                      contentStyle={{ background: '#111', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, fontSize: 10 }}
                       labelStyle={{ color: '#9ca3af' }}
                     />
-                    <Line type="monotone" dataKey="score" stroke="#39ff14" strokeWidth={2} dot={{ r: 3, fill: '#39ff14' }} connectNulls={false} name={t('health.score')} />
+                    <Line type="monotone" dataKey="score" stroke="#39ff14" strokeWidth={2} dot={{ r: 2, fill: '#39ff14' }} connectNulls />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
@@ -267,10 +396,9 @@ export default function FinancialHealthPage() {
 
       {activeTab === 'details' && (
         <div className="space-y-3">
-          {health.categories.map((cat) => {
+          {scoreResults.categories.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.key] || Activity
             const color = CATEGORY_COLORS[cat.key] || '#39ff14'
-            const catRec = health.recommendations.find((r) => r.category === cat.key)
             return (
               <GlassCard key={cat.key}>
                 <div className="flex items-start gap-3">
@@ -279,19 +407,16 @@ export default function FinancialHealthPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">{cat.label}</h3>
-                      <span className="text-xs font-bold tabular-nums" style={{ color }}>{cat.score}/{cat.max}</span>
+                      <h3 className="text-sm font-semibold text-gray-300">{cat.label}</h3>
+                      <span className="text-xs font-bold tabular-nums" style={{ color }}>{cat.score}</span>
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{formatCategoryDetail(cat.detail)}</p>
-                    <div className="w-full h-2 bg-matte-200 rounded-full overflow-hidden mt-2">
-                      <div className="h-full rounded-full transition-all duration-500" style={{ width: `${cat.max > 0 ? (cat.score / cat.max) * 100 : 0}%`, backgroundColor: color }} />
+                    <p className="text-[10px] text-gray-500 mt-1">{cat.detail}</p>
+                    <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden mt-2">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${cat.score}%`, backgroundColor: color }}
+                      />
                     </div>
-                    {catRec && (
-                      <div className="mt-2 p-2 rounded-lg bg-white/[0.03] text-[10px] text-gray-400 leading-relaxed border border-white/[0.05]">
-                        <span className="font-medium text-gray-300">Suggestion: </span>
-                        {catRec.text}
-                      </div>
-                    )}
                   </div>
                 </div>
               </GlassCard>
@@ -302,6 +427,51 @@ export default function FinancialHealthPage() {
 
       {activeTab === 'recommendations' && (
         <div className="space-y-2">
+          {recommendations2.map((rec, i) => (
+            <GlassCard
+              key={i}
+              className={`${
+                rec.priority === 'high' ? 'border-red-500/20' :
+                rec.priority === 'medium' ? 'border-amber-500/20' :
+                'border-white/5'
+              }`}
+            >
+              <div className="flex items-start gap-3">
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                  rec.category.includes('savings') || rec.category.includes('emergency') ? 'bg-emerald-500/10 text-emerald-400' :
+                  rec.category.includes('debt') ? 'bg-red-500/10 text-red-400' :
+                  rec.category.includes('budget') || rec.category.includes('expense') ? 'bg-amber-500/10 text-amber-400' :
+                  rec.category.includes('income') ? 'bg-blue-500/10 text-blue-400' :
+                  rec.category.includes('goal') ? 'bg-purple-500/10 text-purple-400' :
+                  rec.category.includes('trading') ? 'bg-pink-500/10 text-pink-400' :
+                  rec.category.includes('recurring') ? 'bg-indigo-500/10 text-indigo-400' :
+                  'bg-gray-500/10 text-gray-400'
+                }`}>
+                  <Lightbulb size={15} />
+                </div>
+                <div className="flex-1 min-w-0 space-y-1">
+                  <p className="text-xs text-gray-300 font-medium">{rec.action}</p>
+                  <p className="text-[10px] text-gray-500">{rec.reason}</p>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full ${
+                      rec.priority === 'high' ? 'bg-red-500/10 text-red-400' :
+                      rec.priority === 'medium' ? 'bg-amber-500/10 text-amber-400' :
+                      'bg-gray-500/10 text-gray-400'
+                    }`}>
+                      {rec.priority}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-gray-500">
+                      {rec.difficulty}
+                    </span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/[0.04] text-gray-400">
+                      {rec.estimatedImpact}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          ))}
+
           {allInsights.length > 0 && (
             <GlassCard>
               <h3 className="text-xs font-semibold text-amber-400 mb-2 flex items-center gap-1.5">
@@ -373,7 +543,7 @@ export default function FinancialHealthPage() {
             </GlassCard>
           ))}
 
-          {health.recommendations.length === 0 && smartRecommendations.length === 0 && (
+          {recommendations2.length === 0 && smartRecommendations.length === 0 && allInsights.length === 0 && (
             <GlassCard>
               <EmptyState
                 icon={CheckCircle}

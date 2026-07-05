@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'
-import { Receipt, Plus, Trash2, CheckCircle2, XCircle, Calendar, AlertTriangle, ChevronRight, Bell, BellOff, CreditCard, Wifi, Smartphone, Droplets, Flame, Shield, Banknote, Zap } from 'lucide-react'
+import { useState, useMemo, useCallback} from 'react'
+import { Receipt, Plus, Trash2, CheckCircle2, Calendar, Bell, BellOff, CreditCard, Wifi, Smartphone, Droplets, Flame, Shield, Banknote, Zap } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
-import { getBills, saveBills, addBill, updateBill, deleteBill, markBillPaid, getBillStats, getUpcomingBills, getOverdueBills, BILL_TYPES } from '../utils/bills'
+import { getBills, addBill, updateBill, deleteBill, markBillPaid, getBillStats, BILL_TYPES } from '../utils/bills'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -81,7 +81,7 @@ function getBillStatus(bill) {
   return 'upcoming'
 }
 
-export default function BillsPage({ onNavigate }) {
+export default function BillsPage({ _onNavigate }) {
   const { t } = useTranslation()
   const { addToast } = useToast()
   const [bills, setBills] = useState(() => getBills())

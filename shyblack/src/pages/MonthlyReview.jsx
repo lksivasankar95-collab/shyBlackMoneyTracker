@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Sparkles, TrendingUp, TrendingDown, Flame, Repeat2, Target, AlertTriangle, PieChart, DollarSign, CheckCircle2, Minus, History } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'

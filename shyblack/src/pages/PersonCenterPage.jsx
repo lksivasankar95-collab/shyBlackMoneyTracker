@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo} from 'react'
 import {
-  ChevronLeft, Users, DollarSign, FileText, TrendingUp, TrendingDown,
-  Calendar, ArrowDownLeft, ArrowUpRight, CheckCircle2, Clock, Search, Phone,
+  ChevronLeft, Users, TrendingUp, TrendingDown,
+  ArrowDownLeft, ArrowUpRight, Search, Phone,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'

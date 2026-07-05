@@ -14,7 +14,6 @@ import ConfirmationModal from '../components/ConfirmationModal'
 import SavingsProgress from '../components/SavingsProgress'
 import { formatCurrency } from '../utils/helpers'
 import { exportBackup, parseAndValidateBackup, restoreFromBackup, exportEncryptedBackup, parseAndValidateEncryptedBackup } from '../utils/backup'
-import { safeStorage } from '../utils/safeStorage'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import {
   getReminderPreference, setReminderPreference,
@@ -35,7 +34,7 @@ const LANGUAGES = [
 export default function Settings({ onNavigate }) {
   const { t, lang, setLang } = useTranslation()
   const {
-    savingsGoal, updateSavings, clearAllData, transactions, importData,
+    savingsGoal, updateSavings, clearAllData, transactions, 
     security, updateSecurity, recurring, debts, reloadFromStorage,
   } = useFinance()
   const { addToast } = useToast()
@@ -109,7 +108,7 @@ export default function Settings({ onNavigate }) {
     } else {
       addToast(t('settings.biometric_failed_toast'), 'error')
     }
-  }, [biometricState.enabled, addToast])
+  }, [biometricState.enabled, addToast, t])
 
   const handleSavingsSave = () => {
     const targetAmt = parseFloat(target) || 0
@@ -184,7 +183,7 @@ export default function Settings({ onNavigate }) {
       setEncError(t('settings.backup_export_failed'))
     }
     setEncWorking(false)
-  }, [encPassword, encPassword2, addToast])
+  }, [encPassword, encPassword2, addToast, t])
 
   const handleEncImportSubmit = useCallback(async () => {
     if (!encPassword) { setEncError(t('settings.enter_your_pin_error')); return }
@@ -202,7 +201,7 @@ export default function Settings({ onNavigate }) {
     setEncPassword('')
     setEncError('')
     setShowRestoreConfirm(true)
-  }, [encPassword, pendingRestore])
+  }, [encPassword, pendingRestore, t])
 
   const handleConfirmRestore = useCallback(() => {
     if (!pendingRestore) return
@@ -224,14 +223,14 @@ export default function Settings({ onNavigate }) {
       addToast(t('settings.restore_failed'), 'error')
     }
     setIsRestoring(false)
-  }, [pendingRestore, addToast, reloadFromStorage])
+  }, [pendingRestore, addToast, reloadFromStorage, t])
 
   const handleResetData = useCallback(() => {
     clearAllData()
     setTarget('')
     setSaved('')
     addToast(t('settings.data_reset'), 'info')
-  }, [clearAllData, addToast])
+  }, [clearAllData, addToast, t])
 
   const toggleHideBalance = () => {
     updateSecurity({ hideBalance: !security.hideBalance })
@@ -268,7 +267,7 @@ export default function Settings({ onNavigate }) {
       await cancelAllReminders()
       addToast(t('settings.reminder_disabled'), 'info')
     }
-  }, [reminderEnabled, transactions, debts, addToast])
+  }, [reminderEnabled, transactions, debts, addToast, t])
 
   const subCount = recurring.filter((r) => r.active !== false).length
   const subMonthly = recurring

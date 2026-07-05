@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react'
 import {
-  TrendingUp, TrendingDown, BarChart3, Target,
+  TrendingDown, BarChart3, Target,
   Activity, Heart, DollarSign, PieChart,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
@@ -73,8 +73,6 @@ export default function FinancialTimelinePage() {
 
   const tabs = useMemo(() => TABS(t), [t])
   const periods = useMemo(() => PERIODS(t), [t])
-  const colors = tabs.find((tab) => tab.id === activeTab)?.color || 'text-neon'
-
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center gap-2.5 mb-5">

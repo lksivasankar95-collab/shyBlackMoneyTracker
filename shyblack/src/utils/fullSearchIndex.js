@@ -1,4 +1,3 @@
-import { safeStorage, STORAGE_KEYS } from './safeStorage'
 export { buildIndexes, getMonthlySummaryFromIndex, getCategoryBreakdownFromIndex, getDailyExpenseFromIndex, getPeopleFromIndex } from './indexer'
 
 export function buildFullSearchIndex(allData) {

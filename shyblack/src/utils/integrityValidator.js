@@ -1,9 +1,5 @@
 import { validateTransactions, validateDebts, validateGoals, validateAccounts, validateTransfers, validateEmis, detectOrphanedReferences } from './dataIntegrity'
 
-function validateArray(raw, name) {
-  if (!Array.isArray(raw)) return { valid: false, repaired: [], errors: [`${name} is not an array`] }
-  return null
-}
 
 function genericValidate(items, name, fieldDefs) {
   if (!Array.isArray(items)) return { valid: false, repaired: [], errors: [`${name} is not an array`] }
@@ -134,7 +130,7 @@ export function runFullIntegrityCheck(allData) {
   let totalErrors = 0
   let totalRepairs = 0
 
-  for (const [key, result] of Object.entries(checks)) {
+  for (const [, result] of Object.entries(checks)) {
     if (result && result.errors && result.errors.length > 0) {
       hasIssues = true
       totalErrors += result.errors.length

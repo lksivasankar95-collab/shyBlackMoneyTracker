@@ -1,18 +1,14 @@
 import { useState, useMemo, useCallback, memo } from 'react'
 import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
-  AlertCircle, RefreshCw, Repeat2, RotateCcw, SkipForward, Sparkles, Target, Heart, FileText, BarChart3,
+  AlertCircle, RefreshCw, Repeat2, RotateCcw, Sparkles, Target, Heart, FileText, BarChart3,
   Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award, FolderOpen, FileDown, Users, Wallet,
-  ShieldCheck, Printer, Bell, Smartphone, Clock, Receipt as ReceiptIcon, Zap,
+  ShieldCheck, Printer, Bell, Clock, Receipt as ReceiptIcon, Zap,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
-import { ALL_CATEGORIES } from '../utils/constants'
 import { getUpcomingRecurringTransactions } from '../utils/recurring'
-import { getCategorySummary } from '../utils/categoryDrilldown'
-import { setCategoryDetailId } from '../pages/CategoryDetail'
-import { getAccounts, getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
 import { getBills, getUpcomingBills, getOverdueBills, getBillStats } from '../utils/bills'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
@@ -24,7 +20,6 @@ import FinancialScore from '../components/FinancialScore'
 import NotificationBanner from '../components/NotificationBanner'
 import DashboardEmiWidget from '../components/DashboardEmiWidget'
 import QuickActions from '../components/QuickActions'
-import CategoryIcon from '../components/CategoryIcon'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
@@ -34,24 +29,22 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     security, updateSecurity, debtsSummary, debts,
     recurring,
     pendingRecurring, executeAllRecurring, skipAllRecurring,
-    executeRecurring, skipRecurring,
     recoverySnapshot, restoreFromSnapshot,
     goals, goalsProjections,
-    emiSummary, documents, documentStats,
-    dataQuality, reviewSummary,
+    emiSummary, documentStats,
+    dataQuality,
     receiptStats,
-    wealthDashboardStats,
+    wealthDashboardStats, accounts,
     backupDashboardStats,
   } = useFinance()
 
-  const accounts = useMemo(() => getAccounts(), [])
-  const netWorthTrend = useMemo(() => getNetWorthTrend(getStoredNetWorthHistory(), '30d'), [])
-
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
 
-  const now = useMemo(() => new Date(), [])
-  const monthly = useMemo(() => getMonthlySummary(now.getFullYear(), now.getMonth()), [getMonthlySummary, now])
-  const balance = useMemo(() => getBalance(), [transactions])
+  const monthly = useMemo(() => {
+    const d = new Date()
+    return getMonthlySummary(d.getFullYear(), d.getMonth())
+  }, [getMonthlySummary])
+  const balance = useMemo(() => getBalance(), [getBalance])
 
   const totalCash = useMemo(() => transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0), [transactions])
   const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + (a.balance || 0), 0), [accounts])
@@ -61,9 +54,6 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
 
   const recentTx = useMemo(() => transactions.slice(0, 3), [transactions])
 
-  const categorySummary = useMemo(() => getCategorySummary(transactions), [transactions])
-  const topCategories = useMemo(() => categorySummary.slice(0, 3), [categorySummary])
-
   const toggleHide = useCallback(() => {
     const next = !hideBalance
     setHideBalance(next)
@@ -71,7 +61,32 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   }, [hideBalance, updateSecurity])
 
   const hasPendingActions = pendingRecurring.length > 0 || debtsSummary.overdueCount > 0
-  const monthNet = monthly.income - monthly.expense
+
+  const featureLinks = [
+    { route: 'wealth-center', Icon: BarChart3, color: 'text-amber-400', labelKey: 'dashboard.wealth_center' },
+    { route: 'recovery-center', Icon: ShieldCheck, color: 'text-neon', labelKey: 'dashboard.backup' },
+    { route: 'budget-center', Icon: Target, color: 'text-teal-400', labelKey: 'dashboard.budget_center' },
+    { route: 'networth', Icon: BarChart3, color: 'text-neon', labelKey: 'nav.networth' },
+    { route: 'financial-health', Icon: Heart, color: 'text-neon', labelKey: 'nav.health' },
+    { route: 'statement-export', Icon: FileText, color: 'text-yellow-400', labelKey: 'nav.statements' },
+    { route: 'reports', Icon: Printer, color: 'text-neon', labelKey: 'nav.reports' },
+    { route: 'subscriptions', Icon: Repeat2, color: 'text-blue-400', labelKey: 'nav.subscriptions' },
+    { route: 'calendar', Icon: Calendar, color: 'text-neon', labelKey: 'nav.calendar' },
+    { route: 'transfers', Icon: ArrowLeftRight, color: 'text-amber-400', labelKey: 'nav.transfer' },
+    { route: 'emi-center', Icon: CreditCard, color: 'text-purple-400', labelKey: 'nav.emis' },
+    { route: 'forecast-center', Icon: Zap, color: 'text-amber-400', labelKey: 'dashboard.forecast' },
+    { route: 'cash-flow-forecast', Icon: Activity, color: 'text-cyan-400', labelKey: 'nav.forecast' },
+    { route: 'financial-timeline', Icon: PieChart, color: 'text-neon', labelKey: 'nav.timeline' },
+    { route: 'achievements', Icon: Award, color: 'text-amber-400', labelKey: 'nav.badges' },
+    { route: 'documents', Icon: FolderOpen, color: 'text-neon', labelKey: 'nav.documents' },
+    { route: 'statements', Icon: FileDown, color: 'text-blue-400', labelKey: 'nav.statements_export' },
+    { route: 'people', Icon: Users, color: 'text-blue-400', labelKey: 'nav.people' },
+    { route: 'receipt-center', Icon: ReceiptIcon, color: 'text-blue-400', labelKey: 'dashboard.receipt_scanner' },
+    { route: 'account-center', Icon: Wallet, color: 'text-cyan-400', labelKey: 'nav.account_center' },
+    { route: 'trends', Icon: BarChart3, color: 'text-blue-400', labelKey: 'nav.trends' },
+    { route: 'review', Icon: Sparkles, color: 'text-violet-400', labelKey: 'nav.review_center' },
+    { route: 'data-quality', Icon: ShieldCheck, color: 'text-amber-400', labelKey: 'nav.data_quality' },
+  ]
 
   return (
     <div className="p-4 max-w-lg mx-auto pb-24">
@@ -136,7 +151,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           label={t('dashboard.income')}
           value={hideBalance ? '••••' : formatCurrency(monthly.income)}
           color="text-neon"
-          subtext={now.toLocaleString('en-US', { month: 'long' })}
+          subtext={new Date().toLocaleString('en-US', { month: 'long' })}
           onClick={() => onNavigate('analytics')}
         />
         <StatCard
@@ -144,7 +159,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           label={t('dashboard.expense')}
           value={hideBalance ? '••••' : formatCurrency(monthly.expense)}
           color="text-red-400"
-          subtext={now.toLocaleString('en-US', { month: 'long' })}
+          subtext={new Date().toLocaleString('en-US', { month: 'long' })}
           onClick={() => onNavigate('analytics')}
         />
         <StatCard
@@ -401,7 +416,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
         <button onClick={() => onNavigate('diagnostics')} className="text-left">
           <GlassCard className="!p-3">
             <Activity size={14} className="text-cyan-400 mb-1" />
-            <p className="text-lg font-bold text-white tabular-nums">{dataQuality?.total || 0 > 0 ? (dataQuality.total > 0 ? '⚠' : '✓') : '-'}</p>
+            <p className="text-lg font-bold text-white tabular-nums">{dataQuality?.total ? (dataQuality.total > 0 ? '⚠' : '✓') : '-'}</p>
             <p className="text-[10px] text-gray-500">{t('dashboard.health')}</p>
           </GlassCard>
         </button>
@@ -432,103 +447,31 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
             </GlassCard>
           </button>
         )}
+        {insights.score.score > 0 && (
+          <button onClick={() => onNavigate('financial-health')} className="text-left">
+            <GlassCard className="!p-3">
+              <Heart size={14} className="text-neon mb-1" />
+              <p className="text-lg font-bold text-white tabular-nums">{insights.score.score}</p>
+              <p className="text-[10px] text-gray-500">{t('health.score')}</p>
+            </GlassCard>
+          </button>
+        )}
       </div>
 
       {/* ── 7. More Features ────────────────────────── */}
       <GlassCard className="mb-4 !p-3">
         <div className="grid grid-cols-3 gap-2">
-          <button onClick={() => onNavigate('wealth-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <BarChart3 size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.wealth_center')}</span>
-          </button>
-          <button onClick={() => onNavigate('recovery-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <ShieldCheck size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.backup')}</span>
-          </button>
-          <button onClick={() => onNavigate('budget-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Target size={16} className="text-teal-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.budget_center')}</span>
-          </button>
-          <button onClick={() => onNavigate('networth')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <BarChart3 size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.networth')}</span>
-          </button>
-          <button onClick={() => onNavigate('financial-health')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Heart size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.health')}</span>
-          </button>
-          <button onClick={() => onNavigate('statement-export')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <FileText size={16} className="text-yellow-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.statements')}</span>
-          </button>
-          <button onClick={() => onNavigate('reports')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Printer size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.reports')}</span>
-          </button>
-          <button onClick={() => onNavigate('subscriptions')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Repeat2 size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.subscriptions')}</span>
-          </button>
-          <button onClick={() => onNavigate('calendar')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Calendar size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.calendar')}</span>
-          </button>
-          <button onClick={() => onNavigate('transfers')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <ArrowLeftRight size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.transfer')}</span>
-          </button>
-          <button onClick={() => onNavigate('emi-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <CreditCard size={16} className="text-purple-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.emis')}</span>
-          </button>
-          <button onClick={() => onNavigate('forecast-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Zap size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.forecast')}</span>
-          </button>
-          <button onClick={() => onNavigate('cash-flow-forecast')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Activity size={16} className="text-cyan-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.forecast')}</span>
-          </button>
-          <button onClick={() => onNavigate('financial-timeline')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <PieChart size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.timeline')}</span>
-          </button>
-          <button onClick={() => onNavigate('achievements')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Award size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.badges')}</span>
-          </button>
-          <button onClick={() => onNavigate('documents')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <FolderOpen size={16} className="text-neon" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.documents')}</span>
-          </button>
-          <button onClick={() => onNavigate('statements')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <FileDown size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.statements_export')}</span>
-          </button>
-          <button onClick={() => onNavigate('people')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Users size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.people')}</span>
-          </button>
-          <button onClick={() => onNavigate('receipt-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <ReceiptIcon size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('dashboard.receipt_scanner')}</span>
-          </button>
-          <button onClick={() => onNavigate('account-center')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Wallet size={16} className="text-cyan-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.account_center')}</span>
-          </button>
-          <button onClick={() => onNavigate('trends')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <BarChart3 size={16} className="text-blue-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.trends')}</span>
-          </button>
-          <button onClick={() => onNavigate('review')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <Sparkles size={16} className="text-violet-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.review_center')}</span>
-          </button>
-          <button onClick={() => onNavigate('data-quality')} className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]">
-            <ShieldCheck size={16} className="text-amber-400" />
-            <span className="text-[10px] font-medium text-gray-400">{t('nav.data_quality')}</span>
-          </button>
+          {featureLinks.map(({ route, Icon, color, labelKey }) => (
+            <button
+              key={route}
+              onClick={() => onNavigate(route)}
+              className="flex flex-col items-center gap-1 p-2 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] transition-colors min-h-[52px]"
+              aria-label={t(labelKey)}
+            >
+              <Icon size={16} className={color} />
+              <span className="text-[10px] font-medium text-gray-400">{t(labelKey)}</span>
+            </button>
+          ))}
         </div>
       </GlassCard>
 

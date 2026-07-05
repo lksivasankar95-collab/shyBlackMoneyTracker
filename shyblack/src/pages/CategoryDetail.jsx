@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo} from 'react'
 import {
   ArrowLeft, TrendingUp, TrendingDown, Search, ArrowUpDown,
-  Calendar, X, Wallet, BarChart3, PieChart,
+  X, Wallet, PieChart,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -14,12 +14,12 @@ import { ALL_CATEGORIES } from '../utils/constants'
 import { getCategoryDetail, getCategoryMonthlyTrend } from '../utils/categoryDrilldown'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
-import PageHeader from '../components/PageHeader'
 
-const COLORS = ['#39ff14', '#22c55e', '#16a34a', '#15803d', '#ef4444', '#f97316', '#eab308', '#a855f7', '#3b82f6', '#ec4899']
 
 let _selectedCategoryId = null
+// eslint-disable-next-line react-refresh/only-export-components
 export function setCategoryDetailId(id) { _selectedCategoryId = id }
+// eslint-disable-next-line react-refresh/only-export-components
 export function getCategoryDetailId() { return _selectedCategoryId }
 
 function CustomTooltip({ active, payload, label }) {

@@ -1,14 +1,11 @@
 import { useState, useMemo } from 'react'
 import {
-  ChevronLeft, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, Landmark,
-  Target, Search, Plus, X, Edit3, Trash2, DollarSign,
-} from 'lucide-react'
+  ChevronLeft, Wallet, TrendingUp, TrendingDown, ArrowLeftRight, Landmark, Search, Plus} from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
 import { getAccounts, saveAccounts } from '../utils/networth'
 import { getEmis } from '../utils/emi'
-import { getGoals } from '../utils/goals'
 import { getTransfers } from '../utils/transfers'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -21,9 +18,7 @@ export default function AccountCenterPage({ onNavigate }) {
 
   const accounts = useMemo(() => getAccounts(), [])
   const emis = useMemo(() => getEmis(), [])
-  const goals = useMemo(() => getGoals(), [])
-
-  const [selectedAccount, setSelectedAccount] = useState(null)
+    const [selectedAccount, setSelectedAccount] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({ name: '', type: 'bank', balance: '' })
 
@@ -60,8 +55,7 @@ export default function AccountCenterPage({ onNavigate }) {
       name: formData.name.trim(),
       type: formData.type,
       balance: Number(formData.balance) || 0,
-      createdAt: Date.now(),
-    }
+      createdAt: Date.now()}
     accts.push(newAcct)
     saveAccounts(accts)
     updateAccounts(accts)

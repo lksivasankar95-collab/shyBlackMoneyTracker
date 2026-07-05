@@ -1,12 +1,10 @@
-import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { getGoalProjection } from './goals'
-import { calculateHealthScore, getHealthHistory } from './financialHealth'
+import { getHealthHistory } from './financialHealth'
 
 export function buildTimeline({
-  transactions, debts, goals, savingsGoal, budgets,
+  transactions, debts, goals, savingsGoal: _savingsGoal, budgets,
   storedNetWorthHistory,
 }) {
-  const timeline = []
   const now = new Date()
   const monthsBack = 12
 
@@ -48,7 +46,6 @@ export function buildTimeline({
   const healthHistory = getHealthHistory(transactions, budgets, debts, goals, monthsBack)
 
   const debtHistory = monthlyBrackets.map((m) => {
-    const txsUpTo = transactions.filter((t) => t.date <= m.end.toISOString().split('T')[0])
     const debtAtTime = debts
       .filter((d) => new Date(d.createdAt || 0) <= m.end)
       .reduce((s, d) => s + (d.remainingAmount || d.amount || 0), 0)
@@ -75,7 +72,6 @@ export function buildTimeline({
   })
 
   const savingsHistory = monthlyBrackets.map((m) => {
-    const txsUpTo = transactions.filter((t) => t.date <= m.end.toISOString().split('T')[0])
     const income = txsUpTo.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0)
     const expenses = txsUpTo.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0)
     return {

@@ -730,7 +730,24 @@
     "score_excellent_desc": "உங்கள் நிதி நிலை மிகவும் சிறப்பாக உள்ளது!",
     "score_good_desc": "நீங்கள் நன்றாக செயல்படுகிறீர்கள், தொடருங்கள்!",
     "score_fair_desc": "சில பகுதிகளில் கவனம் தேவை",
-    "score_poor_desc": "உங்கள் நிதியை மதிப்பாய்வு செய்ய வேண்டிய நேரம்"
+    "score_poor_desc": "உங்கள் நிதியை மதிப்பாய்வு செய்ய வேண்டிய நேரம்",
+    "overview": "Overview",
+    "details": "Details",
+    "recommendations": "Recommendations",
+    "tips": "Recommendations",
+    "doing_great": "Doing Great!",
+    "doing_great_desc": "Your finances are on track. Keep up the good work!",
+    "overspent_budgets": "Overspent Budgets",
+    "budgets_warning": "Budgets at Warning Level",
+    "budgets_warning_desc": "{{}} budget(s) have reached 80%+ of their limit",
+    "priority_high": "High Priority",
+    "priority_medium": "Medium",
+    "priority_suggestion": "Suggestion",
+    "no_data": "No financial data yet",
+    "no_data_desc": "Add transactions to see your financial health score",
+    "out_of_100": "out of 100",
+    "score_history": "Score History",
+    "vs_last_month": "{{}}{{}} vs last month"
   },
 
   "insights": {

@@ -2,7 +2,7 @@ import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analyti
 import { formatCurrency } from './currency'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { ALL_CATEGORIES } from './constants'
-import { sendNotification, NOTIF_TYPES } from './notifications'
+import { sendNotification } from './notifications'
 
 export function calculateFinancialScore(transactions) {
   if (transactions.length === 0) return { score: 0, level: 'N/A', factors: [] }
@@ -431,7 +431,7 @@ export function getScoreBreakdown(transactions) {
   }
 }
 
-export function generateSmartInsights(transactions, budgets = {}, debts = []) {
+export function generateSmartInsights(transactions, budgets = {}, _debts = []) {
   if (transactions.length < 3) return []
 
   const insights = []
@@ -440,18 +440,10 @@ export function generateSmartInsights(transactions, budgets = {}, debts = []) {
     const d = new Date(t.date)
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
   })
-  const lastMonth = transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getMonth() === now.getMonth() - 1 && d.getFullYear() === now.getFullYear()
-  })
-
   const thisExpenses = thisMonth.filter((t) => t.type === 'expense')
-  const lastExpenses = lastMonth.filter((t) => t.type === 'expense')
   const thisIncome = thisMonth.filter((t) => t.type === 'income')
-  const lastIncome = lastMonth.filter((t) => t.type === 'income')
 
   const thisExpenseTotal = thisExpenses.reduce((s, t) => s + t.amount, 0)
-  const lastExpenseTotal = lastExpenses.reduce((s, t) => s + t.amount, 0)
   const thisIncomeTotal = thisIncome.reduce((s, t) => s + t.amount, 0)
 
   // 1. Spending increased by X%

@@ -40,7 +40,7 @@ export default function PrivacyCenter({ onNavigate }) {
       <GlassCard className="mb-3">
         <h3 className="text-xs font-semibold text-gray-300 mb-2">Local Storage</h3>
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          All data is stored using the browser's localStorage API (or an equivalent
+          All data is stored using the browser&apos;s localStorage API (or an equivalent
           Capacitor storage adapter on mobile). No data leaves your device unless you
           explicitly export a backup file.
         </p>

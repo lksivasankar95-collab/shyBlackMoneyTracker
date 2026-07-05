@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
-import { formatCurrency, getTransactionDescription } from '../utils/helpers'
+import { formatCurrency } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
@@ -29,8 +29,6 @@ const PAYMENT_ICONS = {
   card: CreditCard,
 }
 
-const lastCategoryByType = { income: '', expense: '' }
-
 function getCurrencySymbol() {
   try {
     const data = safeStorage.getRaw(STORAGE_KEYS.ONBOARDING)
@@ -41,7 +39,7 @@ function getCurrencySymbol() {
         return symbols[parsed.currency] || '₹'
       }
     }
-  } catch {}
+  } catch { /* currency not configured, use default */ }
   return '₹'
 }
 
@@ -51,15 +49,16 @@ function formatAmountShort(amount, symbol) {
   return `${symbol}${amount}`
 }
 
-export default function AddTransaction({ onNavigate }) {
+export default function AddTransaction({ onNavigate: _onNavigate }) {
   const { t } = useTranslation()
-  const { addTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate } = useFinance()
+  const { addTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
   const amountInputRef = useRef(null)
+  const lastCategoryByType = useRef({ income: '', expense: '' })
   const currencySymbol = useMemo(() => getCurrencySymbol(), [])
 
   const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(() => lastCategoryByType[TRANSACTION_TYPES.EXPENSE] || '')
+  const [category, setCategory] = useState(() => lastCategoryByType.current[TRANSACTION_TYPES.EXPENSE] || '')
   const [note, setNote] = useState('')
   const [date, setDate] = useState(new Date().toISOString().split('T')[0])
   const [selectedTags, setSelectedTags] = useState([])
@@ -84,7 +83,7 @@ export default function AddTransaction({ onNavigate }) {
 
   const transactionType = purpose
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
-  const suggestedTags = getSuggestedTags()
+  const suggestedTags = useMemo(() => getSuggestedTags(), [])
 
   useEffect(() => {
     const timer = setTimeout(() => amountInputRef.current?.focus(), 150)
@@ -99,7 +98,7 @@ export default function AddTransaction({ onNavigate }) {
         setAmount(val)
         setError('')
         if (note && !category) {
-          const predicted = getSmartCategoryPrediction(null, note)
+          const predicted = getSmartCategoryPrediction(transactions, note)
           if (predicted && categories.find((c) => c.id === predicted)) {
             setCategory(predicted)
           }
@@ -119,7 +118,7 @@ export default function AddTransaction({ onNavigate }) {
     const val = e.target.value
     setNote(val)
     if (val && !category) {
-      const predicted = getSmartCategoryPrediction(null, val)
+      const predicted = getSmartCategoryPrediction(transactions, val)
       if (predicted && categories.find((c) => c.id === predicted)) {
         setCategory(predicted)
       }
@@ -229,7 +228,7 @@ export default function AddTransaction({ onNavigate }) {
           return (
             <button
               key={txType}
-              onClick={() => { setPurpose(txType); setCategory(lastCategoryByType[txType] || ''); setError('') }}
+              onClick={() => { setPurpose(txType); setCategory(lastCategoryByType.current[txType] || ''); setError('') }}
               className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold border transition-all duration-200 ${
                 isActive
                   ? txType === TRANSACTION_TYPES.INCOME
@@ -266,7 +265,7 @@ export default function AddTransaction({ onNavigate }) {
                   setSelectedTags(tmpl.tags || [])
                   const tmplCat = tmpl.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
                   if (tmplCat.find((c) => c.id === tmpl.category)) {
-                    lastCategoryByType[tmpl.type] = tmpl.category
+                    lastCategoryByType.current[tmpl.type] = tmpl.category
                   }
                 }}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-glass-border text-[10px] font-medium text-gray-400 hover:text-white hover:border-gray-500 transition-all"
@@ -323,7 +322,7 @@ export default function AddTransaction({ onNavigate }) {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => { setCategory(cat.id); lastCategoryByType[transactionType] = cat.id; setError('') }}
+                onClick={() => { setCategory(cat.id); lastCategoryByType.current[transactionType] = cat.id; setError('') }}
                 className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all duration-150 ${
                   category === cat.id
                     ? transactionType === TRANSACTION_TYPES.INCOME

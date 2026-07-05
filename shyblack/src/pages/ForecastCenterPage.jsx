@@ -1,11 +1,11 @@
-import { useState, useMemo, useCallback } from 'react'
-import { TrendingUp, TrendingDown, Target, CreditCard, BarChart3, Activity, Zap, Shield, ChevronRight, AlertCircle } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Target, CreditCard, BarChart3, Activity, Zap, Shield, AlertCircle } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import {
   forecastCashflow, forecastGoal, getGoalHealthScore, getGoalRecommendations,
-  forecastEmiPayoff, forecastWealth, predictBudgetRisk, getOverspendingDetection,
-  calculateRetirement, getEmergencyFundFromTransactions, forecastFinancialHealth,
+  forecastEmiPayoff, forecastWealth, getOverspendingDetection,
+  calculateRetirement, getEmergencyFundFromTransactions,
   generateForecastRecommendations, simulateScenario,
 } from '../utils/forecastEngine'
 import GlassCard from '../components/GlassCard'
@@ -474,7 +474,6 @@ export default function ForecastCenterPage() {
   } = useFinance()
 
   const ef = useMemo(() => getEmergencyFundFromTransactions(transactions, 0), [transactions])
-  const wealthForecast = useMemo(() => forecastWealth({ wealthAssets, accounts, transactions, debts, emis }), [wealthAssets, accounts, transactions, debts, emis])
 
   const budgetRiskAlerts = useMemo(() => getOverspendingDetection(transactions, budgets), [transactions, budgets])
 

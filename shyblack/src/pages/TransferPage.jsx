@@ -3,7 +3,6 @@ import {
   ArrowLeftRight, ArrowRight, AlertCircle, CheckCircle2, History, RefreshCw,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
-import { useFinance } from '../hooks/useFinance'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { executeTransfer, getTransferHistory } from '../utils/transfers'
 import { getAccounts, saveAccounts } from '../utils/networth'
@@ -13,7 +12,7 @@ import EmptyState from '../components/EmptyState'
 export default function TransferPage({ onNavigate }) {
   const { t } = useTranslation()
   const [refreshKey, setRefreshKey] = useState(0)
-  const accounts = useMemo(() => getAccounts(), [refreshKey])
+  const accounts = useMemo(() => getAccounts(), [])
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')
   const [amount, setAmount] = useState('')
@@ -22,7 +21,7 @@ export default function TransferPage({ onNavigate }) {
 
   const transferHistory = useMemo(() => {
     return getTransferHistory(getAccounts())
-  }, [refreshKey])
+  }, [])
 
   const handleTransfer = () => {
     if (!fromId || !toId || !amount) return

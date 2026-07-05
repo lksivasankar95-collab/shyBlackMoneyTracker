@@ -35,6 +35,7 @@ export const STORAGE_KEYS = {
   RECEIPT_SCANS: `${STORAGE_PREFIX}receipt_scans`,
   WEALTH_ASSETS: `${STORAGE_PREFIX}wealth_assets`,
   BACKUPS: `${STORAGE_PREFIX}backups`,
+  SCORE_HISTORY: `${STORAGE_PREFIX}score_history`,
 }
 
 const memoryCache = new Map()

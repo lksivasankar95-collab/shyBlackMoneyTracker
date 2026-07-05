@@ -118,6 +118,7 @@ export function getFailState() {
 
 export function clearPin() {
   const data = getData()
+  // eslint-disable-next-line no-unused-vars
   const { pinHash, pinSalt, failCount, cooldownUntil, requiresReset, ...rest } = data
   saveData(rest)
   locked = false

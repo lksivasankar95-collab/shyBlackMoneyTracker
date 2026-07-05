@@ -30,7 +30,7 @@ export default class ErrorBoundary extends Component {
         crashLog.push(diagnostics)
         if (crashLog.length > 5) crashLog.shift()
         sessionStorage.setItem('finora_crash_log', JSON.stringify(crashLog))
-      } catch {}
+      } catch { /* silent */ }
     }
   }
 
@@ -51,10 +51,10 @@ export default class ErrorBoundary extends Component {
         }
       }
       keysToRemove.forEach((k) => {
-        try { localStorage.removeItem(k) } catch {}
+        try { localStorage.removeItem(k) } catch { /* silent */ }
       })
       sessionStorage.removeItem('finora_crash_log')
-    } catch {}
+    } catch { /* silent */ }
     window.location.reload()
   }
 

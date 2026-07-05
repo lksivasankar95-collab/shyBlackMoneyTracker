@@ -1,5 +1,4 @@
 import { createWorker } from 'tesseract.js'
-import { EXPENSE_CATEGORIES } from './constants'
 
 const MERCHANT_MAP = [
   { keywords: ['swiggy', 'zomato', 'ubereats', 'pizza hut', 'domino', 'kfc', 'mcdonald', 'dineout', 'eatclub', 'faasos', 'box8'], category: 'food' },
@@ -169,8 +168,6 @@ export function detectCategory(merchant, text) {
 
 export async function scanReceipt(file, onProgress) {
   const TOTAL_TIMEOUT = 90000
-  const startTime = Date.now()
-
   const timeoutPromise = new Promise((_, reject) =>
     setTimeout(() => reject(new Error('Scan timed out after 90 seconds')), TOTAL_TIMEOUT)
   )

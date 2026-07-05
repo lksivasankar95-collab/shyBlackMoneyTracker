@@ -6,7 +6,6 @@ import {
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
-import { formatCurrency } from '../utils/helpers'
 import { getStoredNetWorthHistory } from '../utils/networth'
 import { calculateHealthScore } from '../utils/financialHealth'
 import {

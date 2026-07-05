@@ -18,16 +18,23 @@ import {
 
 /* ── Sample data ── */
 
+const now = new Date()
+const y = now.getFullYear()
+const m = String(now.getMonth() + 1).padStart(2, '0')
+const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+const prevY = prevDate.getFullYear()
+const prevM = String(prevDate.getMonth() + 1).padStart(2, '0')
+
 const sampleTxs = [
-  { id: '1', type: 'income', amount: 50000, category: 'salary', date: '2026-06-01', createdAt: Date.now() - 86400000 * 5 },
-  { id: '2', type: 'income', amount: 50000, category: 'salary', date: '2026-05-01', createdAt: Date.now() - 86400000 * 35 },
-  { id: '3', type: 'income', amount: 50000, category: 'salary', date: '2026-04-01', createdAt: Date.now() - 86400000 * 65 },
-  { id: '4', type: 'expense', amount: 5000, category: 'food', date: '2026-06-05', createdAt: Date.now() - 86400000 * 2 },
-  { id: '5', type: 'expense', amount: 8000, category: 'rent', date: '2026-06-02', createdAt: Date.now() - 86400000 * 4 },
-  { id: '6', type: 'expense', amount: 3000, category: 'food', date: '2026-05-15', createdAt: Date.now() - 86400000 * 25 },
-  { id: '7', type: 'expense', amount: 8000, category: 'rent', date: '2026-05-02', createdAt: Date.now() - 86400000 * 38 },
-  { id: '8', type: 'expense', amount: 2000, category: 'shopping', date: '2026-04-20', createdAt: Date.now() - 86400000 * 50 },
-  { id: '9', type: 'expense', amount: 8000, category: 'rent', date: '2026-04-02', createdAt: Date.now() - 86400000 * 68 },
+  { id: '1', type: 'income', amount: 50000, category: 'salary', date: `${y}-${m}-01`, createdAt: Date.now() - 86400000 * 5 },
+  { id: '2', type: 'income', amount: 50000, category: 'salary', date: `${prevY}-${prevM}-01`, createdAt: Date.now() - 86400000 * 35 },
+  { id: '3', type: 'income', amount: 50000, category: 'salary', date: `${prevY}-${prevM}-01`, createdAt: Date.now() - 86400000 * 65 },
+  { id: '4', type: 'expense', amount: 5000, category: 'food', date: `${y}-${m}-03`, createdAt: Date.now() - 86400000 * 2 },
+  { id: '5', type: 'expense', amount: 8000, category: 'rent', date: `${y}-${m}-02`, createdAt: Date.now() - 86400000 * 4 },
+  { id: '6', type: 'expense', amount: 3000, category: 'food', date: `${prevY}-${prevM}-15`, createdAt: Date.now() - 86400000 * 25 },
+  { id: '7', type: 'expense', amount: 8000, category: 'rent', date: `${prevY}-${prevM}-02`, createdAt: Date.now() - 86400000 * 38 },
+  { id: '8', type: 'expense', amount: 2000, category: 'shopping', date: `${prevY}-${prevM}-20`, createdAt: Date.now() - 86400000 * 50 },
+  { id: '9', type: 'expense', amount: 8000, category: 'rent', date: `${prevY}-${prevM}-02`, createdAt: Date.now() - 86400000 * 68 },
 ]
 
 const sampleGoal = {

@@ -1,11 +1,10 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Search, X, SlidersHorizontal, Calendar, ArrowUpDown, Filter, Tag,
-  ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
-import { formatCurrency, formatDate, groupBy, extractPeopleFromTransactions } from '../utils/helpers'
+import { formatDate, groupBy } from '../utils/helpers'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import TransactionItem from '../components/TransactionItem'
 import EmptyState from '../components/EmptyState'

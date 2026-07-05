@@ -129,7 +129,7 @@ export function runMigrations() {
   ]
   const backup = {}
   for (const k of backupKeys) {
-    try { backup[k] = safeStorage.getRaw(k) } catch {}
+    try { backup[k] = safeStorage.getRaw(k) } catch { /* silent */ }
   }
 
   for (const version of migrationKeys) {
@@ -145,7 +145,7 @@ export function runMigrations() {
           } else {
             safeStorage.remove(k)
           }
-        } catch {}
+        } catch { /* silent */ }
       }
       safeStorage.invalidateCache()
       setSchemaVersion(currentVersion)

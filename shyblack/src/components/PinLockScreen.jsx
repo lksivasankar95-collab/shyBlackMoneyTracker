@@ -27,7 +27,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     } else if (cooldownRemaining > 0) {
       startCooldown(cooldownRemaining)
     }
-  }, [])
+  }, [t])
 
   useEffect(() => {
     if (isBiometricEnabled()) {
@@ -42,7 +42,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         }
       })
     }
-  }, [])
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (bioAvailable && !bioAttempted && !requiresReset && cooldown === 0) {
@@ -65,7 +65,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
     } else if (result.reason === 'failed') {
       setError(t('pin_lock.biometric_failed'))
     }
-  }, [onUnlock])
+  }, [onUnlock, t])
 
   function startCooldown(seconds) {
     setCooldown(seconds)
@@ -119,7 +119,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
       setError(t('pin_lock.unlock_failed'))
       setPin('')
     })
-  }, [pin, cooldown, requiresReset, onUnlock])
+  }, [pin, cooldown, requiresReset, onUnlock, t])
 
   const handleKeyDown = useCallback((e) => {
     if (e.key === 'Enter') handleUnlock()
