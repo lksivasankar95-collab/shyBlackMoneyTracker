@@ -67,22 +67,42 @@ async function verifyFile(path, directory) {
 async function cleanupOldShareFiles() {
   try {
     const { Filesystem } = await import('@capacitor/filesystem')
+    const shareDirExists = await Filesystem.stat({
+      path: `${EXPORT_DIR}/_share`,
+      directory: Directory.External,
+    }).then(() => true).catch(() => false)
+
+    if (!shareDirExists) return
+
     const result = await Filesystem.readdir({
       path: `${EXPORT_DIR}/_share`,
-      directory: Directory.Downloads,
+      directory: Directory.External,
     })
     if (result?.files?.length > 0) {
+      let removed = 0
       for (const file of result.files) {
         try {
           await Filesystem.deleteFile({
             path: `${EXPORT_DIR}/_share/${file.name || file}`,
-            directory: Directory.Downloads,
+            directory: Directory.External,
           })
+          removed++
         } catch (e) { /* individual cleanup failure is non-fatal */ }
       }
-      log('CLEANUP', `Removed ${result.files.length} stale share files`)
+      log('CLEANUP', `Removed ${removed} stale share files`)
     }
   } catch (e) { /* readdir may fail if directory doesn't exist */ }
+}
+
+async function cleanupShareFile(filename) {
+  try {
+    const { Filesystem } = await import('@capacitor/filesystem')
+    await Filesystem.deleteFile({
+      path: `${SHARE_DIR}/${filename}`,
+      directory: Directory.External,
+    })
+    log('SHARE_CLEANUP_OK', `Deleted ${filename}`)
+  } catch (e) { /* cleanup failure is non-fatal */ }
 }
 
 /* ── Public API ── */
@@ -124,12 +144,12 @@ export async function downloadBlob(blob, filename) {
     const savedFile = await Filesystem.writeFile({
       path: `${EXPORT_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Downloads,
+      directory: Directory.External,
       recursive: true,
     })
     log('WRITE_OK', `uri: ${savedFile.uri}`)
 
-    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.Downloads)
+    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.External)
     if (!verification.exists) {
       log('VERIFY_FAILED', 'File not found after write')
 
@@ -180,12 +200,12 @@ export async function downloadDataUri(dataUri, filename) {
     const savedFile = await Filesystem.writeFile({
       path: `${EXPORT_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Downloads,
+      directory: Directory.External,
       recursive: true,
     })
     log('WRITE_OK', `uri: ${savedFile.uri}`)
 
-    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.Downloads)
+    const verification = await verifyFile(`${EXPORT_DIR}/${filename}`, Directory.External)
     if (!verification.exists || verification.size === 0) {
       log('VERIFY_FAILED', 'File invalid after write')
       const legacyOk = downloadDataUriLegacy(dataUri, filename)
@@ -287,12 +307,12 @@ export async function shareBlob(blob, filename, title) {
     const savedFile = await Filesystem.writeFile({
       path: `${SHARE_DIR}/${filename}`,
       data: base64,
-      directory: Directory.Downloads,
+      directory: Directory.External,
       recursive: true,
     })
     log('SHARE_WRITE_OK', `uri: ${savedFile.uri}`)
 
-    const verification = await verifyFile(`${SHARE_DIR}/${filename}`, Directory.Downloads)
+    const verification = await verifyFile(`${SHARE_DIR}/${filename}`, Directory.External)
     if (!verification.exists || verification.size === 0) {
       log('SHARE_VERIFY_FAILED', 'Share file invalid')
       return { shared: false, method: 'error', error: 'Share file could not be verified' }
@@ -306,6 +326,7 @@ export async function shareBlob(blob, filename, title) {
     })
 
     log('SHARE_OK', 'Capacitor Share')
+    cleanupShareFile(filename)
     return { shared: true, method: 'capacitor' }
   } catch (err) {
     const msg = err?.message || ''

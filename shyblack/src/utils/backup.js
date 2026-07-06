@@ -2,6 +2,8 @@ import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { APP_SCHEMA_VERSION } from './schema'
 import { recordBackupEvent } from './backupHealth'
 import { generateId } from './helpers'
+import { buildEnrichedBackupData } from './backupMetadata'
+import { validateBeforeExport, computeRecordCounts } from './dataValidator'
 
 export const BACKUP_SCHEMA_VERSION = 1
 export const MAX_BACKUP_GENERATIONS = 10
@@ -439,10 +441,12 @@ function logExport(stage, details = '') {
 /* ── Base64 Encoding (UTF-8 safe, no deprecated APIs) ── */
 
 function utf8ToBase64(str) {
-  const bytes = new TextEncoder().encode(str)
+  const uint8 = new TextEncoder().encode(str)
   let binary = ''
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i])
+  const chunkSize = 8192
+  for (let i = 0; i < uint8.length; i += chunkSize) {
+    const chunk = uint8.subarray(i, Math.min(i + chunkSize, uint8.length))
+    binary += String.fromCharCode.apply(null, chunk)
   }
   return btoa(binary)
 }
@@ -454,6 +458,26 @@ function base64ToUtf8(base64) {
     bytes[i] = binary.charCodeAt(i)
   }
   return new TextDecoder().decode(bytes)
+}
+
+/* ── Share Helper ── */
+
+async function shareExportedFile(blob, filename) {
+  try {
+    const { shareBlob } = await import('./downloadUtils')
+    const result = await shareBlob(blob, filename, 'FINORA Backup')
+    if (result.shared) {
+      logExport('SHARE_OK', `method: ${result.method}`)
+      return { shared: true, method: result.method }
+    }
+    if (result.method !== 'cancelled') {
+      logExport('SHARE_FAILED', result.error || 'unknown')
+    }
+    return { shared: false, reason: result.method }
+  } catch (err) {
+    logExport('SHARE_ERROR', err.message)
+    return { shared: false, reason: 'error', error: err.message }
+  }
 }
 
 /* ── Capacitor Filesystem Helpers ── */
@@ -503,10 +527,23 @@ export async function exportBackup() {
   logExport('EXPORT_STARTED')
   const startTime = Date.now()
 
-  const backup = collectBackupData()
-  logExport('DATA_COLLECTED', `modules: ${Object.keys(backup.data).length}`)
+  const validation = validateBeforeExport()
+  if (!validation.canExport) {
+    const msg = 'Pre-export validation failed: ' + validation.errors.join('; ')
+    logExport('VALIDATION_FAILED', msg)
+    return { success: false, error: msg, stage: 'validation' }
+  }
+  logExport('VALIDATION_PASSED', validation.warnings.length ? `warnings: ${validation.warnings.join(', ')}` : 'clean')
 
-  const json = JSON.stringify(backup, null, 2)
+  const rawBackup = collectBackupData()
+  logExport('DATA_COLLECTED', `modules: ${Object.keys(rawBackup.data).length}`)
+
+  const checksum = await generateChecksum(rawBackup.data)
+  const recordCounts = computeRecordCounts()
+  const enriched = buildEnrichedBackupData(rawBackup, { checksum, recordCounts })
+  logExport('METADATA_ADDED', `backupId: ${enriched.backupId}, records: ${enriched.totalRecords}`)
+
+  const json = JSON.stringify(enriched, null, 2)
   const jsonSize = typeof Blob !== 'undefined'
     ? new Blob([json]).size
     : new TextEncoder().encode(json).length
@@ -544,12 +581,12 @@ export async function exportBackup() {
     const savedFile = await Filesystem.writeFile({
       path: fullPath,
       data: base64,
-      directory: Directory.Downloads,
+      directory: Directory.External,
       recursive: true,
     })
     logExport('WRITE_SUCCESS', `uri: ${savedFile.uri}`)
 
-    const verification = await verifyFileExists(fullPath, Directory.Downloads)
+    const verification = await verifyFileExists(fullPath, Directory.External)
     if (!verification.exists) {
       const msg = 'File write reported success but file not found on disk'
       logExport('VERIFICATION_FAILED', msg)
@@ -568,14 +605,23 @@ export async function exportBackup() {
     logExport('EXPORT_COMPLETED', `file: ${filename}, size: ${verification.size}, time: ${elapsed}ms`)
     recordBackupEvent('export', true)
 
+    const blob = new Blob([json], { type: 'application/json' })
+    const share = await shareExportedFile(blob, filename)
+
     return {
       success: true,
       method: 'filesystem',
       filename,
-      path: `Downloads/${fullPath}`,
+      path: `External/${fullPath}`,
       uri: savedFile.uri,
       size: verification.size,
       elapsed,
+      shared: share.shared,
+      shareMethod: share.method,
+      shareError: share.shared ? null : (share.error || null),
+      backupId: enriched.backupId,
+      recordCounts,
+      checksum,
     }
   } catch (err) {
     logExport('WRITE_FAILED', err.message || 'Unknown error')
@@ -619,12 +665,25 @@ export async function exportEncryptedBackup(password) {
   logExport('ENCRYPTED_EXPORT_STARTED')
   const startTime = Date.now()
 
-  const backup = collectBackupData()
-  logExport('DATA_COLLECTED', `modules: ${Object.keys(backup.data).length}`)
+  const validation = validateBeforeExport()
+  if (!validation.canExport) {
+    const msg = 'Pre-export validation failed: ' + validation.errors.join('; ')
+    logExport('ENCRYPTED_VALIDATION_FAILED', msg)
+    throw new Error(msg)
+  }
+  logExport('VALIDATION_PASSED', validation.warnings.length ? `warnings: ${validation.warnings.join(', ')}` : 'clean')
+
+  const rawBackup = collectBackupData()
+  logExport('DATA_COLLECTED', `modules: ${Object.keys(rawBackup.data).length}`)
+
+  const checksum = await generateChecksum(rawBackup.data)
+  const recordCounts = computeRecordCounts()
+  const enriched = buildEnrichedBackupData(rawBackup, { checksum, recordCounts, encryption: 'aes-256-gcm' })
+  logExport('METADATA_ADDED', `backupId: ${enriched.backupId}, records: ${enriched.totalRecords}`)
 
   let encryptedObj
   try {
-    encryptedObj = await encryptBackup(backup, password)
+    encryptedObj = await encryptBackup(enriched, password)
     logExport('ENCRYPTION_OK')
   } catch (err) {
     logExport('ENCRYPTION_FAILED', err.message || 'Unknown error')
@@ -662,12 +721,12 @@ export async function exportEncryptedBackup(password) {
     const savedFile = await Filesystem.writeFile({
       path: fullPath,
       data: base64,
-      directory: Directory.Downloads,
+      directory: Directory.External,
       recursive: true,
     })
     logExport('ENCRYPTED_WRITE_SUCCESS', `uri: ${savedFile.uri}`)
 
-    const verification = await verifyFileExists(fullPath, Directory.Downloads)
+    const verification = await verifyFileExists(fullPath, Directory.External)
     if (!verification.exists || verification.size === 0) {
       const msg = verification.size === 0 ? 'File is empty' : 'File not found after write'
       logExport('ENCRYPTED_VERIFICATION_FAILED', msg)
@@ -679,14 +738,23 @@ export async function exportEncryptedBackup(password) {
     logExport('ENCRYPTED_EXPORT_COMPLETED', `size: ${verification.size}, time: ${elapsed}ms`)
     recordBackupEvent('encrypted_export', true)
 
+    const blob = new Blob([json], { type: 'application/json' })
+    const share = await shareExportedFile(blob, filename)
+
     return {
       success: true,
       method: 'filesystem',
       filename,
-      path: `Downloads/${fullPath}`,
+      path: `External/${fullPath}`,
       uri: savedFile.uri,
       size: verification.size,
       elapsed,
+      shared: share.shared,
+      shareMethod: share.method,
+      shareError: share.shared ? null : (share.error || null),
+      backupId: enriched.backupId,
+      recordCounts,
+      checksum,
     }
   } catch (err) {
     logExport('ENCRYPTED_WRITE_FAILED', err.message || 'Unknown error')

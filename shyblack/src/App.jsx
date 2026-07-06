@@ -58,6 +58,7 @@ const RecurringTransactionsPage = lazy(() => import('./pages/RecurringTransactio
 const BudgetCenterPage = lazy(() => import('./pages/BudgetCenterPage'))
 const ReceiptCenterPage = lazy(() => import('./pages/ReceiptCenterPage'))
 const WealthCenterPage = lazy(() => import('./pages/WealthCenterPage'))
+const HealthCenterPage = lazy(() => import('./pages/HealthCenterPage'))
 const RecoveryCenterPage = lazy(() => import('./pages/RecoveryCenterPage'))
 const ForecastCenterPage = lazy(() => import('./pages/ForecastCenterPage'))
 const AppInfoPage = lazy(() => import('./pages/AppInfoPage'))
@@ -101,6 +102,7 @@ const pages = {
   'recurring-transactions': RecurringTransactionsPage,
   'wealth-center': WealthCenterPage,
   'recovery-center': RecoveryCenterPage,
+  'health-center': HealthCenterPage,
   'forecast-center': ForecastCenterPage,
   'app-info': AppInfoPage,
   'privacy-center': PrivacyCenter,

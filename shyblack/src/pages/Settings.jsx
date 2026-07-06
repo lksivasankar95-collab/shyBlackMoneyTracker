@@ -121,7 +121,11 @@ export default function Settings({ onNavigate }) {
     try {
       const result = await exportBackup()
       if (result.success) {
-        addToast(t('settings.backup_exported'), 'success')
+        if (result.shared) {
+          addToast(t('settings.backup_exported'), 'success')
+        } else {
+          addToast('Backup saved to device (share unavailable)', 'warning')
+        }
       } else {
         addToast(result.error || t('settings.backup_export_failed'), 'error')
       }

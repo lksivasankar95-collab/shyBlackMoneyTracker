@@ -64,6 +64,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
 
   const featureLinks = [
     { route: 'wealth-center', Icon: BarChart3, color: 'text-amber-400', labelKey: 'dashboard.wealth_center' },
+    { route: 'health-center', Icon: ShieldCheck, color: 'text-neon', labelKey: 'dashboard.backup_health' },
     { route: 'recovery-center', Icon: ShieldCheck, color: 'text-neon', labelKey: 'dashboard.backup' },
     { route: 'budget-center', Icon: Target, color: 'text-teal-400', labelKey: 'dashboard.budget_center' },
     { route: 'networth', Icon: BarChart3, color: 'text-neon', labelKey: 'nav.networth' },
