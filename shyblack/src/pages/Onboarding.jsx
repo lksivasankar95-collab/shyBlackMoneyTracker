@@ -6,7 +6,7 @@ import {
   Wallet, Plus, Minus, LayoutDashboard, Sparkles,
 } from 'lucide-react'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
-import { ALL_CATEGORIES } from '../utils/constants'
+import { ALL_CATEGORIES, PRIVACY_POLICY_URL } from '../utils/constants'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -443,7 +443,9 @@ export default function Onboarding({ onComplete }) {
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <FileText size={14} className="text-neon" />
-                  <h3 className="text-xs font-semibold">{t('onboarding.complete.privacy_policy')}</h3>
+                  <h3 className="text-xs font-semibold">
+                    <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">{t('onboarding.complete.privacy_policy')}</a>
+                  </h3>
                 </div>
                 <div className="text-[11px] text-gray-400 leading-relaxed space-y-1.5 bg-white/[0.02] rounded-xl p-3">
                   <p>{t('onboarding.complete.privacy_text')}</p>
@@ -477,7 +479,7 @@ export default function Onboarding({ onComplete }) {
                   {agreePrivacy && <Check size={12} strokeWidth={3} />}
                 </div>
                 <span className="text-xs text-gray-400 leading-relaxed">
-                  {t('onboarding.complete.agree_prefix')} <span className="text-neon">{t('onboarding.complete.privacy_policy')}</span>
+                  {t('onboarding.complete.agree_prefix')} <a href={PRIVACY_POLICY_URL} target="_blank" rel="noopener noreferrer" className="text-neon hover:underline">{t('onboarding.complete.privacy_policy')}</a>
                 </span>
               </label>
 

@@ -348,7 +348,7 @@ export async function parseAndValidateEncryptedBackup(jsonString, password) {
   }
 
   if (!parsed.encrypted || (parsed.app !== 'finora-finance' && parsed.app !== 'shyblack-finance')) {
-    return { success: false, error: 'Not a FINORA encrypted backup file.' }
+    return { success: false, error: 'Not an Expense Tracker - ShyBlack encrypted backup file.' }
   }
 
   if (!parsed.salt || !parsed.iv || !parsed.data) {
@@ -465,7 +465,7 @@ function base64ToUtf8(base64) {
 async function shareExportedFile(blob, filename) {
   try {
     const { shareBlob } = await import('./downloadUtils')
-    const result = await shareBlob(blob, filename, 'FINORA Backup')
+    const result = await shareBlob(blob, filename, 'Expense Tracker Backup')
     if (result.shared) {
       logExport('SHARE_OK', `method: ${result.method}`)
       return { shared: true, method: result.method }
@@ -513,9 +513,9 @@ async function verifyFileExists(path, directory) {
 
 /* ── Export Configuration ── */
 
-const EXPORT_DIRECTORY = 'FINORA'
+const EXPORT_DIRECTORY = 'ExpenseTracker'
 
-function getExportFilename(prefix = 'finora_backup') {
+function getExportFilename(prefix = 'etracker_backup') {
   const date = new Date().toISOString().split('T')[0]
   const timestamp = Date.now()
   return `${prefix}_${date}_${timestamp}.json`
@@ -555,7 +555,7 @@ export async function exportBackup() {
     return { success: false, error: msg, stage: 'serialization' }
   }
 
-  const filename = getExportFilename('finora_backup')
+  const filename = getExportFilename('etracker_backup')
   const fullPath = `${EXPORT_DIRECTORY}/${filename}`
   const base64 = utf8ToBase64(json)
   logExport('BASE64_ENCODED', `length: ${base64.length}`)
@@ -696,7 +696,7 @@ export async function exportEncryptedBackup(password) {
     : new TextEncoder().encode(json).length
   logExport('JSON_GENERATED', `size: ${jsonSize} bytes`)
 
-  const filename = getExportFilename('finora_encrypted')
+  const filename = getExportFilename('etracker_encrypted')
   const fullPath = `${EXPORT_DIRECTORY}/${filename}`
   const base64 = utf8ToBase64(json)
 

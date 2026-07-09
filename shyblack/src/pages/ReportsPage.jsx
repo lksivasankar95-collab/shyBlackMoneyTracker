@@ -95,7 +95,7 @@ export default function ReportsPage() {
   const getExportFilename = useCallback((ext) => {
     const dateStr = new Date().toISOString().split('T')[0]
     const scopePrefix = exportScope !== 'all' ? exportScope : 'all'
-    return `finora_${scopePrefix}_${dateStr}.${ext}`
+    return `etracker_${scopePrefix}_${dateStr}.${ext}`
   }, [exportScope])
 
   const handleExport = useCallback(async (singleFormat) => {
@@ -176,7 +176,7 @@ export default function ReportsPage() {
   const handleExportStatement = useCallback(() => {
     if (statement) {
       const html = generateStatementHTML(statement)
-      downloadHTML(html, `finora_statement_${MONTHS[selectedMonth]}_${selectedYear}.html`)
+      downloadHTML(html, `etracker_statement_${MONTHS[selectedMonth]}_${selectedYear}.html`)
       addToast(t('notifications.statement_generated'), 'success')
     }
   }, [statement, selectedMonth, selectedYear, addToast, t])
@@ -211,7 +211,7 @@ export default function ReportsPage() {
       }
       setPdfDataUri(result.dataUri)
       setPdfBlob(result.blob)
-      const saveResult = await downloadBlob(result.blob, `finora_report_${Date.now()}.pdf`)
+      const saveResult = await downloadBlob(result.blob, `etracker_report_${Date.now()}.pdf`)
       if (saveResult.success) {
         setDownloadResult(saveResult)
         setShowDownloadInfo(true)
@@ -229,13 +229,13 @@ export default function ReportsPage() {
 
   const handleOpenPDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await openFileNative(pdfBlob, `finora_report_${Date.now()}.pdf`)
+    const result = await openFileNative(pdfBlob, `etracker_report_${Date.now()}.pdf`)
     if (result.action === 'cancelled') return
   }, [pdfBlob])
 
   const handleSharePDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await shareBlob(pdfBlob, `finora_report_${Date.now()}.pdf`, 'FINORA Report')
+    const result = await shareBlob(pdfBlob, `etracker_report_${Date.now()}.pdf`, 'Expense Tracker Report')
     if (result.shared) {
       addToast(t('notifications.file_shared'), 'success')
     } else if (result.method === 'unsupported') {
@@ -245,7 +245,7 @@ export default function ReportsPage() {
 
   const handleDownloadPDF = useCallback(async () => {
     if (!pdfBlob) return
-    const result = await downloadBlob(pdfBlob, `finora_report_${Date.now()}.pdf`)
+    const result = await downloadBlob(pdfBlob, `etracker_report_${Date.now()}.pdf`)
     if (result.success) {
       setDownloadResult(result)
       setShowDownloadInfo(true)

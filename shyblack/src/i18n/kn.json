@@ -884,13 +884,13 @@
   },
 
   "notifications": {
-    "channel_name": "FINORA Finance",
-    "channel_description": "FINORA ಗಾಗಿ ಹಣಕಾಸು ಅಧಿಸೂಚನೆಗಳು",
+    "channel_name": "Expense Tracker - ShyBlack",
+    "channel_description": "Expense Tracker - ShyBlack ಗಾಗಿ ಹಣಕಾಸು ಅಧಿಸೂಚನೆಗಳು",
     "group_summary": {
       "title": "ಹಣಕಾಸು ನವೀಕರಣಗಳು",
       "body": "{{count}} ಹೊಸ ಅಧಿಸೂಚನೆ(ಗಳು)"
     },
-    "app_name": "FINORA",
+    "app_name": "Expense Tracker - ShyBlack",
     "app_subtitle": "Personal Finance Assistant",
     "expense_added": {
       "title": "ವೆಚ್ಚ ಸೇರಿಸಲಾಗಿದೆ",
@@ -940,7 +940,7 @@
       "title": "ದೈನಂದಿನ ಹಣಕಾಸು ಜ್ಞಾಪನೆ",
       "body_1": "ನೀವು ಇಂದಿನ ವೆಚ್ಚಗಳನ್ನು ಇನ್ನೂ ನವೀಕರಿಸಿಲ್ಲ. ಈಗ ಲಾಗ್ ಮಾಡಲು ಟ್ಯಾಪ್ ಮಾಡಿ.",
       "body_2": "ಬಾಕಿ ಉಳಿದಿರುವ ಸಾಲ ಮರುಪಾವತಿಗಳಿಗೆ ನಿಮ್ಮ ಗಮನ ಬೇಕಾಗಿದೆ. ನಿಮ್ಮ ಸಾಲ ಪಟ್ಟಿಯನ್ನು ಪರಿಶೀಲಿಸಿ.",
-      "body_3": "ನಿಮ್ಮ ದೈನಂದಿನ ಹಣಕಾಸು ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ಕಾಯುತ್ತಿದೆ. ಇಂದು ಪರಿಶೀಲಿಸಲು FINORA ತೆರೆಯಿರಿ."
+      "body_3": "ನಿಮ್ಮ ದೈನಂದಿನ ಹಣಕಾಸು ಸ್ನ್ಯಾಪ್‌ಶಾಟ್ ಕಾಯುತ್ತಿದೆ. ಇಂದು ಪರಿಶೀಲಿಸಲು Expense Tracker - ShyBlack ತೆರೆಯಿರಿ."
     },
     "monthly_summary": {
       "title": "ಮಾಸಿಕ ಸಾರಾಂಶ",
@@ -1109,7 +1109,7 @@
     "unlock": "ಅನ್‌ಲಾಕ್",
     "use_fingerprint": "ಬೆರಳಚ್ಚು ಬಳಸಿ",
     "forgot_pin": "PIN ಮರೆತಿದ್ದೀರಾ?",
-    "forgot_pin_desc": "FINORA ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಸಂಗ್ರಹಿಸುತ್ತದೆ. ರೀಸೆಟ್ ಮಾಡದೆ ಮರೆತ PIN ಮರಳಿ ಪಡೆಯಲು ಸಾಧ್ಯವಿಲ್ಲ.",
+    "forgot_pin_desc": "Expense Tracker - ShyBlack ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಆಫ್‌ಲೈನ್‌ನಲ್ಲಿ ಸಂಗ್ರಹಿಸುತ್ತದೆ. ರೀಸೆಟ್ ಮಾಡದೆ ಮರೆತ PIN ಮರಳಿ ಪಡೆಯಲು ಸಾಧ್ಯವಿಲ್ಲ.",
     "reset_all_data": "ಎಲ್ಲಾ ಅಪ್ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಿ",
     "confirm_reset": "ರೀಸೆಟ್ ದೃಢೀಕರಿಸಿ",
     "confirm_reset_warning": "ಇದು ನಿಮ್ಮ ಎಲ್ಲಾ ಡೇಟಾವನ್ನು ಶಾಶ್ವತವಾಗಿ ಅಳಿಸುತ್ತದೆ.",
@@ -1132,7 +1132,7 @@
     "section_crashed": "ಈ ವಿಭಾಗ ಕ್ರ್ಯಾಶ್ ಆಗಿದೆ",
     "go_to_dashboard": "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್‌ಗೆ ಹೋಗಿ",
     "app_error_title": "ಏನೋ ತಪ್ಪಾಯಿತು",
-    "app_error_desc": "FINORA ಅನಿರೀಕ್ಷಿತ ದೋಷವನ್ನು ಎದುರಿಸಿದೆ. ನಿಮ್ಮ ಡೇಟಾ ಸುರಕ್ಷಿತವಾಗಿದೆ.",
+    "app_error_desc": "Expense Tracker - ShyBlack ಅನಿರೀಕ್ಷಿತ ದೋಷವನ್ನು ಎದುರಿಸಿದೆ. ನಿಮ್ಮ ಡೇಟಾ ಸುರಕ್ಷಿತವಾಗಿದೆ.",
     "reload_app": "ಅಪ್ ಮರುಲೋಡ್ ಮಾಡಿ",
     "reset_local_data": "ಸ್ಥಳೀಯ ಡೇಟಾ ರೀಸೆಟ್ ಮಾಡಿ",
     "encrypted_storage": "ಎನ್‌ಕ್ರಿಪ್ಟೆಡ್ ಆಫ್‌ಲೈನ್ ಸಂಗ್ರಹಣೆ",

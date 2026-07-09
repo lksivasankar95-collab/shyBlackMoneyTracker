@@ -3,7 +3,7 @@ import {
   Target, Download, Upload, Trash2, Shield, Lock, Eye, EyeOff,
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
-  Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info,
+  Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -22,6 +22,7 @@ import {
 import { requestNotificationPermission, checkNotificationPermission } from '../utils/notifications'
 import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } from '../utils/privacy'
 import { checkBiometricAvailability, isBiometricEnabled, setBiometricEnabled, authenticateWithBiometric, getBiometricTypeLabel } from '../utils/biometrics'
+import { PRIVACY_POLICY_URL } from '../utils/constants'
 
 const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
@@ -1198,6 +1199,21 @@ export default function Settings({ onNavigate }) {
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>
+          <a
+            href={PRIVACY_POLICY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
+              <ExternalLink size={16} className="text-purple-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">Privacy Policy</p>
+              <p className="text-xs text-gray-500">Read our full privacy policy</p>
+            </div>
+            <ExternalLink size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </a>
         </div>
       </GlassCard>
     </div>

@@ -1,7 +1,8 @@
-import { Info } from 'lucide-react'
+import { Info, ExternalLink } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { getSchemaVersion, APP_SCHEMA_VERSION } from '../utils/schema'
 import { safeStorage } from '../utils/safeStorage'
+import { PRIVACY_POLICY_URL } from '../utils/constants'
 import GlassCard from '../components/GlassCard'
 
 function Row({ label, value }) {
@@ -32,7 +33,7 @@ export default function AppInfoPage() {
 
       <GlassCard className="mb-3">
         <h3 className="text-xs font-semibold text-gray-300 mb-2">{t('app.app_info')}</h3>
-        <Row label={t('app.app_name')} value="FINORA" />
+        <Row label={t('app.app_name')} value="Expense Tracker - ShyBlack" />
         <Row label={t('app.version')} value="1.0.0" />
         <Row label={t('app.build')} value={`${new Date().getFullYear()}.${String(new Date().getMonth() + 1).padStart(2, '0')}.${String(new Date().getDate()).padStart(2, '0')}`} />
         <Row label={t('app.schema_version')} value={`v${schemaVersion}`} />
@@ -74,6 +75,16 @@ export default function AppInfoPage() {
           </ul>
         </div>
       </GlassCard>
+
+      <a
+        href={PRIVACY_POLICY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 text-xs text-neon hover:underline"
+      >
+        <ExternalLink size={12} />
+        Privacy Policy
+      </a>
     </div>
   )
 }

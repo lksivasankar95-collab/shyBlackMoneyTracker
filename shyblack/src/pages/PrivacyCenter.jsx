@@ -1,5 +1,6 @@
-import { Shield, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Shield, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
+import { PRIVACY_POLICY_URL } from '../utils/constants'
 
 export default function PrivacyCenter({ onNavigate }) {
   return (
@@ -22,7 +23,7 @@ export default function PrivacyCenter({ onNavigate }) {
       <GlassCard className="mb-3">
         <h3 className="text-xs font-semibold text-gray-300 mb-2">Offline-First Architecture</h3>
         <p className="text-[11px] text-gray-400 leading-relaxed">
-          FINORA is built on an offline-first architecture. All your financial data
+          Expense Tracker - ShyBlack is built on an offline-first architecture. All your financial data
           is stored locally on your device. There are no remote servers, no cloud sync,
           and no data transmission to external services.
         </p>
@@ -72,7 +73,16 @@ export default function PrivacyCenter({ onNavigate }) {
         </p>
       </GlassCard>
 
-      <p className="text-[10px] text-gray-700 text-center mt-4">
+      <a
+        href={PRIVACY_POLICY_URL}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 text-xs text-neon hover:underline mt-4"
+      >
+        <ExternalLink size={12} />
+        Read our full Privacy Policy
+      </a>
+      <p className="text-[10px] text-gray-700 text-center mt-2">
         Last updated: June 2026
       </p>
     </div>

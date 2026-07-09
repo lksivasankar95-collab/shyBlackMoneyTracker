@@ -45,8 +45,8 @@ export async function authenticateWithBiometric(reason) {
     })
     await Promise.race([
       BiometricAuth.authenticate({
-        reason: reason || 'Unlock FINORA',
-        androidTitle: 'Unlock FINORA',
+        reason: reason || 'Unlock Expense Tracker',
+        androidTitle: 'Unlock Expense Tracker',
         androidSubtitle: 'Use biometric to unlock',
         cancelTitle: 'Use PIN instead',
         allowDeviceCredential: true,
@@ -70,7 +70,7 @@ export async function tryBiometricUnlock() {
     return { unlocked: false, reason: 'not-available' }
   }
 
-  const verified = await authenticateWithBiometric('Unlock FINORA')
+  const verified = await authenticateWithBiometric('Unlock Expense Tracker')
   return { unlocked: verified, reason: verified ? 'verified' : 'failed' }
 }
 

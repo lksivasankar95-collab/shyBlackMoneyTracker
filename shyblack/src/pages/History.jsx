@@ -37,7 +37,7 @@ function getDateRange(preset) {
   return { dateFrom: '', dateTo: '' }
 }
 
-export default function History() {
+export default function History({ onNavigate }) {
   const { t } = useTranslation()
   const { transactions, deleteTransaction, tags } = useFinance()
 
@@ -113,6 +113,13 @@ export default function History() {
   const handleDeleteRequest = useCallback((id) => {
     setPendingDelete(id)
   }, [])
+
+  const handleEditRequest = useCallback((id) => {
+    const tx = transactions.find((t) => t.id === id)
+    if (tx) {
+      onNavigate('add', { editTransaction: tx, returnTo: 'history' })
+    }
+  }, [transactions, onNavigate])
 
   const confirmDelete = useCallback(() => {
     if (!pendingDelete) return
@@ -466,7 +473,7 @@ export default function History() {
                 </div>
                 <GlassCard>
                   {txs.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} onDelete={handleDeleteRequest} />
+                    <TransactionItem key={tx.id} transaction={tx} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />
                   ))}
                 </GlassCard>
               </div>

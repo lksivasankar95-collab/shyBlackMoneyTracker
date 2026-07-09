@@ -884,13 +884,13 @@
   },
 
   "notifications": {
-    "channel_name": "FINORA Finance",
-    "channel_description": "FINORA కోసం ఆర్థిక నోటిఫికేషన్‌లు",
+    "channel_name": "Expense Tracker - ShyBlack",
+    "channel_description": "Expense Tracker - ShyBlack కోసం ఆర్థిక నోటిఫికేషన్‌లు",
     "group_summary": {
       "title": "ఫైనాన్స్ అప్‌డేట్‌లు",
       "body": "{{count}} కొత్త నోటిఫికేషన్(లు)"
     },
-    "app_name": "FINORA",
+    "app_name": "Expense Tracker - ShyBlack",
     "app_subtitle": "Personal Finance Assistant",
     "expense_added": {
       "title": "ఖర్చు జోడించబడింది",
@@ -940,7 +940,7 @@
       "title": "రోజువారీ ఫైనాన్స్ రిమైండర్",
       "body_1": "మీరు ఈరోజు ఖర్చులను ఇంకా అప్‌డేట్ చేయలేదు. ఇప్పుడు లాగ్ చేయడానికి నొక్కండి.",
       "body_2": "పెండింగ్‌లో ఉన్న అప్పు చెల్లింపులకు మీ దృష్టి అవసరం. మీ అప్పుల జాబితాను తనిఖీ చేయండి.",
-      "body_3": "మీ రోజువారీ ఆర్థిక స్నాప్‌షాట్ ఎదురుచూస్తోంది. ఈరోజు సమీక్షించడానికి FINORA తెరవండి."
+      "body_3": "మీ రోజువారీ ఆర్థిక స్నాప్‌షాట్ ఎదురుచూస్తోంది. ఈరోజు సమీక్షించడానికి Expense Tracker - ShyBlack తెరవండి."
     },
     "monthly_summary": {
       "title": "నెలవారీ సారాంశం",
@@ -1109,7 +1109,7 @@
     "unlock": "అన్‌లాక్",
     "use_fingerprint": "వేలిముద్ర వినియోగించండి",
     "forgot_pin": "PIN మర్చిపోయారా?",
-    "forgot_pin_desc": "FINORA అన్ని డేటాను ఆఫ్‌లైన్‌లో నిల్వ చేస్తుంది. రీసెట్ చేయకుండా మర్చిపోయిన PIN తిరిగి పొందడం సాధ్యం కాదు.",
+    "forgot_pin_desc": "Expense Tracker - ShyBlack అన్ని డేటాను ఆఫ్‌లైన్‌లో నిల్వ చేస్తుంది. రీసెట్ చేయకుండా మర్చిపోయిన PIN తిరిగి పొందడం సాధ్యం కాదు.",
     "reset_all_data": "అన్ని యాప్ డేటా రీసెట్ చేయండి",
     "confirm_reset": "రీసెట్ నిర్ధారించండి",
     "confirm_reset_warning": "ఇది మీ అన్ని డేటాను శాశ్వతంగా తొలగిస్తుంది.",
@@ -1132,7 +1132,7 @@
     "section_crashed": "ఈ విభాగం క్రాష్ అయింది",
     "go_to_dashboard": "డాష్‌బోర్డ్‌కు వెళ్ళండి",
     "app_error_title": "ఏదో తప్పు జరిగింది",
-    "app_error_desc": "FINORA అనూహ్య లోపాన్ని ఎదుర్కొంది. మీ డేటా సురక్షితంగా ఉంది.",
+    "app_error_desc": "Expense Tracker - ShyBlack అనూహ్య లోపాన్ని ఎదుర్కొంది. మీ డేటా సురక్షితంగా ఉంది.",
     "reload_app": "యాప్ తిరిగి లోడ్ చేయండి",
     "reset_local_data": "స్థానిక డేటా రీసెట్ చేయండి",
     "encrypted_storage": "ఎన్‌క్రిప్టెడ్ ఆఫ్‌లైన్ నిల్వ",

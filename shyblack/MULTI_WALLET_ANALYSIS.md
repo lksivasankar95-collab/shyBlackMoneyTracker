@@ -1,7 +1,7 @@
 # Multi-Wallet Support — Architecture Analysis
 
 ## Overview
-Enable users to manage multiple independent sets of accounts (e.g., personal + business, or joint + individual) within ShyBlack. Each wallet contains its own transactions, budgets, recurring items, debts, goals, templates, and tags. Settings, security, and onboarding remain app-level.
+Enable users to manage multiple independent sets of accounts (e.g., personal + business, or joint + individual) within Expense Tracker - ShyBlack. Each wallet contains its own transactions, budgets, recurring items, debts, goals, templates, and tags. Settings, security, and onboarding remain app-level.
 
 ---
 

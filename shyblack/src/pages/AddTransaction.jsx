@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
@@ -8,6 +8,7 @@ import { getSuggestedTags } from '../utils/tags'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import CategoryIcon from '../components/CategoryIcon'
 import ConfirmationModal from '../components/ConfirmationModal'
+import { useToast } from '../components/Toast'
 import { useTranslation } from '../i18n'
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000, 10000, 25000]
@@ -49,31 +50,36 @@ function formatAmountShort(amount, symbol) {
   return `${symbol}${amount}`
 }
 
-export default function AddTransaction({ onNavigate: _onNavigate }) {
+export default function AddTransaction({ onNavigate, navParams }) {
   const { t } = useTranslation()
-  const { addTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
+  const { addTransaction, updateTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
+  const { addToast } = useToast()
   const amountInputRef = useRef(null)
   const lastCategoryByType = useRef({ income: '', expense: '' })
   const currencySymbol = useMemo(() => getCurrencySymbol(), [])
 
-  const [purpose, setPurpose] = useState(TRANSACTION_TYPES.EXPENSE)
-  const [amount, setAmount] = useState('')
-  const [category, setCategory] = useState(() => lastCategoryByType.current[TRANSACTION_TYPES.EXPENSE] || '')
-  const [note, setNote] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
-  const [selectedTags, setSelectedTags] = useState([])
+  const editTx = navParams?.editTransaction || null
+  const isEditing = !!editTx
+
+  const [purpose, setPurpose] = useState(() => editTx?.type || TRANSACTION_TYPES.EXPENSE)
+  const [amount, setAmount] = useState(() => editTx ? String(editTx.amount) : '')
+  const [category, setCategory] = useState(() => editTx?.category || lastCategoryByType.current[TRANSACTION_TYPES.EXPENSE] || '')
+  const [note, setNote] = useState(() => editTx?.note || '')
+  const [date, setDate] = useState(() => editTx?.date || new Date().toISOString().split('T')[0])
+  const [selectedTags, setSelectedTags] = useState(() => editTx?.tags || [])
   const [isRecurring, setIsRecurring] = useState(false)
   const [frequency, setFrequency] = useState('monthly')
-  const [source, setSource] = useState('')
+  const [source, setSource] = useState(() => editTx?.source || '')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showLargeConfirm, setShowLargeConfirm] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(null)
-  const [personName, setPersonName] = useState('')
-  const [paymentMethod, setPaymentMethod] = useState('')
+  const [personName, setPersonName] = useState(() => editTx?.person?.name || '')
+  const [paymentMethod, setPaymentMethod] = useState(() => editTx?.paymentMethod || '')
   const [showPersonSuggestions, setShowPersonSuggestions] = useState(false)
-  const [showMore, setShowMore] = useState(false)
+  const [showMore, setShowMore] = useState(!!editTx)
 
   const personSuggestions = useMemo(() => {
     if (!personName.trim()) return []
@@ -133,38 +139,65 @@ export default function AddTransaction({ onNavigate: _onNavigate }) {
   }
 
   const doSubmit = useCallback((transactionData) => {
-    addTransaction(transactionData)
-    addTemplate(transactionData)
+    setIsSubmitting(true)
+    setError('')
 
-    if (isRecurring) {
-      const nextDate = new Date(date)
-      if (frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
-      else if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
-      else if (frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1)
+    try {
+      if (isEditing && editTx) {
+        const prevTx = { ...editTx }
+        updateTransaction(editTx.id, transactionData)
 
-      addRecurring({
-        ...transactionData,
-        frequency,
-        nextDate: nextDate.toISOString().split('T')[0],
-        active: true,
-      })
+        addToast(t('transactions.updated_success'), 'success', 4000, () => {
+          updateTransaction(editTx.id, prevTx)
+          addToast(t('transactions.undone'), 'info', 2000)
+        })
+
+        setSuccess(true)
+        setTimeout(() => {
+          setSuccess(false)
+          onNavigate?.(navParams?.returnTo || 'history')
+        }, 800)
+      } else {
+        addTransaction(transactionData)
+        addTemplate(transactionData)
+
+        if (isRecurring) {
+          const nextDate = new Date(date)
+          if (frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
+          else if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
+          else if (frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1)
+
+          addRecurring({
+            ...transactionData,
+            frequency,
+            nextDate: nextDate.toISOString().split('T')[0],
+            active: true,
+          })
+        }
+
+        setAmount('')
+        setCategory('')
+        setNote('')
+        setDate(new Date().toISOString().split('T')[0])
+        setSelectedTags([])
+        setIsRecurring(false)
+        setSource('')
+        setPersonName('')
+        setPaymentMethod('')
+        setShowMore(false)
+        setSuccess(true)
+        setError('')
+        setPendingSubmit(null)
+        setTimeout(() => setSuccess(false), 2000)
+      }
+    } catch (err) {
+      setError(t('transactions.update_failed'))
+      setIsSubmitting(false)
+      return
     }
 
-    setAmount('')
-    setCategory('')
-    setNote('')
-    setDate(new Date().toISOString().split('T')[0])
-    setSelectedTags([])
-    setIsRecurring(false)
-    setSource('')
-    setPersonName('')
-    setPaymentMethod('')
-    setShowMore(false)
-    setSuccess(true)
-    setError('')
-    setPendingSubmit(null)
-    setTimeout(() => setSuccess(false), 2000)
-  }, [addTransaction, addRecurring, isRecurring, date, frequency, addTemplate])
+    setIsSubmitting(false)
+  }, [addTransaction, updateTransaction, addRecurring, isRecurring, isEditing, editTx, date, frequency, addTemplate, addToast, t, onNavigate])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -220,6 +253,23 @@ export default function AddTransaction({ onNavigate: _onNavigate }) {
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
+      {isEditing && (
+        <div className="flex items-center gap-3 mb-5">
+          {onNavigate && (
+            <button
+              onClick={() => onNavigate(navParams?.returnTo || 'history')}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/[0.05] transition-all"
+              aria-label={t('common.back')}
+            >
+              <ArrowUpCircle size={18} className="rotate-[-90deg]" />
+            </button>
+          )}
+          <div>
+            <h1 className="text-base font-bold">{t('transactions.edit')}</h1>
+            <p className="text-[10px] text-gray-500">{formatCurrency(editTx?.amount || 0)} · {editTx?.category}</p>
+          </div>
+        </div>
+      )}
       {/* Type Selector */}
       <div className="flex gap-2 mb-5">
         {[TRANSACTION_TYPES.INCOME, TRANSACTION_TYPES.EXPENSE].map((txType) => {
@@ -549,15 +599,25 @@ export default function AddTransaction({ onNavigate: _onNavigate }) {
         {/* Submit */}
         <button
           type="submit"
-          disabled={!amount || !category}
+          disabled={!amount || !category || isSubmitting}
           className={`w-full btn-primary flex items-center justify-center gap-2 ${
             success ? '!bg-neon !text-black' : ''
           }`}
         >
-          {success ? (
+          {isSubmitting ? (
+            <>
+              <Loader2 size={18} className="animate-spin" />
+              {t('transactions.updating')}
+            </>
+          ) : success ? (
             <>
               <Check size={18} />
-              {t('transactions.added')}
+              {isEditing ? t('transactions.saved') : t('transactions.added')}
+            </>
+          ) : isEditing ? (
+            <>
+              <Pencil size={18} />
+              {t('transactions.save_changes')}
             </>
           ) : (
             purpose === TRANSACTION_TYPES.INCOME ? t('transactions.add_income') : t('transactions.add_expense')

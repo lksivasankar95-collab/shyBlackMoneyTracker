@@ -60,6 +60,13 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     updateSecurity({ hideBalance: next })
   }, [hideBalance, updateSecurity])
 
+  const handleEditTx = useCallback((id) => {
+    const tx = transactions.find((t) => t.id === id)
+    if (tx) {
+      onNavigate('add', { editTransaction: tx, returnTo: 'dashboard' })
+    }
+  }, [transactions, onNavigate])
+
   const hasPendingActions = pendingRecurring.length > 0 || debtsSummary.overdueCount > 0
 
   const featureLinks = [
@@ -338,7 +345,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           ) : (
             <div>
               {recentTx.map((tx) => (
-                <TransactionItem key={tx.id} transaction={tx} onDelete={deleteTransaction} compact />
+                <TransactionItem key={tx.id} transaction={tx} onDelete={deleteTransaction} onEdit={handleEditTx} compact />
               ))}
             </div>
           )}

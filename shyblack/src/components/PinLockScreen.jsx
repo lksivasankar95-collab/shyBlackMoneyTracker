@@ -138,7 +138,7 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
         <Lock size={28} className="text-neon" />
       </div>
 
-      <h1 className="text-lg font-bold text-white mb-1">FINORA</h1>
+      <h1 className="text-lg font-bold text-white mb-1">Expense Tracker - ShyBlack</h1>
       <p className="text-xs text-gray-500 font-medium mb-8">{t('pin_lock.enter_pin_prompt')}</p>
 
       <div className="flex gap-3 mb-8">

@@ -11,7 +11,7 @@ function log(method, details) {
 
 /* ── Constants ── */
 
-const EXPORT_DIR = 'FINORA'
+const EXPORT_DIR = 'ExpenseTracker'
 const SHARE_DIR = `${EXPORT_DIR}/_share`
 
 const MIME_MAP = {

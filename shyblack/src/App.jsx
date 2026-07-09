@@ -182,11 +182,12 @@ function LockGate({ isLocked, onUnlock }) {
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
+  const [navParams, setNavParams] = useState(null)
   const [animDir, setAnimDir] = useState('forward')
   const [history, setHistory] = useState(['dashboard'])
   const prevPage = useRef(currentPage)
 
-  const handleNavigate = useCallback((page) => {
+  const handleNavigate = useCallback((page, params) => {
     const prevIdx = navPages.indexOf(prevPage.current)
     const nextIdx = navPages.indexOf(page)
     const isNavChange = prevIdx >= 0 && nextIdx >= 0
@@ -194,6 +195,7 @@ function AppContent() {
     prevPage.current = page
     setHistory(prev => prev[prev.length - 1] !== page ? [...prev, page] : prev)
     setCurrentPage(page)
+    setNavParams(params || null)
     window.scrollTo({ top: 0, behavior: 'instant' })
   }, [])
 
@@ -208,11 +210,12 @@ function AppContent() {
     prevPage.current = targetPage
     setHistory(newHistory)
     setCurrentPage(targetPage)
+    setNavParams(null)
   }, [history])
 
   const canGoBack = history.length > 1
-  const pageKey = currentPage
-  const Page = pages[pageKey]
+  const pageKey = currentPage + (navParams?.editTransaction?.id || '')
+  const Page = pages[currentPage]
   const showHeader = currentPage === 'dashboard' || navPages.includes(currentPage)
 
   return (
@@ -225,11 +228,11 @@ function AppContent() {
         </div>
       )}
       <AndroidBackHandler canGoBack={canGoBack} onGoBack={handleGoBack} />
-      <ScrollRestoration pageKey={currentPage} />
+      <ScrollRestoration pageKey={pageKey} />
       <Suspense fallback={<PageLoader />}>
-        <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={currentPage}>
+        <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={pageKey}>
           <PageErrorBoundary page={currentPage} onNavigate={handleNavigate}>
-            <Page onNavigate={handleNavigate} currentPage={currentPage} />
+            <Page onNavigate={handleNavigate} currentPage={currentPage} navParams={navParams} />
           </PageErrorBoundary>
         </div>
       </Suspense>

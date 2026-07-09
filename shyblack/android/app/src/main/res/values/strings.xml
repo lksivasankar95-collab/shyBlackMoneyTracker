@@ -1,10 +1,10 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">FINORA</string>
-    <string name="title_activity_main">FINORA</string>
+    <string name="app_name">Expense Tracker - ShyBlack</string>
+    <string name="title_activity_main">Expense Tracker - ShyBlack</string>
     <string name="package_name">com.shyblack.finance</string>
     <string name="custom_url_scheme">com.shyblack.finance</string>
     <string name="notification_channel_id">finora_finance</string>
-    <string name="notification_channel_name">FINORA Finance</string>
-    <string name="notification_channel_description">Financial notifications for FINORA</string>
+    <string name="notification_channel_name">Expense Tracker - ShyBlack</string>
+    <string name="notification_channel_description">Financial notifications for Expense Tracker - ShyBlack</string>
 </resources>

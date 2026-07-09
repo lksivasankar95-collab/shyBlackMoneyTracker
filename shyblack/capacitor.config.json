@@ -1,6 +1,6 @@
 {
   "appId": "com.shyblack.finance",
-  "appName": "FINORA",
+  "appName": "Expense Tracker - ShyBlack",
   "webDir": "dist",
   "server": {
     "androidScheme": "https"

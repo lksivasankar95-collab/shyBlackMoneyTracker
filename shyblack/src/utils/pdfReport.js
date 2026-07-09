@@ -6,7 +6,7 @@ import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES } from './constants'
 
 // ═══════════════════════════════════════════════════════════════════
-// ENTERPRISE PDF REPORT — FINORA v2
+// ENTERPRISE PDF REPORT — Expense Tracker - ShyBlack
 // Bank-statement quality · White background · Grayscale · A4
 // ═══════════════════════════════════════════════════════════════════
 
@@ -124,7 +124,7 @@ function addFooter(doc, pageNum, totalPages) {
   const now = new Date()
   const ts = `${now.getDate()} ${getFullMonth(now.getMonth())} ${now.getFullYear()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`
 
-  doc.text('FINORA  \u00B7  Confidential  \u00B7  Generated Automatically', M, y)
+  doc.text('Expense Tracker - ShyBlack  \u00B7  Confidential  \u00B7  Generated Automatically', M, y)
   doc.text(ts, PW / 2, y, { align: 'center' })
   doc.text(`Page ${pageNum} of ${totalPages}`, PW - M, y, { align: 'right' })
 }
@@ -154,7 +154,7 @@ function drawCoverPage(doc, title, periodLabel, userName) {
   doc.setFont(FONT_BOLD, 'bold')
   doc.setFontSize(32)
   doc.setTextColor(...BLACK)
-  doc.text('FINORA', cx, 72, { align: 'center' })
+  doc.text('Expense Tracker - ShyBlack', cx, 72, { align: 'center' })
 
   doc.setFont(FONT_NORMAL, 'normal')
   doc.setFontSize(13)
@@ -190,7 +190,7 @@ function drawCoverPage(doc, title, periodLabel, userName) {
   doc.setFont(FONT_NORMAL, 'normal')
   doc.setFontSize(8)
   doc.setTextColor(...LIGHT_GRAY)
-  doc.text('FINORA v2  \u00B7  Report', cx, PH - M_COVER - 20, { align: 'center' })
+  doc.text('Expense Tracker - ShyBlack v2  \u00B7  Report', cx, PH - M_COVER - 20, { align: 'center' })
 
   doc.setFontSize(7)
   doc.setTextColor(...LIGHT_GRAY)

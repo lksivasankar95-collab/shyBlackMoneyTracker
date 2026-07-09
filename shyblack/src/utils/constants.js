@@ -49,6 +49,8 @@ export const CRYPTO_COINS = [
   { id: 'custom', label: 'Custom Coin' },
 ]
 
+export const PRIVACY_POLICY_URL = 'https://sites.google.com/view/expense-tracker---shyblack/home'
+
 export const PAYMENT_METHODS = [
   { id: 'gpay', label: 'GPay', icon: 'Smartphone' },
   { id: 'phonepe', label: 'PhonePe', icon: 'Smartphone' },

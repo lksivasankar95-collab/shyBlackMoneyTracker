@@ -26,7 +26,7 @@ const BrandHeader = memo(function BrandHeader({ compact, onSecretTap }) {
         <div className="absolute inset-0 rounded-full bg-neon/10 blur-sm" />
         <img
           src={logoSrc}
-          alt="FINORA"
+          alt="Expense Tracker - ShyBlack"
           width={compact ? 28 : 32}
           height={compact ? 28 : 32}
           className={`object-contain relative ${compact ? 'w-7 h-7' : 'w-8 h-8'}`}
@@ -35,10 +35,10 @@ const BrandHeader = memo(function BrandHeader({ compact, onSecretTap }) {
       </div>
       <div className="flex items-baseline gap-1.5">
         <span className={`font-extrabold tracking-tight text-white ${compact ? 'text-sm' : 'text-base'}`}>
-          FINORA
+          Expense Tracker - ShyBlack
         </span>
         <span className={`text-neon font-semibold tracking-wider ${compact ? 'text-[10px]' : 'text-xs'}`}>
-          SMART FINANCE
+          TRACK SMARTER
         </span>
       </div>
     </div>
