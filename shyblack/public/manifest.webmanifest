@@ -1,50 +1,29 @@
 {
   "name": "Expense Tracker - ShyBlack",
-  "short_name": "Expense Tracker",
-  "description": "Track Smarter. Save Better.",
+  "short_name": "ShyBlack",
+  "description": "Track Every Expense. Build a Better Future.",
   "background_color": "#0A0A0F",
   "theme_color": "#0A0A0F",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/",
   "icons": [
     {
-      "src": "../icons/icon-48.webp",
-      "type": "image/png",
-      "sizes": "48x48",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-72.webp",
-      "type": "image/png",
-      "sizes": "72x72",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-96.webp",
-      "type": "image/png",
-      "sizes": "96x96",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-128.webp",
-      "type": "image/png",
-      "sizes": "128x128",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-192.webp",
+      "src": "/icons/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "../icons/icon-256.webp",
-      "type": "image/png",
-      "sizes": "256x256",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "../icons/icon-512.webp",
+      "src": "/icons/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "1254x1254",
       "purpose": "any maskable"
     }
   ]

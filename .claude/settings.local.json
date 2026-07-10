@@ -17,7 +17,12 @@
       "Bash(xargs cat)",
       "Bash(npx cap *)",
       "Bash(Get-ChildItem -Path \"E:\\\\Siva Current Work Backup File\\\\New folder\\\\New folder\\\\tracker\\\\shyblack\\\\src\" -Recurse -File)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(keytool *)",
+      "Bash(./gradlew validateSigningRelease --stacktrace)",
+      "Bash(./gradlew assembleRelease)",
+      "Bash(apksigner verify *)",
+      "Bash(npx @capacitor/assets generate --android --iconBackgroundColor=\"#0A0A0F\" --iconBackgroundColorDark=\"#0A0A0F\" --splashBackgroundColor=\"#0A0A0F\" --splashBackgroundColorDark=\"#0A0A0F\")"
     ]
   }
 }

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { Lock, AlertTriangle, Clock, Fingerprint } from 'lucide-react'
+import logoSrc from '../assets/logo.png'
 import * as privacy from '../utils/privacy'
 import { hapticSuccess } from '../utils/haptics'
 import { tryBiometricUnlock, checkBiometricAvailability, isBiometricEnabled } from '../utils/biometrics'
@@ -134,8 +135,16 @@ export default function PinLockScreen({ onUnlock, onResetData }) {
 
   return (
     <div className="fixed inset-0 z-50 bg-matte flex flex-col items-center justify-center p-6 animate-fade-in">
-      <div className="w-16 h-16 rounded-2xl bg-neon/10 flex items-center justify-center mb-5">
-        <Lock size={28} className="text-neon" />
+      <div className="relative mb-4">
+        <div className="absolute inset-0 rounded-2xl bg-neon/10 blur-md" />
+        <img
+          src={logoSrc}
+          alt="Expense Tracker - ShyBlack"
+          width={72}
+          height={72}
+          className="w-18 h-18 object-contain relative rounded-2xl"
+          style={{ filter: 'drop-shadow(0 0 12px rgba(57,255,20,0.25))' }}
+        />
       </div>
 
       <h1 className="text-lg font-bold text-white mb-1">Expense Tracker - ShyBlack</h1>
