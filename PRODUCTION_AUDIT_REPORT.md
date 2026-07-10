@@ -1,7 +1,7 @@
-# FINORA — Production Audit Final Report
+# Expense Tracker - ShyBlack — Production Audit Final Report
 
 **Date:** 2026-06-30  
-**Application:** FINORA v1.1.0  
+**Application:** Expense Tracker - ShyBlack v1.1.0  
 **Platform:** Android (Capacitor) + Web  
 **Architecture:** Offline-first SPA (React 18, Vite, Tailwind CSS)  
 **Storage:** localStorage (primary), IndexedDB (optional)  

@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 - Known Issues Register
+# Expense Tracker - ShyBlack RC2 - Known Issues Register
 
 **Date**: 2026-06-20
 **Classification**: Critical / High / Medium / Low

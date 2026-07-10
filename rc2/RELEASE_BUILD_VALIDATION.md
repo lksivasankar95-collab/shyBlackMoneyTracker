@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 - Release Build Validation
+# Expense Tracker - ShyBlack RC2 - Release Build Validation
 
 **Date**: 2026-06-20
 **Build**: v1.1 (versionCode 2)

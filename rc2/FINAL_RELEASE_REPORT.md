@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 - Final Release Report
+# Expense Tracker - ShyBlack RC2 - Final Release Report
 
 **Date**: 2026-06-20
 **Prepared by**: Principal QA Lead / Release Manager
@@ -165,7 +165,7 @@ Tests verified: Startup, Navigation, Add/Edit/Delete Transaction, EMI, Borrow/Le
 
 # ✅ GO FOR RELEASE
 
-**ShyBlack Finance v1.1 is approved for production release.**
+**Expense Tracker - ShyBlack v1.1 is approved for production release.**
 
 All 8 exit criteria are satisfied. Zero critical or high-severity bugs. 285 unit tests pass. 85 real-device tests pass across 5 Android versions. Backup, restore, PDF export, and share functionality are fully validated. Play Store assets are prepared and ready for upload.
 

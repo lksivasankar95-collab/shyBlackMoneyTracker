@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 - UX Cleanup Report
+# Expense Tracker - ShyBlack RC2 - UX Cleanup Report
 
 **Date**: 2026-06-20
 

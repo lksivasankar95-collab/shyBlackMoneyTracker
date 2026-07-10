@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 — Large Dataset Stress Test
+# Expense Tracker - ShyBlack RC2 — Large Dataset Stress Test
 
 **Date**: 2026-06-20
 **Environment**: Node.js vitest (unit) + Capacitor Android (runtime)

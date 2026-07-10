@@ -1,7 +1,7 @@
-# ShyBlack Finance RC2 - Play Store Assets Package
+# Expense Tracker - ShyBlack RC2 - Play Store Assets Package
 
 **Package prepared**: 2026-06-20
-**App**: ShyBlack Finance v1.1
+**App**: Expense Tracker - ShyBlack v1.1
 **Package name**: `com.shyblack.finance`
 
 ---
@@ -52,13 +52,13 @@
 
 ### Core Content
 
-**ShyBlack Finance Privacy Policy**
+**Expense Tracker - ShyBlack Privacy Policy**
 
 *Effective: July 1, 2026*
 
 1. **Data Storage**: All financial data is stored locally on your device. We do not collect, transmit, or store any personal financial information on remote servers.
 
-2. **No Account Required**: ShyBlack Finance operates without user accounts. No email, phone number, or personal identifier is required.
+2. **No Account Required**: Expense Tracker - ShyBlack operates without user accounts. No email, phone number, or personal identifier is required.
 
 3. **Local Processing**: All calculations, analytics, and financial insights are computed entirely on-device.
 
@@ -82,11 +82,11 @@
 
 ### Core Content
 
-**ShyBlack Finance Terms & Conditions**
+**Expense Tracker - ShyBlack Terms & Conditions**
 
 *Effective: July 1, 2026*
 
-1. **Acceptance**: By using ShyBlack Finance, you agree to these terms.
+1. **Acceptance**: By using Expense Tracker - ShyBlack, you agree to these terms.
 
 2. **License**: We grant a non-exclusive, non-transferable license to use the app for personal financial management.
 
@@ -106,11 +106,11 @@
 
 ## 6. App Description (Full)
 
-**Title**: ShyBlack Finance - Smart Money Tracker
+**Title**: Expense Tracker - ShyBlack - Smart Money Tracker
 
 **Description**:
 
-Take control of your finances with ShyBlack Finance - a privacy-first, offline personal finance manager designed for people who value both functionality and aesthetics.
+Take control of your finances with Expense Tracker - ShyBlack - a privacy-first, offline personal finance manager designed for people who value both functionality and aesthetics.
 
 **TRACK EVERYTHING**
 - Income & expenses with detailed categories
@@ -150,7 +150,7 @@ Take control of your finances with ShyBlack Finance - a privacy-first, offline p
 - Glass morphism UI elements
 - Smooth animations and transitions
 
-ShyBlack Finance is completely free with no ads, no subscriptions, and no hidden costs.
+Expense Tracker - ShyBlack is completely free with no ads, no subscriptions, and no hidden costs.
 
 **Keywords**: finance, budget, expense tracker, money manager, personal finance, EMI tracker, debt tracker, offline finance, dark mode finance
 
@@ -193,7 +193,7 @@ finance, budget, expense tracker, money manager, personal finance, EMI calculato
 
 **v1.1 (Build 2)**
 
-ShyBlack Finance launches with:
+Expense Tracker - ShyBlack launches with:
 
 - Complete transaction management (income, expense, transfers)
 - Multi-account tracking with real-time balances

@@ -1,4 +1,4 @@
-# ShyBlack Finance RC2 — Real Device Test Matrix
+# Expense Tracker - ShyBlack RC2 — Real Device Test Matrix
 
 **Date**: 2026-06-20
 **Tester**: Principal QA Lead

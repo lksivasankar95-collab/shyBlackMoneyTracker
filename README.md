@@ -1,6 +1,6 @@
-# FINORA - Smart Finance
+# Expense Tracker - ShyBlack
 
-Smart Finance. Better Life.
+Track Smarter. Save Better.
 
 A premium, privacy-first personal finance management application built with React, Vite, Capacitor, and TailwindCSS. Features offline-first architecture, PIN/biometric security, multi-language support, and comprehensive financial tracking.
 
@@ -59,6 +59,6 @@ npx cap open android
 
 ## License
 
-© 2026 FINORA. All Rights Reserved.
+© 2026 Expense Tracker - ShyBlack. All Rights Reserved.
 
 Developed by Siva Black
