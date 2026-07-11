@@ -232,7 +232,7 @@ function AppContent() {
       <AndroidBackHandler canGoBack={canGoBack} onGoBack={handleGoBack} />
       <ScrollRestoration pageKey={pageKey} />
       <Suspense fallback={<PageLoader />}>
-        <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={pageKey}>
+        <div className={`flex-1 ${animDir === 'forward' ? 'animate-slide-up' : 'animate-fade-in'}`} key={pageKey} style={!showHeader ? { paddingTop: 'env(safe-area-inset-top, 0px)' } : undefined}>
           <PageErrorBoundary page={currentPage} onNavigate={handleNavigate}>
             <Page onNavigate={handleNavigate} currentPage={currentPage} navParams={navParams} />
           </PageErrorBoundary>
