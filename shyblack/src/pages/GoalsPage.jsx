@@ -209,7 +209,7 @@ export default function GoalsPage() {
               <GlassCard
                 key={g.id}
                 onClick={() => openEdit(g)}
-                className="cursor-pointer hover:border-neon/20 transition-all"
+                className="cursor-pointer hover:border-neon/20 transition-all w-full text-left"
               >
                 <div className="flex items-start gap-3">
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${

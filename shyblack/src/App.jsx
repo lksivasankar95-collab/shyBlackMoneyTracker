@@ -64,6 +64,7 @@ const ForecastCenterPage = lazy(() => import('./pages/ForecastCenterPage'))
 const AppInfoPage = lazy(() => import('./pages/AppInfoPage'))
 const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'))
 const BillsPage = lazy(() => import('./pages/BillsPage'))
+const SIPCalculatorPage = lazy(() => import('./pages/SIPCalculatorPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -107,6 +108,7 @@ const pages = {
   'app-info': AppInfoPage,
   'privacy-center': PrivacyCenter,
   bills: BillsPage,
+  'sip-calculator': SIPCalculatorPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']
@@ -221,7 +223,7 @@ function AppContent() {
   return (
     <div className="min-h-screen flex flex-col">
       {showHeader && (
-        <div className="sticky top-0 z-40 bg-matte/80 backdrop-blur-xl border-b border-glass-border">
+        <div className="sticky top-0 z-40 bg-matte/80 backdrop-blur-xl border-b border-glass-border" style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}>
           <div className="max-w-lg mx-auto px-4">
             <BrandHeader compact onSecretTap={() => handleNavigate('diagnostics')} />
           </div>

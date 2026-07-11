@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Plus, X, TrendingUp, Landmark, Users, Target, FolderOpen, ArrowLeftRight,
-  FileText,
+  FileText, Calculator,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 
@@ -14,6 +14,7 @@ export default function QuickActionCenter({ onNavigate }) {
     { id: 'goals', label: t('quick_actions.goal'), icon: Target, color: 'text-amber-400 bg-amber-500/10' },
     { id: 'documents', label: t('quick_actions.document'), icon: FolderOpen, color: 'text-neon bg-neon/10' },
     { id: 'transfers', label: t('quick_actions.transfer'), icon: ArrowLeftRight, color: 'text-cyan-400 bg-cyan-500/10' },
+    { id: 'sip-calculator', label: t('quick_actions.sip'), icon: Calculator, color: 'text-green-400 bg-green-500/10' },
   ]
   const [open, setOpen] = useState(false)
   const menuRef = useRef(null)

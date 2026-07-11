@@ -3,7 +3,7 @@ import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
   AlertCircle, RefreshCw, Repeat2, RotateCcw, Sparkles, Target, Heart, FileText, BarChart3,
   Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award, FolderOpen, FileDown, Users, Wallet,
-  ShieldCheck, Printer, Bell, Clock, Receipt as ReceiptIcon, Zap,
+  ShieldCheck, Printer, Bell, Clock, Receipt as ReceiptIcon, Zap, Lightbulb, Calculator,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -20,6 +20,7 @@ import FinancialScore from '../components/FinancialScore'
 import NotificationBanner from '../components/NotificationBanner'
 import DashboardEmiWidget from '../components/DashboardEmiWidget'
 import QuickActions from '../components/QuickActions'
+import { getTodaysTip } from '../utils/dailyTip'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
@@ -94,10 +95,11 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     { route: 'trends', Icon: BarChart3, color: 'text-blue-400', labelKey: 'nav.trends' },
     { route: 'review', Icon: Sparkles, color: 'text-violet-400', labelKey: 'nav.review_center' },
     { route: 'data-quality', Icon: ShieldCheck, color: 'text-amber-400', labelKey: 'nav.data_quality' },
+    { route: 'sip-calculator', Icon: Calculator, color: 'text-green-400', labelKey: 'nav.sip_calculator' },
   ]
 
   return (
-    <div className="p-4 max-w-lg mx-auto pb-24">
+    <div className="px-5 pt-2 max-w-lg mx-auto pb-24">
 
       {/* ── 1. Net Worth + Balance ──────────────────── */}
       <div className="mb-5">
@@ -108,7 +110,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           </div>
           <button
             onClick={toggleHide}
-            className="p-2 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all min-w-[36px] min-h-[36px] flex items-center justify-center"
+            className="p-2 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all flex items-center justify-center shrink-0"
             aria-label={hideBalance ? t('dashboard.show_balances') : t('dashboard.hide_balances')}
           >
             {hideBalance ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -459,7 +461,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           <button onClick={() => onNavigate('financial-health')} className="text-left">
             <GlassCard className="!p-3">
               <Heart size={14} className="text-neon mb-1" />
-              <p className="text-lg font-bold text-white tabular-nums">{insights.score.score}</p>
+              <p className="text-lg font-bold text-white tabular-nums">{Number(insights.score.score).toFixed(2)}</p>
               <p className="text-[10px] text-gray-500">{t('health.score')}</p>
             </GlassCard>
           </button>
@@ -539,6 +541,19 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           </GlassCard>
         </button>
       )}
+      {/* ── 12. Daily Tip ───────────────────────────── */}
+      <GlassCard className="mb-4 !p-3">
+        <div className="flex items-start gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-amber-400/10 flex items-center justify-center shrink-0">
+            <Lightbulb size={14} className="text-amber-400" />
+          </div>
+          <div>
+            <p className="text-[10px] font-semibold text-amber-400 mb-0.5">Daily Tip</p>
+            <p className="text-xs text-gray-400 leading-relaxed">{getTodaysTip()}</p>
+          </div>
+        </div>
+      </GlassCard>
+
     </div>
   )
 })

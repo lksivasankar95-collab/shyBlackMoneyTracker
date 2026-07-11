@@ -49,7 +49,7 @@ export default function FinancialScore({ score, factors, compact, breakdown }) {
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-extrabold tracking-tight text-gradient-brand">{score.score}</span>
+            <span className="text-2xl font-extrabold tracking-tight text-gradient-brand">{Number(score.score).toFixed(2)}</span>
             <span className="text-xs font-medium" style={{ color: colors.from }}>{level}</span>
           </div>
           <p className="text-xs text-gray-500">{t('financial_score.subtitle')}</p>
