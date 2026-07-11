@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:requestLegacyExternalStorage="true">
+        android:theme="@style/AppTheme">
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
@@ -37,17 +37,37 @@
         <meta-data android:name="android.app.default_notification_color" android:resource="@color/notificationColor" />
     </application>
 
-    <!-- Permissions -->
+    <!-- Core permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <!-- Storage permissions for file download/upload -->
-    <!-- Android 10+ (API 29+) scoped storage -->
+    <!-- Legacy storage: Android 9 (API 28) and below only -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- Legacy storage: Android 12L (API 32) and below only; API 33+ uses scoped storage without permission -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 
-    <!-- Use biometric hardware -->
+    <!-- Biometric authentication -->
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.USE_FINGERPRINT" android:maxSdkVersion="28" />
+
+    <!--
+        Explicitly strip exact-alarm permissions.
+        Local notifications fall back to setAndAllowWhileIdle() / set() when exact alarms
+        are unavailable (see LocalNotificationManager.setExactIfPossible). This app is NOT
+        a clock, calendar, or reminder app, so USE_EXACT_ALARM is not permitted and
+        SCHEDULE_EXACT_ALARM must not be declared.
+    -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" tools:node="remove" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" tools:node="remove" />
+
+    <!--
+        Explicitly strip broad media permissions.
+        The app uses scoped storage on Android 13+ (API 33+) and does not require
+        broad read access to photos or video. READ_EXTERNAL_STORAGE is already capped
+        at maxSdkVersion="32" above.
+    -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" tools:node="remove" />
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" tools:node="remove" />
 </manifest>

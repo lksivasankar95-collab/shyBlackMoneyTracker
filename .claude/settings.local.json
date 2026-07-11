@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(Get-ChildItem -Path \"E:\\\\Siva Current Work Backup File\\\\shy\\\\shyBlackMoneyTracker\" -Recurse -Depth 2)",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(./gradlew bundleRelease)"
     ]
   }
 }
