@@ -12,7 +12,7 @@ const GlassCard = memo(function GlassCard({ children, className = '', glow = fal
       <Component
         className={`glass-brand p-4 ${hover ? 'hover:border-neon/30 hover:shadow-brand transition-all duration-300' : ''} ${clickClass} ${className}`}
         onClick={onClick}
-        role={role || (clickable ? 'button' : undefined)}
+        role={role}
         aria-label={ariaLabel}
         tabIndex={clickable ? 0 : undefined}
       >
@@ -25,7 +25,7 @@ const GlassCard = memo(function GlassCard({ children, className = '', glow = fal
     <Component
       className={`glass p-4 ${glow ? 'shadow-brand-sm' : ''} ${hoverClass} ${clickClass} ${className}`}
       onClick={onClick}
-      role={role || (clickable ? 'button' : undefined)}
+      role={role}
       aria-label={ariaLabel}
       tabIndex={clickable ? 0 : undefined}
     >
