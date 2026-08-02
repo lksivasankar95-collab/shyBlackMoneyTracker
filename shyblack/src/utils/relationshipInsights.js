@@ -2,6 +2,7 @@ import { getRelationships } from './relationships'
 import { getDocuments, DOCUMENT_CATEGORIES } from './documents'
 import { getEmis } from './emi'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
+import { isOpenDebt } from './debts'
 
 export function generateRelationshipInsights() {
   const insights = []
@@ -63,7 +64,7 @@ export function generateRelationshipInsights() {
   }
 
   const debts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
-  const activeDebts = debts.filter((d) => d.status !== 'settled')
+  const activeDebts = debts.filter(isOpenDebt)
   for (const debt of activeDebts) {
     const debtRels = rels.filter(
       (r) => (r.sourceType === 'ledger' && r.sourceId === debt.id) ||

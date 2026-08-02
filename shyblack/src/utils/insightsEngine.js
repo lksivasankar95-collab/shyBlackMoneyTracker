@@ -1,6 +1,7 @@
 import { getMonthlyData, getCategoryBreakdown } from './analytics'
 import { EMI_STATUS } from './emi'
 import { formatCurrency } from './helpers'
+import { isOpenDebt } from './debts'
 
 export function generateSpendingInsights(transactions) {
   const insights = []
@@ -166,7 +167,7 @@ export function generateEmiInsights(emis, monthlyIncome) {
 
 export function generateDebtInsights(debts) {
   const insights = []
-  const activeDebts = debts.filter((d) => d.status !== 'settled' && d.status !== 'closed')
+  const activeDebts = debts.filter(isOpenDebt)
   if (activeDebts.length === 0) return insights
 
   const totalOutstanding = activeDebts.reduce((s, d) => s + (d.remaining || d.amount || 0), 0)
@@ -375,7 +376,7 @@ export function generateSmartRecommendations(transactions, budgets, debts, emis,
     }
   }
 
-  const activeDebts = debts.filter((d) => d.status !== 'settled')
+  const activeDebts = debts.filter(isOpenDebt)
   if (activeDebts.length > 0 && avgIncome > 0) {
     const totalDebt = activeDebts.reduce((s, d) => s + (d.remaining || d.amount || 0), 0)
     const debtRatio = (totalDebt / avgIncome) * 100

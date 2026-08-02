@@ -5,6 +5,7 @@ applyPlugin(jsPDF)
 import { formatCurrency, formatDate } from './helpers'
 import { getFrequencyLabel } from './emi'
 import { ALL_CATEGORIES } from './constants'
+import { isOpenDebt } from './debts'
 
 const PW = 210
 const PH = 297
@@ -463,8 +464,8 @@ export function generateNetWorthStatement(accounts, debts, transactions) {
   const totalCash = transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0)
   const totalAccountBal = (accounts || []).reduce((s, a) => s + (a.balance || 0), 0)
   const totalAssets = totalCash + totalAccountBal
-  const lentDebts = (debts || []).filter((d) => d.type === 'lent' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
-  const borrowedDebts = (debts || []).filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const lentDebts = (debts || []).filter((d) => d.type === 'lent' && isOpenDebt(d)).reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const borrowedDebts = (debts || []).filter((d) => d.type === 'borrowed' && isOpenDebt(d)).reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
   const netWorth = totalAssets + lentDebts - borrowedDebts
 
   let y = 25
@@ -522,7 +523,7 @@ export function generateNetWorthStatement(accounts, debts, transactions) {
   }
 
   y = drawSectionHeader(doc, 'Debts & Liabilities', y)
-  const activeDebts = (debts || []).filter((d) => d.status !== 'settled')
+  const activeDebts = (debts || []).filter(isOpenDebt)
   if (activeDebts.length === 0) {
     doc.setFontSize(9)
     doc.setTextColor(...COL_MUTED)

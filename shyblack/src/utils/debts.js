@@ -16,6 +16,14 @@ export const LEDGER_STATUS = {
   SETTLED: 'settled',
 }
 
+// Central predicate for "is this debt still outstanding?".
+// Handles both legacy V1 debts (pending|paid) and V2 ledgers (active|settled)
+// so all consumers agree regardless of stored shape.
+const CLOSED_DEBT_STATUSES = new Set(['settled', 'paid', 'closed'])
+export function isOpenDebt(debt) {
+  return !!debt && !CLOSED_DEBT_STATUSES.has(debt.status)
+}
+
 export function getDebts() {
   return safeStorage.get(STORAGE_KEYS.DEBTS, [])
 }

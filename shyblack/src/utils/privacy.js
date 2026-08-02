@@ -1,10 +1,12 @@
 import { safeStorage } from './safeStorage'
 
-const PRIVACY_KEY = 'finora_privacy'
+const PRIVACY_KEY = 'shyblack_privacy'
+const LEGACY_PRIVACY_KEY = 'finora_privacy'
 
 const FAIL_THRESHOLD_COOLDOWN = 5
 const FAIL_THRESHOLD_LOCKOUT = 10
 const COOLDOWN_MS = 30_000
+const PBKDF2_ITERATIONS = 150_000
 
 let locked = false
 let lastActiveTime = Date.now()
@@ -12,11 +14,23 @@ let suppressLock = false
 let suppressLockTimer = null
 
 function getData() {
-  const raw = safeStorage.getRaw(PRIVACY_KEY)
+  let raw = safeStorage.getRaw(PRIVACY_KEY)
+  let migrated = false
+  if (!raw) {
+    // One-time migration from the legacy key name (finora_privacy).
+    // Data is re-saved under the standard shyblack_ key; the legacy key is
+    // left in place for rollback safety.
+    const legacyRaw = safeStorage.getRaw(LEGACY_PRIVACY_KEY)
+    if (legacyRaw) {
+      raw = legacyRaw
+      migrated = true
+    }
+  }
   if (!raw) return {}
   try {
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      if (migrated) saveData(parsed)
       if (parsed.pinHash && (typeof parsed.pinHash !== 'string' || parsed.pinHash.length !== 64)) {
         // pinHash is present but malformed — could be storage corruption or tampering.
         // Do NOT clear the data: clearing would allow a bypass by writing a bad hash.
@@ -45,7 +59,25 @@ function generateSalt() {
   return Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+// PBKDF2-SHA256 (150k iterations) — hardens the PIN against offline brute force.
+// Output is 256-bit -> 64 hex chars, keeping the length invariant relied on
+// by isPinSet()/getData().
 async function computeHash(pin, salt = '') {
+  const encoder = new TextEncoder()
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw', encoder.encode(pin), 'PBKDF2', false, ['deriveBits']
+  )
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: encoder.encode(salt || ''), iterations: PBKDF2_ITERATIONS, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  )
+  return Array.from(new Uint8Array(bits)).map((b) => b.toString(16).padStart(2, '0')).join('')
+}
+
+// Legacy single-pass SHA-256(salt + pin). Kept only to verify hashes created
+// before the PBKDF2 upgrade; successful verifications are re-hashed to PBKDF2.
+async function legacySha256Hash(pin, salt = '') {
   const encoder = new TextEncoder()
   const buffer = await crypto.subtle.digest('SHA-256', encoder.encode(salt + pin))
   return Array.from(new Uint8Array(buffer)).map((b) => b.toString(16).padStart(2, '0')).join('')
@@ -63,7 +95,7 @@ export async function setPin(pin) {
   const salt = generateSalt()
   const hash = await computeHash(pin, salt)
   const data = getData()
-  saveData({ ...data, pinHash: hash, pinSalt: salt, failCount: 0, cooldownUntil: null, requiresReset: false })
+  saveData({ ...data, pinHash: hash, pinSalt: salt, hashAlgo: 'pbkdf2', failCount: 0, cooldownUntil: null, requiresReset: false })
 }
 
 export async function verifyPin(pin) {
@@ -75,16 +107,22 @@ export async function verifyPin(pin) {
   if (data.cooldownUntil && Date.now() < data.cooldownUntil) return false
 
   let ok
-  if (data.pinSalt) {
-    ok = (await computeHash(pin, data.pinSalt)) === data.pinHash
+  if (data.hashAlgo === 'pbkdf2') {
+    ok = (await computeHash(pin, data.pinSalt || '')) === data.pinHash
+  } else if (data.pinSalt) {
+    // Legacy salted SHA-256 hash (pre-PBKDF2).
+    ok = (await legacySha256Hash(pin, data.pinSalt)) === data.pinHash
   } else {
-    ok = (await computeHash(pin, '')) === data.pinHash
-    if (ok) {
-      const salt = generateSalt()
-      const newHash = await computeHash(pin, salt)
-      saveData({ ...getData(), pinHash: newHash, pinSalt: salt, failCount: 0, cooldownUntil: null })
-      return true
-    }
+    // Legacy unsalted SHA-256 hash (very old installs).
+    ok = (await legacySha256Hash(pin, '')) === data.pinHash
+  }
+
+  if (ok && data.hashAlgo !== 'pbkdf2') {
+    // Upgrade legacy hash to PBKDF2 on first successful verification.
+    const salt = generateSalt()
+    const newHash = await computeHash(pin, salt)
+    saveData({ ...getData(), pinHash: newHash, pinSalt: salt, hashAlgo: 'pbkdf2', failCount: 0, cooldownUntil: null })
+    return true
   }
 
   if (ok) {
@@ -119,7 +157,7 @@ export function getFailState() {
 export function clearPin() {
   const data = getData()
   // eslint-disable-next-line no-unused-vars
-  const { pinHash, pinSalt, failCount, cooldownUntil, requiresReset, ...rest } = data
+  const { pinHash, pinSalt, hashAlgo, failCount, cooldownUntil, requiresReset, ...rest } = data
   saveData(rest)
   locked = false
 }

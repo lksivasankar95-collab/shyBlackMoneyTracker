@@ -1,6 +1,7 @@
 import { getMonthlyData, compareSpending } from './analytics'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { ALL_CATEGORIES } from './constants'
+import { isOpenDebt } from './debts'
 
 const CATEGORY_WEIGHTS = {
   incomeStability: 10,
@@ -116,9 +117,7 @@ function scoreCashFlow(transactions) {
 function scoreDebtHealth(debts, transactions) {
   const monthly = getMonthlyData(transactions, 3)
   const avgIncome = monthly.length > 0 ? monthly.reduce((s, m) => s + m.income, 0) / monthly.length : 0
-  const activeDebts = (Array.isArray(debts) ? debts : []).filter(
-    (d) => d.status !== 'settled' && d.status !== 'paid'
-  )
+  const activeDebts = (Array.isArray(debts) ? debts : []).filter(isOpenDebt)
   if (activeDebts.length === 0) return { score: 100, detail: 'Debt-free', ratio: 0 }
   const totalDebt = activeDebts.reduce(
     (s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0
@@ -315,9 +314,7 @@ export function detectRisks(transactions, budgetsV2, debts, goals, recurring) {
       risks.push({ type: 'negative_cashflow', severity: 'high', message: 'Negative cash flow', detail: `${deficitMonths} of the last ${monthly.length} months had expenses exceeding income` })
     }
   }
-  const activeDebts = (Array.isArray(debts) ? debts : []).filter(
-    (d) => d.status !== 'settled' && d.status !== 'paid'
-  )
+  const activeDebts = (Array.isArray(debts) ? debts : []).filter(isOpenDebt)
   if (activeDebts.length > 0) {
     const totalDebt = activeDebts.reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
     if (avgIncome > 0 && totalDebt > avgIncome * 4) {

@@ -1,6 +1,17 @@
 import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
-import { getMonthlyData } from './analytics'
+
+// TZ-safe month/year matcher for date-only strings (YYYY-MM-DD).
+// Avoids new Date('YYYY-MM-DD') UTC parsing that shifts day-1 across
+// month boundaries in negative-offset timezones.
+export function matchesMonthYear(date, year, month) {
+  const ds = String(date || '')
+  if (/^\d{4}-\d{2}/.test(ds)) {
+    return parseInt(ds.substring(0, 4), 10) === year && parseInt(ds.substring(5, 7), 10) - 1 === month
+  }
+  const d = new Date(ds)
+  return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month
+}
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
@@ -88,16 +99,15 @@ export function transfersToCsv(transfers, accounts) {
 // ── Filter-based Export Helpers ─────────────────────
 
 export function exportByMonth(transactions, year, month) {
-  return transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getMonth() === month && d.getFullYear() === year
-  })
+  return transactions.filter((t) => matchesMonthYear(t.date, year, month))
 }
 
 export function exportByYear(transactions, year) {
   return transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getFullYear() === year
+    const ds = String(t.date || '')
+    if (/^\d{4}/.test(ds)) return parseInt(ds.substring(0, 4), 10) === year
+    const d = new Date(ds)
+    return !isNaN(d.getTime()) && d.getFullYear() === year
   })
 }
 
@@ -457,13 +467,13 @@ export function downloadCSV(csv, filename) {
 }
 
 export function generateMonthlyStatement(transactions, year, month) {
-  const monthly = getMonthlyData(transactions, 1)[0]
-  if (!monthly) return null
+  const monthTxns = (transactions || []).filter((t) => matchesMonthYear(t.date, year, month))
+  if (monthTxns.length === 0) return null
 
-  const expenses = transactions.filter((t) => {
-    const d = new Date(t.date)
-    return t.type === 'expense' && d.getMonth() === month && d.getFullYear() === year
-  })
+  const income = monthTxns.filter((t) => t.type === 'income').reduce((s, t) => s + (t.amount || 0), 0)
+  const expenses = monthTxns.filter((t) => t.type === 'expense')
+  const expenseTotal = expenses.reduce((s, t) => s + (t.amount || 0), 0)
+  const balance = income - expenseTotal
 
   const topExpense = expenses.length > 0
     ? expenses.reduce((max, t) => t.amount > max.amount ? t : max, expenses[0])
@@ -480,13 +490,10 @@ export function generateMonthlyStatement(transactions, year, month) {
 
   return {
     period: `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][month]} ${year}`,
-    income: monthly.income,
-    expenses: monthly.expense,
-    balance: monthly.balance,
-    transactionCount: transactions.filter((t) => {
-      const d = new Date(t.date)
-      return d.getMonth() === month && d.getFullYear() === year
-    }).length,
+    income,
+    expenses: expenseTotal,
+    balance,
+    transactionCount: monthTxns.length,
     topExpense: topExpenseCat ? { category: topExpenseCat.label, amount: topExpense.amount } : null,
     categorySummary: Object.entries(categorySummary)
       .map(([cat, amount]) => ({ category: cat, amount }))

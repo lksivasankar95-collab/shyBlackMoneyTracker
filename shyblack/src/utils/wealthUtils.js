@@ -1,5 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { generateId } from './helpers'
+import { isOpenDebt } from './debts'
 
 /* ── Asset CRUD ── */
 
@@ -58,7 +59,7 @@ export function calculateNetWorth(wealthAssets, accounts, emis, debts) {
   const cash = wealthAssets.filter((a) => a.assetType === 'cash').reduce((s, a) => s + (a.currentValue || 0), 0)
 
   const emiLiabilities = (emis || []).reduce((s, e) => s + Math.max(0, (e.remainingAmount ?? e.principalAmount ?? e.totalAmount ?? 0) - (e.paidAmount || 0)), 0)
-  const debtLiabilities = (debts || []).filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const debtLiabilities = (debts || []).filter((d) => d.type === 'borrowed' && isOpenDebt(d)).reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
   const totalLiabilities = emiLiabilities + debtLiabilities
 
   const netWorth = totalAssets + accountBalances - totalLiabilities

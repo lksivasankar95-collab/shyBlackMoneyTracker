@@ -4,6 +4,7 @@ const jsPDF = jsPDFLib.jsPDF || jsPDFLib.default || jsPDFLib
 applyPlugin(jsPDF)
 import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES } from './constants'
+import { isOpenDebt } from './debts'
 
 // ═══════════════════════════════════════════════════════════════════
 // ENTERPRISE PDF REPORT — Expense Tracker - ShyBlack
@@ -656,16 +657,16 @@ function drawDebtReport(doc, data, startY) {
   }
 
   const borrowed = data.debts
-    .filter(d => d.type === 'borrowed' && d.status === 'pending')
+    .filter(d => d.type === 'borrowed' && isOpenDebt(d))
     .reduce((s, d) => s + (d.remainingAmount || 0), 0)
   const lent = data.debts
-    .filter(d => d.type === 'lent' && d.status === 'pending')
+    .filter(d => d.type === 'lent' && isOpenDebt(d))
     .reduce((s, d) => s + (d.remainingAmount || 0), 0)
   const collected = data.debts
-    .filter(d => d.type === 'lent' && d.status === 'paid')
+    .filter(d => d.type === 'lent' && !isOpenDebt(d))
     .reduce((s, d) => s + (d.amount || 0), 0)
   const repaid = data.debts
-    .filter(d => d.type === 'borrowed' && d.status === 'paid')
+    .filter(d => d.type === 'borrowed' && !isOpenDebt(d))
     .reduce((s, d) => s + (d.amount || 0), 0)
 
   const items = [

@@ -1,6 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { generateId } from './helpers'
-import { DEBT_TYPES, DEBT_STATUS } from './debts'
+import { DEBT_TYPES, isOpenDebt } from './debts'
 
 export const ACCOUNT_TYPES = {
   CASH: 'cash',
@@ -76,10 +76,10 @@ export function calculateNetWorth(transactions, debts, accounts) {
   }
 
   const debtsGiven = debts
-    .filter((d) => d.type === DEBT_TYPES.LENT && d.status === DEBT_STATUS.PENDING)
+    .filter((d) => d.type === DEBT_TYPES.LENT && isOpenDebt(d))
     .reduce((s, d) => s + d.remainingAmount, 0)
   const debtsTaken = debts
-    .filter((d) => d.type === DEBT_TYPES.BORROWED && d.status === DEBT_STATUS.PENDING)
+    .filter((d) => d.type === DEBT_TYPES.BORROWED && isOpenDebt(d))
     .reduce((s, d) => s + d.remainingAmount, 0)
 
   const totalAssets = Math.max(0, cashAndBank) + Math.max(0, tradingCapital) + debtsGiven

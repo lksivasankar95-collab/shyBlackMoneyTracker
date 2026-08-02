@@ -1,5 +1,6 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { sendNotification, cancelNotifications, checkNotificationPermission, requestNotificationPermission, getPendingNotifications, NOTIF_TYPES } from './notifications'
+import { isOpenDebt } from './debts'
 
 const REMINDER_NOTIFICATION_ID = 1
 const REMINDER_HOUR = 19
@@ -164,7 +165,7 @@ export async function checkDebtReminders(debts) {
 
   debts.forEach((d, index) => {
     const balance = d.remainingAmount ?? d.currentBalance ?? 0
-    if (d.status === 'paid' || d.status === 'settled' || !d.dueDate || balance <= 0) return
+    if (!isOpenDebt(d) || !d.dueDate || balance <= 0) return
     const due = d.dueDate.split('T')[0]
     const name = d.personName || 'someone'
     const amt = `₹${balance.toLocaleString()}`

@@ -1,13 +1,11 @@
 import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES } from './constants'
 import { calculateNetWorth } from './networth'
-import { DEBT_TYPES, DEBT_STATUS } from './debts'
+import { DEBT_TYPES, isOpenDebt } from './debts'
+import { matchesMonthYear } from './exports'
 
 export function generateMonthlyStatement(transactions, debts, accounts, budgets, year, month) {
-  const monthTxs = transactions.filter((t) => {
-    const d = new Date(t.date)
-    return d.getFullYear() === year && d.getMonth() === month
-  })
+  const monthTxs = transactions.filter((t) => matchesMonthYear(t.date, year, month))
   const sorted = [...monthTxs].sort((a, b) => new Date(a.date) - new Date(b.date))
 
   const income = sorted.filter((t) => t.type === 'income')
@@ -34,10 +32,10 @@ export function generateMonthlyStatement(transactions, debts, accounts, budgets,
     .reduce((s, t) => s + t.amount, 0)
 
   const pendingDebtsGiven = debts
-    .filter((d) => d.type === DEBT_TYPES.LENT && d.status === DEBT_STATUS.PENDING)
+    .filter((d) => d.type === DEBT_TYPES.LENT && isOpenDebt(d))
     .reduce((s, d) => s + d.remainingAmount, 0)
   const pendingDebtsTaken = debts
-    .filter((d) => d.type === DEBT_TYPES.BORROWED && d.status === DEBT_STATUS.PENDING)
+    .filter((d) => d.type === DEBT_TYPES.BORROWED && isOpenDebt(d))
     .reduce((s, d) => s + d.remainingAmount, 0)
 
   const monthName = new Date(year, month).toLocaleString('default', { month: 'long', year: 'numeric' })
@@ -81,7 +79,7 @@ function buildHtml(data) {
     }).join('')
 
   const debtRows = debts
-    .filter((d) => d.status === DEBT_STATUS.PENDING)
+    .filter((d) => isOpenDebt(d))
     .map((d) => `
       <tr>
         <td style="padding:4px 8px;color:#888">${d.personName}</td>

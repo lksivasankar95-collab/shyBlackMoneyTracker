@@ -1,5 +1,6 @@
 import { getMonthlyData } from './analytics'
 import { calculateHealthScore } from './financialHealth'
+import { isOpenDebt } from './debts'
 
 const PERIOD_DAYS = [30, 60, 90, 180, 365]
 
@@ -58,7 +59,7 @@ export function forecastCashflow({
     .filter((r) => r.type === 'expense' && r.active !== false)
     .reduce((s, r) => s + (r.amount || 0), 0)
   const emiMonthly = emis.filter((e) => e.status === 'active').reduce((s, e) => s + (e.emiAmount || e.amount || 0), 0)
-  const debtMonthly = debts.filter((d) => d.status === 'active' || d.status === 'pending')
+  const debtMonthly = debts.filter(isOpenDebt)
     .reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0) * 0.05, 0)
 
   const baseMonthlyIncome = Math.max(avgIncome, recurringMonthlyIncome)

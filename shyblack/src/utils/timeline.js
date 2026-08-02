@@ -1,5 +1,6 @@
 import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
 import { formatCurrency } from './helpers'
+import { isOpenDebt } from './debts'
 
 const GROUP_ORDER = ['today', 'yesterday', 'thisWeek', 'older']
 
@@ -73,7 +74,7 @@ function buildTransactionEntry(tx) {
 }
 
 function buildDebtEntry(debt) {
-  const isPaid = debt.status === 'paid'
+  const isPaid = !isOpenDebt(debt)
   const styleKey = isPaid ? 'debt_paid' : debt.type
   const style = ENTRY_STYLES[styleKey] || ENTRY_STYLES.borrowed
   const isOverdue = !isPaid && debt.dueDate && new Date(debt.dueDate) < new Date()

@@ -2,6 +2,7 @@ import { getMonthlyData, compareSpending } from './analytics'
 import { getBudgetHealth } from './budgets'
 import { getBudgetHealthV2 } from './budgetUtils'
 import { getGoalProjection } from './goals'
+import { isOpenDebt } from './debts'
 
 export function calculateHealthScore(transactions, budgets, debts, goals, budgetsV2 = [], savingsGoal = null) {
   if (transactions.length === 0) {
@@ -95,7 +96,7 @@ export function calculateHealthScore(transactions, budgets, debts, goals, budget
   // 4. Debt Ratio (0-15)
   let debtScore = 15
   const totalDebt = debts
-    .filter((d) => d.status === 'pending' || d.status === 'active')
+    .filter(isOpenDebt)
     .reduce((s, d) => s + (d.remainingAmount || d.currentBalance || 0), 0)
   if (totalDebt > 0) {
     if (avgMonthlyIncome > 0) {
