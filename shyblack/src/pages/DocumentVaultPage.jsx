@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import {
-  Search, Plus, X, FileText, Image, FolderOpen, ArrowUpDown,
+  Search, Plus, X, FileText, FolderOpen, ArrowUpDown,
   ChevronLeft, Trash2, Edit3, Star, Download, FileType, Share2,
   CheckCircle2, Loader2, ExternalLink, 
 } from 'lucide-react'
@@ -68,6 +68,7 @@ export default function DocumentVaultPage({ onNavigate }) {
   })
   const [editingDoc, setEditingDoc] = useState(null)
   const [previewUrl, setPreviewUrl] = useState(null)
+  const [viewerBlobUrl, setViewerBlobUrl] = useState(null)
   const viewerRef = useRef(null)
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(null)
@@ -243,8 +244,19 @@ export default function DocumentVaultPage({ onNavigate }) {
 
   const handleView = useCallback((doc) => {
     setSelectedDoc(doc)
-    setViewerBlobUrl(null)
     if (viewerRef.current) { viewerRef.current.revoke(); viewerRef.current = null }
+    setViewerBlobUrl(null)
+    if (doc.fileDataId && isImageType(doc.fileType)) {
+      const fileData = getDocumentFileData(doc.fileDataId)
+      if (fileData) {
+        const blob = dataUriToBlob(fileData)
+        if (blob) {
+          const url = URL.createObjectURL(blob)
+          viewerRef.current = { revoke: () => URL.revokeObjectURL(url) }
+          setViewerBlobUrl(url)
+        }
+      }
+    }
     setShowViewer(true)
   }, [])
 
@@ -712,7 +724,7 @@ export default function DocumentVaultPage({ onNavigate }) {
               isImageType(selectedDoc.fileType) ? (
                 <div className="relative flex flex-col items-center gap-3">
                   <img
-                    src={getDocumentFileData(selectedDoc.fileDataId)}
+                    src={viewerBlobUrl || getDocumentFileData(selectedDoc.fileDataId)}
                     alt={selectedDoc.title}
                     style={{ transform: `scale(${zoomLevel})`, maxWidth: '100%', maxHeight: '70vh' }}
                     className="object-contain transition-transform duration-200 rounded-lg"

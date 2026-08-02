@@ -8,6 +8,9 @@ export default function AnimatedNumber({ value, format = (v) => v, duration = 60
 
   useEffect(() => {
     startValue.current = display
+  })
+
+  useEffect(() => {
     startTime.current = null
     const target = value
     const animate = (timestamp) => {
@@ -25,7 +28,7 @@ export default function AnimatedNumber({ value, format = (v) => v, duration = 60
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [value, duration, display])
+  }, [value, duration])
 
   return <span>{format(display)}</span>
 }

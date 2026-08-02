@@ -312,7 +312,7 @@ export default function ReportsPage() {
                 {EXPORT_SCOPES.map((es) => (
                   <button
                     key={es.id}
-                    onClick={() => { setExportScope(es.id); setShowExportPreview(true) }}
+                    onClick={() => setExportScope(es.id)}
                     className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium transition-all ${
                       exportScope === es.id
                         ? 'bg-neon/10 text-neon border border-neon/30'

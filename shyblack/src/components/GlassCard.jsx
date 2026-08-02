@@ -2,7 +2,6 @@ import { memo } from 'react'
 
 const GlassCard = memo(function GlassCard({ children, className = '', glow = false, hover = false, brand = false, onClick, role, ariaLabel }) {
   const clickable = onClick ? true : false
-  const baseClass = brand ? 'glass-brand' : 'glass'
   const hoverClass = hover && !clickable ? 'hover:bg-glass-hover' : ''
   const clickClass = clickable ? 'cursor-pointer glass-card-clickable active:scale-[0.985] transition-transform duration-100' : ''
 
@@ -16,7 +15,6 @@ const GlassCard = memo(function GlassCard({ children, className = '', glow = fal
         role={role || (clickable ? 'button' : undefined)}
         aria-label={ariaLabel}
         tabIndex={clickable ? 0 : undefined}
-        onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(e) } : undefined}
       >
         {children}
       </Component>
@@ -30,7 +28,6 @@ const GlassCard = memo(function GlassCard({ children, className = '', glow = fal
       role={role || (clickable ? 'button' : undefined)}
       aria-label={ariaLabel}
       tabIndex={clickable ? 0 : undefined}
-      onKeyDown={clickable ? (e) => { if (e.key === 'Enter' || e.key === ' ') onClick(e) } : undefined}
     >
       {children}
     </Component>

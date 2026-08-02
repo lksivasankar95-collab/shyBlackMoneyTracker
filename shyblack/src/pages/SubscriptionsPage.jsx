@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Repeat2, Plus, Trash2, Smartphone, XCircle, AlertTriangle, ChevronRight } from 'lucide-react'
+import { Repeat2, Plus, Trash2, Smartphone, XCircle, AlertTriangle, Play } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -13,7 +13,7 @@ import Modal from '../components/Modal'
 
 export default function SubscriptionsPage() {
   const { t } = useTranslation()
-  const { recurring, addRecurring, removeRecurring, transactions } = useFinance()
+  const { recurring, addRecurring, removeRecurring, pauseRecurring, resumeRecurring } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -64,15 +64,18 @@ export default function SubscriptionsPage() {
     return recurring.filter((r) => r.source === 'subscription' || r.subscriptionName)
   }, [recurring])
 
-  const activeSubs = useMemo(() => subscriptions.filter((s) => s.active !== false), [subscriptions])
-  const inactiveSubs = useMemo(() => subscriptions.filter((s) => s.active === false), [subscriptions])
+  const activeSubs = useMemo(() => subscriptions.filter((s) => s.paused !== true), [subscriptions])
+  const inactiveSubs = useMemo(() => subscriptions.filter((s) => s.paused === true), [subscriptions])
 
   const toggleActive = useCallback((id, current) => {
-    removeRecurring(id)
-    if (current !== false) {
+    if (current) {
+      resumeRecurring(id)
+      addToast(t('subscriptions.toastResumed'), 'success')
+    } else {
+      pauseRecurring(id)
       addToast(t('subscriptions.toastPaused'), 'info')
     }
-  }, [removeRecurring, addToast, t])
+  }, [pauseRecurring, resumeRecurring, addToast, t])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -129,7 +132,7 @@ export default function SubscriptionsPage() {
                   </p>
                 </div>
                 <div className="flex gap-1">
-                  <button onClick={() => toggleActive(s.id, s.active)} className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all" title={t('subscriptions.pause')}>
+                  <button onClick={() => toggleActive(s.id, s.paused)} className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all" title={t('subscriptions.pause')}>
                     <XCircle size={14} />
                   </button>
                   <button onClick={() => setDeleteTarget(s.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all" title={t('subscriptions.delete')}>
@@ -158,9 +161,14 @@ export default function SubscriptionsPage() {
                   <p className="text-sm font-semibold text-gray-400">{s.subscriptionName || s.note || s.category}</p>
                   <p className="text-xs text-gray-600">{formatCurrency(s.amount)}/{s.billingCycle || s.frequency}</p>
                 </div>
-                <button onClick={() => setDeleteTarget(s.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
-                  <Trash2 size={14} />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => toggleActive(s.id, s.paused)} className="p-1.5 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all" title={t('subscriptions.resume')}>
+                    <Play size={14} />
+                  </button>
+                  <button onClick={() => setDeleteTarget(s.id)} className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
               </div>
             </GlassCard>
           ))}
