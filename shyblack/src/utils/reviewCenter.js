@@ -1,4 +1,6 @@
 import { formatCurrency } from './helpers'
+import { DEBT_TYPES, isOpenDebt } from './debts'
+import { EMI_STATUS } from './emi'
 
 function getTransactionsInRange(transactions, startDate, endDate) {
   const start = new Date(startDate).getTime()
@@ -19,12 +21,12 @@ function generatePeriodSummary(transactions, debts, emis, goals, accounts, label
   })
   const topCategories = Object.entries(categories).sort((a, b) => b[1] - a[1]).slice(0, 5)
 
-  const activeDebts = debts.filter((d) => d.remainingAmount > 0)
-  const totalDebtOwed = activeDebts.filter((d) => d.type === 'lend').reduce((s, d) => s + d.remainingAmount, 0)
-  const totalDebtBorrowed = activeDebts.filter((d) => d.type === 'borrow').reduce((s, d) => s + d.remainingAmount, 0)
+  const activeDebts = debts.filter((d) => d.remainingAmount > 0 && isOpenDebt(d))
+  const totalDebtOwed = activeDebts.filter((d) => d.type === DEBT_TYPES.LENT).reduce((s, d) => s + d.remainingAmount, 0)
+  const totalDebtBorrowed = activeDebts.filter((d) => d.type === DEBT_TYPES.BORROWED).reduce((s, d) => s + d.remainingAmount, 0)
 
-  const activeEmis = emis.filter((e) => e.status !== 'closed')
-  const totalEmiMonthly = activeEmis.reduce((s, e) => s + (e.amount || 0), 0)
+  const activeEmis = emis.filter((e) => e.status === EMI_STATUS.ACTIVE)
+  const totalEmiMonthly = activeEmis.reduce((s, e) => s + (e.emiAmount || e.amount || 0), 0)
 
   const progressGoals = goals.filter((g) => (g.saved || 0) > 0)
   const totalGoalSaved = progressGoals.reduce((s, g) => s + (g.saved || 0), 0)

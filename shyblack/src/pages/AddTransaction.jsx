@@ -163,8 +163,11 @@ export default function AddTransaction({ onNavigate, navParams }) {
 
         if (isRecurring) {
           const nextDate = new Date(date)
-          if (frequency === 'monthly') nextDate.setMonth(nextDate.getMonth() + 1)
-          else if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
+          if (frequency === 'monthly') {
+            const origDay = nextDate.getDate()
+            nextDate.setMonth(nextDate.getMonth() + 1)
+            if (nextDate.getDate() !== origDay) nextDate.setDate(0)
+          } else if (frequency === 'weekly') nextDate.setDate(nextDate.getDate() + 7)
           else if (frequency === 'yearly') nextDate.setFullYear(nextDate.getFullYear() + 1)
 
           addRecurring({

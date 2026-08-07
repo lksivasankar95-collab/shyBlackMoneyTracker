@@ -121,7 +121,7 @@ export default function ReportsPage() {
           if (exportWithCharts) {
             html = exportWithChartsToHTML(filteredTxs, exportSummary)
           } else {
-            const stmt = generateMonthlyStatement(filteredTxs, selectedMonth, selectedYear)
+            const stmt = generateMonthlyStatement(filteredTxs, selectedYear, selectedMonth)
             html = stmt ? generateStatementHTML(stmt) : exportWithChartsToHTML(filteredTxs, exportSummary)
           }
           downloadHtml(html, getExportFilename('html'))

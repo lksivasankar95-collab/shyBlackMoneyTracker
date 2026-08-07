@@ -51,7 +51,7 @@ export async function scheduleDailyReminder(message) {
   }
 }
 
-const REMINDER_IDS = new Set([REMINDER_NOTIFICATION_ID, 50, 51])
+const REMINDER_IDS = new Set([REMINDER_NOTIFICATION_ID])
 
 export async function cancelAllReminders() {
   try {

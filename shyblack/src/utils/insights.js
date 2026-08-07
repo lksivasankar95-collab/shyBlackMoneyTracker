@@ -2,7 +2,7 @@ import { getMonthlyData, getCategoryBreakdown, compareSpending } from './analyti
 import { formatCurrency } from './currency'
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
 import { ALL_CATEGORIES } from './constants'
-import { sendNotification } from './notifications'
+import { sendNotification, NOTIF_TYPES } from './notifications'
 
 export function calculateFinancialScore(transactions) {
   if (transactions.length === 0) return { score: 0, level: 'N/A', factors: [] }

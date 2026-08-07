@@ -242,6 +242,7 @@ export function calculateFinancialScore(transactions, budgets, debts, emis, _rec
 
   const monthly = getMonthlyData(transactions, 3)
   const avgIncome = monthly.length > 0 ? monthly.reduce((s, m) => s + m.income, 0) / monthly.length : 0
+  const avgExpense = monthly.length > 0 ? monthly.reduce((s, m) => s + m.expense, 0) / monthly.length : 0
 
   const breakdown = []
   let totalScore = 0

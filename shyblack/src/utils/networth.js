@@ -72,7 +72,7 @@ export function calculateNetWorth(transactions, debts, accounts) {
     const tradingWithdrawals = transactions
       .filter((t) => t.category === 'trading_withdrawal')
       .reduce((s, t) => s + t.amount, 0)
-    tradingCapital = tradingWithdrawals - tradingDeposits
+    tradingCapital = tradingDeposits - tradingWithdrawals
   }
 
   const debtsGiven = debts

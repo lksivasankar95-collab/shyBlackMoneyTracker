@@ -324,8 +324,8 @@ export function undoPayment(emiId) {
   const undoAmount = lastPayment.amount || emi.emiAmount
   emi.totalPaidCount = Math.max(0, emi.totalPaidCount - 1)
   emi.totalPaid = Math.max(0, emi.totalPaid - undoAmount)
-  emi.remainingMonths = Math.min(emi.tenureMonths, emi.tenureMonths - emi.totalPaidCount)
-  emi.remainingAmount = Math.max(0, emi.principalAmount - emi.totalPaid)
+  emi.remainingMonths = Math.max(0, Math.min(emi.tenureMonths, emi.tenureMonths - emi.totalPaidCount))
+  emi.remainingAmount = Math.min(emi.principalAmount || 0, (emi.remainingAmount || 0) + (lastPayment.principal || 0))
   emi.totalInterestPaid = Math.max(0, emi.totalInterestPaid - (lastPayment.interest || 0))
   emi.payments = payments.slice(0, -1)
   emi.status = EMI_STATUS.ACTIVE
@@ -366,7 +366,8 @@ export function getNextEmiDueDate(dueDay, referenceDate) {
   const ref = referenceDate ? new Date(referenceDate) : new Date()
   const year = ref.getFullYear()
   const month = ref.getMonth()
-  const candidate = new Date(year, month, dueDay)
+  const day = Number.isInteger(Number(dueDay)) && dueDay >= 1 && dueDay <= 31 ? dueDay : ref.getDate()
+  const candidate = new Date(year, month, day)
   if (candidate <= ref) {
     candidate.setMonth(candidate.getMonth() + 1)
   }

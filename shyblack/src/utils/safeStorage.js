@@ -75,12 +75,15 @@ export const safeStorage = {
   },
 
   set(key, value) {
+    let ok
     try {
-      memoryCache.set(key, value)
-      return getAdapter().set(key, value)
+      ok = getAdapter().set(key, value)
     } catch {
-      return false
+      ok = false
     }
+    if (ok) memoryCache.set(key, value)
+    else invalidateCache(key)
+    return ok
   },
 
   remove(key) {

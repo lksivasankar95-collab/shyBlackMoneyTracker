@@ -229,11 +229,13 @@ export default function WealthCenterPage({ onNavigate }) {
 
       {deleteTarget && (
         <ConfirmationModal
+          open={!!deleteTarget}
           title="Delete Asset"
-          message={`Delete "${deleteTarget.assetName}"?`}
+          description={`Delete "${deleteTarget.assetName}"?`}
           confirmLabel="Delete"
+          danger
           onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onClose={() => setDeleteTarget(null)}
         />
       )}
     </div>

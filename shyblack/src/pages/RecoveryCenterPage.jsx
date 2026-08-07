@@ -388,21 +388,24 @@ export default function RecoveryCenterPage({ onNavigate }) {
 
       {deleteTarget && (
         <ConfirmationModal
+          open={!!deleteTarget}
           title="Delete Backup"
           description="Delete this backup permanently?"
           confirmLabel="Delete"
+          danger
           onConfirm={handleDelete}
-          onCancel={() => setDeleteTarget(null)}
+          onClose={() => setDeleteTarget(null)}
         />
       )}
 
       {snapshotRestoreTarget && (
         <ConfirmationModal
+          open={!!snapshotRestoreTarget}
           title="Restore Snapshot"
           description="Restore data from this snapshot? Current data will be overwritten."
           confirmLabel="Restore"
           onConfirm={handleSnapshotRestore}
-          onCancel={() => setSnapshotRestoreTarget(null)}
+          onClose={() => setSnapshotRestoreTarget(null)}
         />
       )}
     </div>

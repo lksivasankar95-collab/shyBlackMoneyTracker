@@ -1,7 +1,5 @@
 import { safeStorage, STORAGE_KEYS } from './safeStorage'
-import { getMonthlyData, getCategoryBreakdown } from './analytics'
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+import { getCategoryBreakdown } from './analytics'
 
 export function createDefaultBudgets() {
   return {
@@ -44,16 +42,13 @@ export function calculateBudgetSpending(transactions, budgets) {
 }
 
 export function getAIBudgetSuggestions(transactions) {
-  const monthly = getMonthlyData(transactions, 3)
+  const now = new Date()
   const suggestions = []
   const categories = {}
 
-  for (const m of monthly) {
-    const now = new Date()
-    const catData = getCategoryBreakdown(transactions, 'expense',
-      now.getFullYear(),
-      MONTHS.indexOf(m.month) > -1 ? MONTHS.indexOf(m.month) : now.getMonth()
-    )
+  for (let i = 0; i < 3; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const catData = getCategoryBreakdown(transactions, 'expense', d.getFullYear(), d.getMonth())
     catData.forEach((c) => {
       if (!categories[c.category]) categories[c.category] = []
       categories[c.category].push(c.amount)

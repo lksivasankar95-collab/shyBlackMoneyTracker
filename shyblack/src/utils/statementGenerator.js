@@ -99,15 +99,17 @@ export function generateEmiStatement(emi, paymentHistory) {
   let y = 25
   y = drawSectionHeader(doc, 'EMI Details', y)
   const freqLabel = getFrequencyLabel(emi.frequency)
-  const totalPaid = (emi.paymentHistory || []).reduce((s, p) => s + (p.amount || 0), 0)
-  const totalPayable = emi.amount * (emi.tenure || 0)
+  const payments = paymentHistory && paymentHistory.length > 0 ? paymentHistory : (emi.payments || [])
+  const totalPaid = payments.reduce((s, p) => s + (p.amount || 0), 0)
+  const tenure = emi.tenureMonths ?? emi.totalMonths ?? emi.tenure ?? 0
+  const totalPayable = emi.amount * tenure
   const details = [
     ['Loan Name', emi.name || '-'],
     ['Lender', emi.lender || '-'],
     ['Frequency', freqLabel],
     ['EMI Amount', fmt(emi.amount)],
-    ['Total Tenure', `${emi.tenure || 0} ${freqLabel.toLowerCase()}`],
-    ['Paid Count', `${emi.totalPaidCount || 0} of ${emi.tenure || 0}`],
+    ['Total Tenure', `${tenure} ${freqLabel.toLowerCase()}`],
+    ['Paid Count', `${emi.totalPaidCount || 0} of ${tenure}`],
     ['Total Paid', fmt(totalPaid)],
     ['Total Payable', fmt(totalPayable)],
     ['Remaining', fmt(Math.max(0, totalPayable - totalPaid))],
@@ -139,14 +141,14 @@ export function generateEmiStatement(emi, paymentHistory) {
   }
 
   y = drawSectionHeader(doc, 'Payment History', y)
-  const payments = (paymentHistory || []).slice().sort((a, b) => b.paidAt - a.paidAt)
-  if (payments.length === 0) {
+  const sortedPayments = payments.slice().sort((a, b) => (b.paidAt || b.timestamp || 0) - (a.paidAt || a.timestamp || 0))
+  if (sortedPayments.length === 0) {
     doc.setFontSize(9)
     doc.setTextColor(...COL_MUTED)
     doc.text('No payments recorded yet.', M, y + 10)
   } else {
-    const rows = payments.map((p) => [
-      p.date || formatDate(new Date(p.paidAt)),
+    const rows = sortedPayments.map((p) => [
+      p.date || formatDate(new Date(p.paidAt || p.timestamp || p.paymentDate || Date.now())),
       fmt(p.amount),
       p.transactionId ? 'Auto' : 'Manual',
     ])
@@ -245,14 +247,19 @@ export function generateLedgerStatement(ledger, payments) {
     doc.setTextColor(...COL_MUTED)
     doc.text('No payments recorded yet.', M, y + 10)
   } else {
+    const chrono = (payments || []).slice().sort((a, b) => (a.createdAt || a.paidAt || 0) - (b.createdAt || b.paidAt || 0))
     let runningBalance = ledger.originalAmount || 0
-    const rows = sortedPayments.map((p) => {
+    const balanceByKey = new Map()
+    for (const p of chrono) {
       runningBalance -= (p.amount || 0)
+      balanceByKey.set(p, runningBalance)
+    }
+    const rows = sortedPayments.map((p) => {
       return [
         formatDate(new Date(p.createdAt || p.paidAt || Date.now())),
         fmt(p.amount),
         p.notes || '-',
-        fmt(runningBalance),
+        fmt(balanceByKey.get(p) ?? runningBalance),
       ]
     })
     doc.autoTable({

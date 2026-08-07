@@ -72,6 +72,10 @@ export function buildTimeline({
   })
 
   const savingsHistory = monthlyBrackets.map((m) => {
+    const txsUpTo = transactions.filter((t) => {
+      const td = new Date(t.date)
+      return !isNaN(td) && td <= m.end
+    })
     const income = txsUpTo.filter((t) => t.type === 'income').reduce((s, t) => s + Math.abs(t.amount), 0)
     const expenses = txsUpTo.filter((t) => t.type === 'expense').reduce((s, t) => s + Math.abs(t.amount), 0)
     return {

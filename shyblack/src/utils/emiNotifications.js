@@ -1,4 +1,4 @@
-import { getNextEmiDueDate, EMI_STATUS } from './emi'
+import { getNextEmiDueDate, getEmiDueDate, EMI_STATUS } from './emi'
 import { sendNotification, cancelNotifications, checkNotificationPermission, NOTIF_TYPES } from './notifications'
 
 const EMI_NOTIF_BASE = 600000
@@ -25,7 +25,7 @@ export async function scheduleEmiNotifications(emi, referenceDate) {
   const perm = await checkNotificationPermission()
   if (!perm.granted) return false
 
-  const dueDate = getNextEmiDueDate(emi.dueDay, referenceDate)
+  const dueDate = getEmiDueDate(emi) || getNextEmiDueDate(emi.dueDay, referenceDate)
   if (!dueDate) return false
 
   const ids = getNotificationIds(emi.id)

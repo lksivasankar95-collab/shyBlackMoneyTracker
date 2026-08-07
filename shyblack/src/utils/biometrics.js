@@ -43,18 +43,16 @@ export async function authenticateWithBiometric(reason) {
     const timeout = new Promise((_, reject) => {
       timeoutId = setTimeout(() => reject(new Error('biometric-timeout')), 30000)
     })
-    await Promise.race([
-      BiometricAuth.authenticate({
-        reason: reason || 'Unlock Expense Tracker',
-        androidTitle: 'Unlock Expense Tracker',
-        androidSubtitle: 'Use biometric to unlock',
-        cancelTitle: 'Use PIN instead',
-        allowDeviceCredential: true,
-      }),
-      timeout,
-    ])
+    const auth = BiometricAuth.authenticate({
+      reason: reason || 'Unlock Expense Tracker',
+      androidTitle: 'Unlock Expense Tracker',
+      androidSubtitle: 'Use biometric to unlock',
+      cancelTitle: 'Use PIN instead',
+      allowDeviceCredential: true,
+    }).catch(() => false)
+    const ok = await Promise.race([auth, timeout])
     clearTimeout(timeoutId)
-    return true
+    return ok === true
   } catch {
     clearTimeout(timeoutId)
     return false

@@ -13,6 +13,15 @@ export function matchesMonthYear(date, year, month) {
   return !isNaN(d.getTime()) && d.getFullYear() === year && d.getMonth() === month
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -26,6 +35,9 @@ function downloadBlob(blob, filename) {
 
 function toCsvValue(val) {
   const s = String(val ?? '')
+  if (typeof val === 'string' && /^[=+\-@\t\r]/.test(s)) {
+    return `'${s}`
+  }
   if (s.includes(',') || s.includes('"') || s.includes('\n')) {
     return `"${s.replace(/"/g, '""')}"`
   }
@@ -200,7 +212,7 @@ export function exportWithChartsToHTML(transactions, summary) {
       const y = i * 22 + 20
       return `
         <g>
-          <text x="0" y="${y + 8}" font-size="9" fill="#999">${label}</text>
+          <text x="0" y="${y + 8}" font-size="9" fill="#999">${escapeHtml(label)}</text>
           <rect x="110" y="${y - 2}" width="${bw}" height="12" fill="${catColors[i % catColors.length]}" rx="2"/>
           <text x="115" y="${y + 7}" font-size="8" fill="#fff">${formatCurrency(amt)} (${pct.toFixed(1)}%)</text>
         </g>`
@@ -286,9 +298,9 @@ export function exportWithChartsToHTML(transactions, summary) {
         ${transactions.slice(0, 100).map((t) => {
           const cat = ALL_CATEGORIES.find((c) => c.id === t.category)
           return `<tr>
-            <td style="color:#666">${t.date}</td>
-            <td>${cat?.label || t.category}</td>
-            <td style="color:#666">${t.note ? t.note.substring(0, 30) : ''}</td>
+            <td style="color:#666">${escapeHtml(t.date)}</td>
+            <td>${escapeHtml(cat?.label || t.category)}</td>
+            <td style="color:#666">${t.note ? escapeHtml(t.note.substring(0, 30)) : ''}</td>
             <td style="text-align:right" class="${t.type === 'income' ? 'tx-income' : 'tx-expense'}">${t.type === 'income' ? '' : '-'}${formatCurrency(t.amount)}</td>
           </tr>`
         }).join('')}
@@ -505,7 +517,7 @@ export function generateStatementHTML(statement) {
   if (!statement) return ''
 
   const catRows = statement.categorySummary
-    .map((c) => `<tr><td>${c.category}</td><td style="text-align:right">${formatCurrency(c.amount)}</td></tr>`)
+    .map((c) => `<tr><td>${escapeHtml(c.category)}</td><td style="text-align:right">${formatCurrency(c.amount)}</td></tr>`)
     .join('')
 
   return `<!DOCTYPE html>
@@ -527,7 +539,7 @@ export function generateStatementHTML(statement) {
 <body>
   <div class="card">
     <h1>Expense Tracker - ShyBlack</h1>
-    <div class="period">Finance Statement — ${statement.period}</div>
+    <div class="period">Finance Statement — ${escapeHtml(statement.period)}</div>
     <div class="label">Total Income</div>
     <div class="stat" style="color:#39ff14">${formatCurrency(statement.income)}</div>
     <div class="label" style="margin-top:12px">Total Expenses</div>
@@ -540,7 +552,7 @@ export function generateStatementHTML(statement) {
   ${statement.topExpense ? `
   <div class="card">
     <div class="label">Top Expense</div>
-    <div class="stat" style="font-size:18px;color:#ef4444">${statement.topExpense.category}</div>
+    <div class="stat" style="font-size:18px;color:#ef4444">${escapeHtml(statement.topExpense.category)}</div>
     <div style="color:#ef4444;font-size:14px">${formatCurrency(statement.topExpense.amount)}</div>
   </div>` : ''}
   ${catRows ? `

@@ -17,6 +17,7 @@ export function createGoal(data) {
     target: Math.abs(data.target) || 0,
     saved: Math.abs(data.saved) || 0,
     monthlyContribution: Math.abs(data.monthlyContribution) || 0,
+    targetDate: data.targetDate || null,
     createdAt: Date.now(),
     updatedAt: Date.now(),
     achievedAt: null,

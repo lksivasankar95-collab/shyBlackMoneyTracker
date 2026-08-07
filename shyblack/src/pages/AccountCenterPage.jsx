@@ -4,7 +4,7 @@ import {
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
-import { getAccounts, saveAccounts } from '../utils/networth'
+import { saveAccounts } from '../utils/networth'
 import { getEmis } from '../utils/emi'
 import { getTransfers } from '../utils/transfers'
 import GlassCard from '../components/GlassCard'
@@ -13,10 +13,9 @@ import RelatedItemsPanel from '../components/RelatedItemsPanel'
 
 export default function AccountCenterPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, updateAccounts } = useFinance()
+  const { transactions, accounts, updateAccounts } = useFinance()
   const [searchQuery, setSearchQuery] = useState('')
 
-  const accounts = useMemo(() => getAccounts(), [])
   const emis = useMemo(() => getEmis(), [])
     const [selectedAccount, setSelectedAccount] = useState(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -49,16 +48,18 @@ export default function AccountCenterPage({ onNavigate }) {
 
   const handleAddAccount = () => {
     if (!formData.name.trim()) return
-    const accts = getAccounts()
-    const newAcct = {
-      id: generateId(),
-      name: formData.name.trim(),
-      type: formData.type,
-      balance: Number(formData.balance) || 0,
-      createdAt: Date.now()}
-    accts.push(newAcct)
-    saveAccounts(accts)
-    updateAccounts(accts)
+    const next = [
+      ...accounts,
+      {
+        id: generateId(),
+        name: formData.name.trim(),
+        type: formData.type,
+        balance: Number(formData.balance) || 0,
+        createdAt: Date.now(),
+      },
+    ]
+    saveAccounts(next)
+    updateAccounts(next)
     setShowAddForm(false)
     setFormData({ name: '', type: 'bank', balance: '' })
   }

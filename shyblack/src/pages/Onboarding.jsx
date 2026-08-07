@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { ALL_CATEGORIES, PRIVACY_POLICY_URL } from '../utils/constants'
+import { generateId } from '../utils/helpers'
 
 const CURRENCIES = [
   { code: 'INR', symbol: '₹', label: 'Indian Rupee (₹)' },
@@ -92,6 +93,36 @@ export default function Onboarding({ onComplete }) {
     }
 
     safeStorage.set(STORAGE_KEYS.ONBOARDING, simState)
+
+    const newTxns = []
+    const today = new Date().toISOString().split('T')[0]
+    if (simState._sampleData.hasIncome && simState._sampleData.incomeAmount > 0) {
+      newTxns.push({
+        id: generateId(),
+        type: 'income',
+        amount: simState._sampleData.incomeAmount,
+        category: 'salary',
+        note: 'Initial income',
+        date: today,
+        createdAt: Date.now(),
+      })
+    }
+    if (simState._sampleData.hasExpense && simState._sampleData.expenseAmount > 0) {
+      newTxns.push({
+        id: generateId(),
+        type: 'expense',
+        amount: simState._sampleData.expenseAmount,
+        category: simState._sampleData.expenseCategory || 'other_expense',
+        note: 'Initial expense',
+        date: today,
+        createdAt: Date.now(),
+      })
+    }
+    if (newTxns.length > 0) {
+      const existing = safeStorage.get(STORAGE_KEYS.TRANSACTIONS, [])
+      safeStorage.set(STORAGE_KEYS.TRANSACTIONS, [...existing, ...newTxns])
+    }
+
     setIsCompleting(false)
     onComplete()
   }, [agreePrivacy, agreeTerms, name, currency, monthlyIncome, savingsGoal, sampleIncome, sampleExpense, sampleCategory, onComplete])

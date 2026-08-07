@@ -17,7 +17,7 @@ function getBackupHealthRecord() {
 
 function saveBackupHealthRecord(record) {
   try {
-    localStorage.setItem(BACKUP_HEALTH_KEY, JSON.stringify(record))
+    safeStorage.set(BACKUP_HEALTH_KEY, record)
   } catch { /* silent */ }
 }
 

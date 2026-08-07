@@ -380,7 +380,7 @@ export function getSafeWindowOpen(url) {
     const closeBtn = document.createElement('button')
     closeBtn.textContent = 'Close'
     closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:10000;padding:8px 16px;background:#000;color:#fff;border-radius:8px'
-    closeBtn.onclick = () => { try { document.body.removeChild(iframe) } catch (_) {}; try { document.body.removeChild(closeBtn) } catch (_) {} }
+    closeBtn.onclick = () => { try { document.body.removeChild(iframe) } catch (_) {} try { document.body.removeChild(closeBtn) } catch (_) {} }
     document.body.appendChild(closeBtn)
     return iframe
   } catch {
