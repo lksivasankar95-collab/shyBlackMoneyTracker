@@ -14,6 +14,7 @@ import { registerNotificationListeners } from './utils/notifications'
 import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
 import PinLockScreen from './components/PinLockScreen'
+import PrivacyGuard from './components/PrivacyGuard'
 import QuickActionCenter from './components/QuickActionCenter'
 import ScrollRestoration from './components/ScrollRestoration'
 import { App as CapApp } from '@capacitor/app'
@@ -332,6 +333,7 @@ export default function App() {
         <FinanceProvider>
           <ToastProvider>
             <LockGate isLocked={isLocked} onUnlock={handleUnlock} />
+            <PrivacyGuard />
             {!isLocked && (
               <>
                 <ReminderInit />

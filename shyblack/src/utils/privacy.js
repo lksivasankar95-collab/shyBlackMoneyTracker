@@ -174,6 +174,10 @@ export function initLockState() {
   locked = isPinSet()
 }
 
+export function isBackgrounded() {
+  return typeof document !== 'undefined' && document.hidden === true
+}
+
 export function isLocked() {
   if (!isPinSet()) return false
   return locked
@@ -195,6 +199,13 @@ export function suppressLockForTransition(timeoutMs = 5000) {
     suppressLock = false
     suppressLockTimer = null
   }, timeoutMs)
+}
+
+// True when the app-switcher screenshot must be obscured:
+// PIN enabled (session lock) or privacy mode explicitly enabled.
+export function shouldBlurOnBackground(opts = {}) {
+  const { privacyMode = false, pinSet = false } = opts || {}
+  return !!(privacyMode || pinSet)
 }
 
 export function shouldLockOnResume() {

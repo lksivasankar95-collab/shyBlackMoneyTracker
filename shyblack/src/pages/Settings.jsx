@@ -248,8 +248,9 @@ export default function Settings({ onNavigate }) {
   }
 
   const togglePrivacyMode = () => {
-    updateSecurity({ privacyMode: !security.privacyMode })
-    addToast(security.privacyMode ? t('settings.privacy_off') : t('settings.privacy_on'), 'info')
+    const next = !security.privacyMode
+    updateSecurity({ privacyMode: next, hideBalance: next ? true : security.hideBalance })
+    addToast(next ? t('settings.privacy_on') : t('settings.privacy_off'), 'info')
   }
 
   const toggleReminder = useCallback(async () => {

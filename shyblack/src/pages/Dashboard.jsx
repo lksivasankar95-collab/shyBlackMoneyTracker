@@ -1,11 +1,12 @@
-import { useState, useMemo, useCallback, memo } from 'react'
+import { useState, useMemo, useCallback, memo, useEffect } from 'react'
 import {
   TrendingUp, TrendingDown, Eye, EyeOff, ChevronRight,
   AlertCircle, RefreshCw, Repeat2, RotateCcw, Sparkles, Target, Heart, FileText, BarChart3,
   Calendar, ArrowLeftRight, CreditCard, Activity, PieChart, Award, FolderOpen, FileDown, Users, Wallet,
-  ShieldCheck, Printer, Bell, Clock, Receipt as ReceiptIcon, Zap, Lightbulb, Calculator,
+  ShieldCheck, Shield, Printer, Bell, Clock, Receipt as ReceiptIcon, Zap, Lightbulb, Calculator,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useToast } from '../components/Toast'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { getUpcomingRecurringTransactions } from '../utils/recurring'
@@ -24,6 +25,7 @@ import { getTodaysTip } from '../utils/dailyTip'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
+  const { addToast } = useToast()
   const {
     transactions, getBalance, getMonthlySummary, savingsGoal,
     deleteTransaction, insights, notification, dismissNotification,
@@ -40,6 +42,12 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   } = useFinance()
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
+  const privacyOn = security.privacyMode === true
+  const balanceHidden = hideBalance || privacyOn
+
+  useEffect(() => {
+    setHideBalance(security.hideBalance)
+  }, [security.hideBalance])
 
   const monthly = useMemo(() => {
     const d = new Date()
@@ -115,20 +123,36 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           >
             {hideBalance ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
+          <button
+            onClick={() => {
+              updateSecurity({ privacyMode: !privacyOn })
+              addToast(
+                privacyOn ? t('settings.privacy_off') : t('settings.privacy_on'),
+                'info'
+              )
+            }}
+            className={`p-2 rounded-lg transition-all flex items-center justify-center shrink-0 ${
+              privacyOn ? 'text-neon bg-neon/10' : 'text-gray-500 hover:text-neon hover:bg-neon/10'
+            }`}
+            aria-label={t('settings.privacy_mode')}
+            title={t('settings.privacy_mode')}
+          >
+            <Shield size={16} />
+          </button>
         </div>
         <h1 className="text-4xl font-extrabold text-gradient-brand mt-1 tracking-tight glow-neon-sm">
-          {hideBalance ? '••••••' : <AnimatedNumber value={netWorth} format={formatCurrency} />}
+          {balanceHidden ? '••••••' : <AnimatedNumber value={netWorth} format={formatCurrency} />}
         </h1>
         {transactions.length > 0 || accounts.length > 0 || debts.length > 0 ? (
           <div className="flex items-center gap-2 mt-1">
             <span className="flex items-center gap-1 text-[11px]">
               <span className="text-neon/60">{t('dashboard.assets')}</span>
-              <span className="text-neon font-medium">{hideBalance ? '••••' : formatCurrency(Math.max(0, totalCash + totalAccountBal) + lentDebts)}</span>
+              <span className="text-neon font-medium">{balanceHidden ? '••••' : formatCurrency(Math.max(0, totalCash + totalAccountBal) + lentDebts)}</span>
             </span>
             <span className="text-gray-700">|</span>
             <span className="flex items-center gap-1 text-[11px]">
               <span className="text-red-400/60">{t('dashboard.liabilities')}</span>
-              <span className="text-red-400 font-medium">{hideBalance ? '••••' : formatCurrency(Math.max(0, -(totalCash + totalAccountBal)) + borrowedDebts)}</span>
+              <span className="text-red-400 font-medium">{balanceHidden ? '••••' : formatCurrency(Math.max(0, -(totalCash + totalAccountBal)) + borrowedDebts)}</span>
             </span>
           </div>
         ) : null}
@@ -159,7 +183,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
         <StatCard
           icon={TrendingUp}
           label={t('dashboard.income')}
-          value={hideBalance ? '••••' : formatCurrency(monthly.income)}
+          value={balanceHidden ? '••••' : formatCurrency(monthly.income)}
           color="text-neon"
           subtext={new Date().toLocaleString('en-US', { month: 'long' })}
           onClick={() => onNavigate('analytics')}
@@ -167,7 +191,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
         <StatCard
           icon={TrendingDown}
           label={t('dashboard.expense')}
-          value={hideBalance ? '••••' : formatCurrency(monthly.expense)}
+          value={balanceHidden ? '••••' : formatCurrency(monthly.expense)}
           color="text-red-400"
           subtext={new Date().toLocaleString('en-US', { month: 'long' })}
           onClick={() => onNavigate('analytics')}
@@ -175,7 +199,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
         <StatCard
           icon={Wallet}
           label={t('dashboard.total_balance')}
-          value={hideBalance ? '••••' : formatCurrency(balance)}
+          value={balanceHidden ? '••••' : formatCurrency(balance)}
           color={balance >= 0 ? 'text-neon' : 'text-red-400'}
           onClick={() => onNavigate('account-center')}
         />
