@@ -6,6 +6,7 @@ import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHO
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
+import { getCurrencySettings, getBaseCurrencyCode, CURRENCIES, formatInCurrency } from '../utils/multiCurrency'
 import CategoryIcon from '../components/CategoryIcon'
 import ConfirmationModal from '../components/ConfirmationModal'
 import { useToast } from '../components/Toast'
@@ -57,12 +58,18 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const amountInputRef = useRef(null)
   const lastCategoryByType = useRef({ income: '', expense: '' })
   const currencySymbol = useMemo(() => getCurrencySymbol(), [])
+  const amountSymbol = useMemo(() => {
+    if (!currency) return currencySymbol
+    const c = CURRENCIES.find((x) => x.code === currency)
+    return c ? c.symbol : currency
+  }, [currency, currencySymbol])
 
   const editTx = navParams?.editTransaction || null
   const isEditing = !!editTx
 
   const [purpose, setPurpose] = useState(() => editTx?.type || TRANSACTION_TYPES.EXPENSE)
-  const [amount, setAmount] = useState(() => editTx ? String(editTx.amount) : '')
+  const [amount, setAmount] = useState(() => editTx ? String(editTx.originalAmount ?? editTx.amount) : '')
+  const [currency, setCurrency] = useState(() => editTx?.currency || '')
   const [category, setCategory] = useState(() => editTx?.category || lastCategoryByType.current[TRANSACTION_TYPES.EXPENSE] || '')
   const [note, setNote] = useState(() => editTx?.note || '')
   const [date, setDate] = useState(() => editTx?.date || new Date().toISOString().split('T')[0])
@@ -90,6 +97,9 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const transactionType = purpose
   const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
   const suggestedTags = useMemo(() => getSuggestedTags(), [])
+  const multiCurrencySettings = useMemo(() => getCurrencySettings(), [])
+  const baseCurrencyCode = useMemo(() => getBaseCurrencyCode(), [])
+  const showCurrencyPicker = multiCurrencySettings.enabled && category !== ''
 
   useEffect(() => {
     const timer = setTimeout(() => amountInputRef.current?.focus(), 150)
@@ -187,6 +197,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
         setSource('')
         setPersonName('')
         setPaymentMethod('')
+        setCurrency('')
         setShowMore(false)
         setSuccess(true)
         setError('')
@@ -230,6 +241,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
     const transactionData = {
       type: transactionType,
       amount: numAmount,
+      currency: showCurrencyPicker && currency ? currency : undefined,
       category,
       note: note.trim(),
       date,
@@ -315,6 +327,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
                   setPersonName(tmpl.person?.name || '')
                   setPaymentMethod(tmpl.paymentMethod || '')
                   setSource(tmpl.source || '')
+                  setCurrency(tmpl.currency || '')
                   setSelectedTags(tmpl.tags || [])
                   const tmplCat = tmpl.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
                   if (tmplCat.find((c) => c.id === tmpl.category)) {
@@ -338,7 +351,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
         <div>
           <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.amount')}</label>
           <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">{currencySymbol}</span>
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">{amountSymbol}</span>
             <input
               ref={amountInputRef}
               type="text"
@@ -365,6 +378,26 @@ export default function AddTransaction({ onNavigate, navParams }) {
               </button>
             ))}
           </div>
+          {multiCurrencySettings.enabled && (
+            <div className="flex items-center gap-2 mt-2 flex-wrap">
+              <select
+                value={currency}
+                onChange={(e) => setCurrency(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium border border-glass-border bg-matte-100 text-gray-400 focus:outline-none focus:border-neon/40"
+                aria-label="Currency"
+              >
+                <option value="">{baseCurrencyCode} ({t('csv_import.base')})</option>
+                {CURRENCIES.filter((c) => c.code !== baseCurrencyCode).map((c) => (
+                  <option key={c.code} value={c.code}>{c.code}</option>
+                ))}
+              </select>
+              {currency && currency !== baseCurrencyCode && (
+                <span className="text-[10px] text-gray-500">
+                  ≈ {formatInCurrency(parseFloat(amount) || 0, currency)} = {formatInCurrency((parseFloat(amount) || 0) * (multiCurrencySettings.rates[currency] || 1), baseCurrencyCode)}
+                </span>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Category */}

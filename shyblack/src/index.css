@@ -343,3 +343,81 @@ textarea:focus-visible {
 .privacy-overlay.active {
   opacity: 1;
 }
+
+/* ── Light Theme (data-theme="light") ────────────────
+   The app is dark-first; this layer remaps the core utility
+   palette to a light scheme when the toggle is enabled. */
+html[data-theme="light"] body {
+  background-color: #f5f5f7;
+}
+
+html[data-theme="light"] .text-white {
+  color: #1c1c1e;
+}
+html[data-theme="light"] .hover\:text-white:hover {
+  color: #1c1c1e;
+}
+html[data-theme="light"] .text-gray-400 { color: #6b7280; }
+html[data-theme="light"] .text-gray-500 { color: #71717a; }
+html[data-theme="light"] .text-gray-600 { color: #8e8e93; }
+html[data-theme="light"] .text-gray-700 { color: #a1a1a6; }
+html[data-theme="light"] .text-gray-300 { color: #4b5563; }
+html[data-theme="light"] .placeholder-gray-500::placeholder { color: #9ca3af; }
+html[data-theme="light"] .placeholder-gray-600::placeholder { color: #9ca3af; }
+
+html[data-theme="light"] .bg-matte { background-color: #f5f5f7; }
+html[data-theme="light"] .bg-matte-50 { background-color: #ffffff; }
+html[data-theme="light"] .bg-matte-100 { background-color: #ffffff; }
+html[data-theme="light"] .bg-matte-150 { background-color: #f0f0f2; }
+html[data-theme="light"] .bg-matte-200 { background-color: #e9e9ec; }
+html[data-theme="light"] .bg-matte-300 { background-color: #e2e2e5; }
+
+html[data-theme="light"] .border-glass-border { border-color: rgba(0, 0, 0, 0.09); }
+
+html[data-theme="light"] .glass {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.09);
+}
+html[data-theme="light"] .glass-brand {
+  background-color: rgba(255, 255, 255, 0.9);
+  border-color: rgba(22, 163, 74, 0.25);
+}
+
+html[data-theme="light"] [class*="bg-white/"] {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+html[data-theme="light"] [class*="hover:bg-white/"]:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+html[data-theme="light"] .text-neon { color: #16a34a; }
+html[data-theme="light"] .text-red-400 { color: #dc2626; }
+html[data-theme="light"] .text-yellow-400 { color: #ca8a04; }
+html[data-theme="light"] .text-purple-400 { color: #7c3aed; }
+html[data-theme="light"] .text-blue-400 { color: #2563eb; }
+html[data-theme="light"] .text-amber-400 { color: #d97706; }
+html[data-theme="light"] .text-teal-400 { color: #0d9488; }
+html[data-theme="light"] .text-green-400 { color: #16a34a; }
+
+html[data-theme="light"] .input-field {
+  background-color: #ffffff;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #1c1c1e;
+}
+
+html[data-theme="light"] .btn-secondary {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(0, 0, 0, 0.09);
+  color: #1c1c1e;
+}
+
+html[data-theme="light"] .skeleton,
+html[data-theme="light"] .skeleton-text {
+  background-color: #e9e9ec;
+}
+
+html[data-theme="light"] .glow-neon-sm,
+html[data-theme="light"] .glow-neon,
+html[data-theme="light"] .glow-neon-lg {
+  filter: none;
+}

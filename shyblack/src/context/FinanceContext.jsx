@@ -42,6 +42,9 @@ import { generateSmartRecommendations, generateSpendingInsights, calculateSaving
 import { getReceipts, saveReceipts, createReceipt as createReceiptUtil, updateReceipt as updateReceiptUtil, deleteReceipt as deleteReceiptUtil, getReceiptStats } from '../utils/receiptUtils'
 import { getWealthAssets, saveWealthAssets, createWealthAsset as createWealthAssetUtil, updateWealthAsset as updateWealthAssetUtil, deleteWealthAsset as deleteWealthAssetUtil, calculateNetWorth, getNetWorthHistory, getAssetAllocation, getPortfolioSummary, calculateWealthScore, getWealthDashboardStats, linkAssetToGoal as linkAssetToGoalUtil, unlinkAssetFromGoal as unlinkAssetFromGoalUtil, getAssetsByGoal as getAssetsByGoalUtil } from '../utils/wealthUtils'
 import { snapshotBeforeClearAll, snapshotBeforeBulkDelete, getBackupDashboardStats, createManualBackup, getAutoSnapshots, deleteAutoSnapshot, restoreAutoSnapshot } from '../utils/backupManager'
+import { applyCurrencyToTransaction } from '../utils/multiCurrency'
+import { runAutoBackupIfDue, getAutoBackupSettings } from '../utils/autoBackup'
+import { getSplits, saveSplits, createSplit, updateSplit, deleteSplit, markParticipantPaid } from '../utils/splits'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
@@ -124,6 +127,7 @@ function loadInitialState() {
       budgetsV2: getBudgetsV2(),
       receipts: getReceipts(),
       wealthAssets: getWealthAssets(),
+      splits: getSplits(),
       _migrationResult: migrationResult,
       _recoverySnapshot: recoverySnapshot,
     }
@@ -136,6 +140,7 @@ function loadInitialState() {
       budgetsV2: [],
       receipts: [],
       wealthAssets: [],
+      splits: [],
       recurring: [],
       tags: [],
       security: { pinEnabled: false, pinCode: '', pinHash: '', biometricEnabled: false, privacyMode: false, hideBalance: false },
@@ -151,7 +156,7 @@ function loadInitialState() {
 
 export function FinanceProvider({ children }) {
   const [state, setState] = useState(loadInitialState)
-  const { transactions, savingsGoal, budgets, budgetsV2, receipts, wealthAssets, recurring, tags, security, debts, goals, templates, emis, accounts, documents, _recoverySnapshot } = state
+  const { transactions, savingsGoal, budgets, budgetsV2, receipts, wealthAssets, recurring, tags, security, debts, goals, templates, emis, accounts, documents, splits, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
   const [backupVersion, setBackupVersion] = useState(0)
@@ -228,6 +233,18 @@ export function FinanceProvider({ children }) {
   useEffect(() => { try { saveBudgetsV2(budgetsV2) } catch { /* silent */ } }, [budgetsV2])
   useEffect(() => { try { saveReceipts(receipts) } catch { /* silent */ } }, [receipts])
   useEffect(() => { try { saveWealthAssets(wealthAssets) } catch { /* silent */ } }, [wealthAssets])
+  useEffect(() => { try { saveSplits(splits) } catch { /* silent */ } }, [splits])
+
+  // Automated backups: run once shortly after startup if due
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const settings = getAutoBackupSettings()
+      if (settings.enabled) {
+        runAutoBackupIfDue().catch(() => {})
+      }
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   const isFirstMount = useRef(true)
   useEffect(() => {
@@ -339,10 +356,15 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const addTransaction = useCallback((transaction) => {
+    const base = { ...transaction }
+    const hasCustomCurrency = transaction.currency && transaction.amount !== undefined
+    const prepared = hasCustomCurrency
+      ? applyCurrencyToTransaction(base, transaction.amount, transaction.currency)
+      : base
     const newTx = {
-      ...transaction,
+      ...prepared,
       id: generateId(),
-      date: transaction.date || new Date().toISOString().split('T')[0],
+      date: prepared.date || new Date().toISOString().split('T')[0],
       createdAt: Date.now(),
     }
     const allTx = [newTx, ...transactionsRef.current]
@@ -362,6 +384,36 @@ export function FinanceProvider({ children }) {
     return newTx
   }, [recalcBudgetsV2])
 
+  const addTransactionsBulk = useCallback((list) => {
+    if (!Array.isArray(list) || list.length === 0) return []
+    const now = new Date().toISOString().split('T')[0]
+    const prepared = list.map((t) => {
+      const base = { ...t }
+      const hasCustomCurrency = t.currency && t.amount !== undefined
+      const tx = hasCustomCurrency
+        ? applyCurrencyToTransaction(base, t.amount, t.currency)
+        : base
+      return {
+        ...tx,
+        id: generateId(),
+        date: tx.date || now,
+        createdAt: Date.now(),
+      }
+    })
+    const allTx = [...prepared, ...transactionsRef.current]
+    setState((prev) => ({ ...prev, transactions: [...prepared, ...prev.transactions] }))
+    const hasExpenses = prepared.some((t) => t.type === 'expense')
+    if (hasExpenses) {
+      try {
+        const updated = recalculateBudgetSpending(allTx)
+        setState((prev) => ({ ...prev, budgetsV2: updated }))
+      } catch { /* silent */ }
+    }
+    checkStreakMilestone(allTx).catch(() => {})
+    hapticLight()
+    return prepared
+  }, [])
+
   const deleteTransaction = useCallback((id) => {
     const deleted = transactionsRef.current.find((t) => t.id === id)
     setState((prev) => {
@@ -378,8 +430,21 @@ export function FinanceProvider({ children }) {
 
   const updateTransaction = useCallback((id, updates) => {
     setState((prev) => {
-      const updated = prev.transactions.map((t) => (t.id === id ? { ...t, ...updates } : t))
       const oldTx = prev.transactions.find((t) => t.id === id)
+      const nextUpdates = { ...updates }
+      if (updates.amount !== undefined && (updates.currency !== undefined || oldTx?.currency)) {
+        const effectiveCurrency = updates.currency || oldTx?.currency
+        const converted = applyCurrencyToTransaction({}, updates.amount, effectiveCurrency)
+        nextUpdates.amount = converted.amount
+        if (converted.currency) {
+          nextUpdates.originalAmount = converted.originalAmount
+          nextUpdates.currency = converted.currency
+        } else {
+          nextUpdates.originalAmount = undefined
+          nextUpdates.currency = undefined
+        }
+      }
+      const updated = prev.transactions.map((t) => (t.id === id ? { ...t, ...nextUpdates } : t))
       if ((oldTx?.type === 'expense' || updates?.type === 'expense') &&
           (updates?.amount !== undefined || updates?.category !== undefined)) {
         try {
@@ -770,6 +835,42 @@ export function FinanceProvider({ children }) {
     }
   }, [debts])
 
+  const addSplit = useCallback((data) => {
+    const split = createSplit(data)
+    if (!split) return null
+    setState((prev) => ({ ...prev, splits: [split, ...prev.splits] }))
+    hapticLight()
+    return split
+  }, [])
+
+  const updateSplitCb = useCallback((id, updates) => {
+    const updated = updateSplit(id, updates)
+    if (updated) {
+      setState((prev) => ({
+        ...prev,
+        splits: prev.splits.map((s) => (s.id === id ? updated : s)),
+      }))
+    }
+    return updated
+  }, [])
+
+  const deleteSplitCb = useCallback((id) => {
+    deleteSplit(id)
+    setState((prev) => ({ ...prev, splits: prev.splits.filter((s) => s.id !== id) }))
+  }, [])
+
+  const markSplitPaid = useCallback((splitId, participantId, amount) => {
+    const result = markParticipantPaid(splitId, participantId, amount)
+    if (result.success) {
+      setState((prev) => ({
+        ...prev,
+        splits: prev.splits.map((s) => (s.id === splitId ? result.split : s)),
+      }))
+      hapticLight()
+    }
+    return result
+  }, [])
+
   const clearAllData = useCallback(() => {
     snapshotBeforeClearAll()
     cancelAllEmiNotifications(emisRef.current).catch(() => {})
@@ -792,6 +893,7 @@ export function FinanceProvider({ children }) {
       receipts: [],
       accounts: [],
       wealthAssets: [],
+      splits: [],
       _migrationResult: null,
       _recoverySnapshot: null,
     })
@@ -819,6 +921,7 @@ export function FinanceProvider({ children }) {
       ...(Array.isArray(data.budgetsV2) ? { budgetsV2: data.budgetsV2 } : {}),
       ...(Array.isArray(data.receipts) ? { receipts: data.receipts } : {}),
       ...(Array.isArray(data.documents) ? { documents: data.documents } : {}),
+      ...(Array.isArray(data.splits) ? { splits: data.splits } : {}),
     }))
     if (data.emis) {
       rescheduleAllEmiNotifications(data.emis).catch(() => {})
@@ -1339,9 +1442,9 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const transactionActions = useMemo(() => ({
-    addTransaction, deleteTransaction, updateTransaction, getBalance,
+    addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance,
     getMonthlySummary, getMonthlyData,
-  }), [addTransaction, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData])
+  }), [addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData])
 
   const recurringActions = useMemo(() => ({
     addRecurring, updateRecurring, toggleRecurring, removeRecurring,
@@ -1385,6 +1488,10 @@ export function FinanceProvider({ children }) {
     addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb,
   }), [addWealthAsset, updateWealthAssetCb, deleteWealthAssetCb])
 
+  const splitActions = useMemo(() => ({
+    addSplit, updateSplitCb, deleteSplitCb, markSplitPaid,
+  }), [addSplit, updateSplitCb, deleteSplitCb, markSplitPaid])
+
   const computedData = useMemo(() => ({
     insights, cashflowForecast, recentPeople, goalsProjections,
     snapshotDiagnostics, storageCorruptionReport, backupHealth, backupStats,
@@ -1409,7 +1516,7 @@ export function FinanceProvider({ children }) {
     ...computedData,
     transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification,
     recoverySnapshot, goals, templates, recentTemplates,
-    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets,
+    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets, splits,
     ...transactionActions,
     ...recurringActions,
     ...budgetActions,
@@ -1421,6 +1528,7 @@ export function FinanceProvider({ children }) {
     ...documentActions,
     ...receiptActions,
     ...wealthActions,
+    ...splitActions,
     updateSavings, updateBudgets, updateBudgetLimit, updateSecurity,
     updateAccounts, clearAllData, importData, dismissNotification,
     restoreFromSnapshot, reloadFromStorage, handleCreateBackup,
@@ -1428,9 +1536,10 @@ export function FinanceProvider({ children }) {
     computedData,
     transactions, transactionIndex, savingsGoal, budgets, recurring, tags, security, notification,
     recoverySnapshot, goals, templates, recentTemplates,
-    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets,
+    budgetsV2, debts, emis, accounts, documents, receipts, wealthAssets, splits,
     transactionActions, recurringActions, budgetActions, tagActions,
     debtActions, goalActions, templateActions, emiActions, documentActions, receiptActions, wealthActions,
+    splitActions,
     updateSavings, updateBudgets, updateBudgetLimit, updateSecurity,
     updateAccounts, clearAllData, importData, dismissNotification,
     restoreFromSnapshot, reloadFromStorage, handleCreateBackup,

@@ -4,6 +4,7 @@ import {
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
+  Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -23,6 +24,10 @@ import { requestNotificationPermission, checkNotificationPermission } from '../u
 import { isPinSet, setPin, verifyPin, clearPin, getTimeout, setTimeoutPref } from '../utils/privacy'
 import { checkBiometricAvailability, isBiometricEnabled, setBiometricEnabled, authenticateWithBiometric, getBiometricTypeLabel } from '../utils/biometrics'
 import { PRIVACY_POLICY_URL } from '../utils/constants'
+import { getTheme, setTheme, THEMES } from '../utils/theme'
+import { getCurrencySettings, setCurrencyRate, setBaseCurrency, setMultiCurrencyEnabled, CURRENCIES } from '../utils/multiCurrency'
+import { getAutoBackupSettings, saveAutoBackupSettings, AUTO_BACKUP_FREQUENCIES, runAutoBackupIfDue } from '../utils/autoBackup'
+import { formatDate } from '../utils/helpers'
 
 const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
@@ -65,6 +70,10 @@ export default function Settings({ onNavigate }) {
   const [reminderEnabled, setReminderEnabled] = useState(getReminderPreference())
   const [biometricState, setBiometricState] = useState({ available: false, enabled: isBiometricEnabled(), type: null, checking: true })
   const [notifDiag, setNotifDiag] = useState(null)
+  const [theme, setThemeState] = useState(getTheme())
+  const [currencyState, setCurrencyState] = useState(() => getCurrencySettings())
+  const [autoBackup, setAutoBackup] = useState(() => getAutoBackupSettings())
+  const [runningBackup, setRunningBackup] = useState(false)
 
   useEffect(() => {
     setTarget(String(savingsGoal.target || ''))
@@ -280,6 +289,62 @@ export default function Settings({ onNavigate }) {
     }
   }, [reminderEnabled, transactions, debts, addToast, t])
 
+  const handleThemeChange = useCallback((nextTheme) => {
+    const applied = setTheme(nextTheme)
+    setThemeState(applied)
+    addToast(applied === THEMES.LIGHT ? t('settings.theme_light') + ' ✓' : t('settings.theme_dark') + ' ✓', 'success', 2000)
+  }, [addToast, t])
+
+  const handleCurrencyToggle = useCallback((enabled) => {
+    const result = setMultiCurrencyEnabled(enabled)
+    setCurrencyState({ ...result })
+    addToast(enabled ? t('settings.multi_currency_on') : t('settings.multi_currency_off'), enabled ? 'success' : 'info')
+  }, [addToast, t])
+
+  const handleBaseCurrencyChange = useCallback((code) => {
+    if (setBaseCurrency(code)) {
+      setCurrencyState((prev) => ({ ...prev, base: code, rates: { ...prev.rates, [code]: 1 } }))
+      addToast(t('settings.base_changed'), 'success')
+    }
+  }, [addToast, t])
+
+  const handleRateChange = useCallback((code, value) => {
+    if (setCurrencyRate(code, value)) {
+      setCurrencyState((prev) => ({ ...prev, rates: { ...prev.rates, [code]: parseFloat(value) } }))
+      addToast(t('settings.rate_saved'), 'success', 2000)
+    } else {
+      addToast(t('settings.rate_invalid'), 'error')
+    }
+  }, [addToast, t])
+
+  const handleAutoBackupToggle = useCallback((enabled) => {
+    const next = { ...autoBackup, enabled }
+    saveAutoBackupSettings(next)
+    setAutoBackup(next)
+    addToast(enabled ? t('settings.auto_backup_on') : t('settings.auto_backup_off'), enabled ? 'success' : 'info')
+  }, [autoBackup, addToast, t])
+
+  const handleAutoBackupFrequency = useCallback((frequency) => {
+    const next = { ...autoBackup, frequency }
+    saveAutoBackupSettings(next)
+    setAutoBackup(next)
+  }, [autoBackup])
+
+  const handleRunBackupNow = useCallback(async () => {
+    setRunningBackup(true)
+    try {
+      const result = await runAutoBackupIfDue()
+      if (result.ran && !result.failed) {
+        addToast('Backup completed', 'success')
+      } else {
+        addToast('Backup already ran recently', 'info')
+      }
+      setAutoBackup(getAutoBackupSettings())
+    } finally {
+      setRunningBackup(false)
+    }
+  }, [addToast])
+
   const subCount = recurring.filter((r) => r.active !== false).length
   const subMonthly = recurring
     .filter((r) => r.active !== false && r.type === 'expense')
@@ -318,6 +383,180 @@ export default function Settings({ onNavigate }) {
             </button>
           ))}
         </div>
+      </GlassCard>
+
+      {/* Appearance */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
+            <Sun size={16} className="text-purple-400" />
+          </div>
+          <h2 className="text-sm font-semibold">{t('settings.appearance')}</h2>
+        </div>
+        <p className="text-[10px] text-gray-500 mb-3">{t('settings.appearance_desc')}</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => handleThemeChange(THEMES.DARK)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+              theme === THEMES.DARK ? 'bg-neon/10 text-neon border-neon/30' : 'text-gray-500 border-white/[0.06] hover:text-white'
+            }`}
+          >
+            <Moon size={14} /> {t('settings.theme_dark')}
+          </button>
+          <button
+            onClick={() => handleThemeChange(THEMES.LIGHT)}
+            className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-xs font-medium border transition-all ${
+              theme === THEMES.LIGHT ? 'bg-neon/10 text-neon border-neon/30' : 'text-gray-500 border-white/[0.06] hover:text-white'
+            }`}
+          >
+            <Sun size={14} /> {t('settings.theme_light')}
+          </button>
+        </div>
+      </GlassCard>
+
+      {/* Advanced: Import & Splits */}
+      <GlassCard className="mb-4">
+        <div className="space-y-1">
+          <button onClick={() => onNavigate('csv-import')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
+              <FileSpreadsheet size={16} className="text-blue-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.csv_import')}</p>
+              <p className="text-xs text-gray-500">{t('settings.csv_import_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('splits')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/20 transition-colors">
+              <Users size={16} className="text-teal-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.split_bills')}</p>
+              <p className="text-xs text-gray-500">{t('settings.split_bills_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-teal-400 transition-colors" />
+          </button>
+        </div>
+      </GlassCard>
+
+      {/* Multi-Currency */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+            <Coins size={16} className="text-amber-400" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold">{t('settings.multi_currency')}</h2>
+            <p className="text-[10px] text-gray-500">{t('settings.multi_currency_desc')}</p>
+          </div>
+          <button
+            onClick={() => handleCurrencyToggle(!currencyState.enabled)}
+            className={`relative w-10 h-6 rounded-full transition-all duration-200 ${currencyState.enabled ? 'bg-neon/30' : 'bg-matte-200'}`}
+            aria-pressed={currencyState.enabled}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${currencyState.enabled ? 'bg-neon left-[18px]' : 'bg-gray-500 left-0.5'}`} />
+          </button>
+        </div>
+
+        {currencyState.enabled && (
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-gray-500 mb-1.5 block font-medium">{t('settings.base_currency')}</label>
+              <select
+                value={currencyState.base}
+                onChange={(e) => handleBaseCurrencyChange(e.target.value)}
+                className="input-field"
+              >
+                {CURRENCIES.map((c) => (
+                  <option key={c.code} value={c.code}>{c.code} — {c.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5 font-medium">{t('settings.conversion_rates')}</p>
+              <div className="space-y-2">
+                {CURRENCIES.filter((c) => c.code !== currencyState.base).map((c) => (
+                  <div key={c.code} className="flex items-center gap-2">
+                    <span className="w-16 text-xs text-gray-400 shrink-0">{c.code}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0.0001"
+                      step="any"
+                      value={currencyState.rates[c.code] || ''}
+                      onChange={(e) => handleRateChange(c.code, e.target.value)}
+                      placeholder="0"
+                      className="input-field py-2 text-sm tabular-nums flex-1"
+                    />
+                    <span className="text-[10px] text-gray-600 shrink-0">{t('csv_import.base')}</span>
+                  </div>
+                ))}
+              </div>
+              <p className="text-[10px] text-gray-600 mt-2">{t('currencies.base_tip')}</p>
+            </div>
+          </div>
+        )}
+      </GlassCard>
+
+      {/* Automated Backups */}
+      <GlassCard className="mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center">
+            <RefreshCcw size={16} className="text-neon" />
+          </div>
+          <div className="flex-1">
+            <h2 className="text-sm font-semibold">{t('settings.auto_backup')}</h2>
+            <p className="text-[10px] text-gray-500">{t('settings.auto_backup_desc')}</p>
+          </div>
+          <button
+            onClick={() => handleAutoBackupToggle(!autoBackup.enabled)}
+            className={`relative w-10 h-6 rounded-full transition-all duration-200 ${autoBackup.enabled ? 'bg-neon/30' : 'bg-matte-200'}`}
+            aria-pressed={autoBackup.enabled}
+          >
+            <div className={`absolute top-0.5 w-5 h-5 rounded-full transition-all duration-200 ${autoBackup.enabled ? 'bg-neon left-[18px]' : 'bg-gray-500 left-0.5'}`} />
+          </button>
+        </div>
+
+        {autoBackup.enabled && (
+          <div className="space-y-3">
+            <div>
+              <p className="text-xs text-gray-500 mb-1.5 font-medium">{t('settings.auto_backup_frequency')}</p>
+              <div className="flex gap-1.5">
+                {AUTO_BACKUP_FREQUENCIES.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => handleAutoBackupFrequency(f.id)}
+                    className={`flex-1 py-2 rounded-lg text-[10px] font-medium border transition-all ${
+                      autoBackup.frequency === f.id
+                        ? 'border-neon/50 text-neon bg-neon/10'
+                        : 'border-glass-border text-gray-500 hover:text-white'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center justify-between p-2.5 rounded-xl bg-white/[0.03]">
+              <span className="text-xs text-gray-400">{t('settings.auto_backup_last')}</span>
+              <span className="text-xs text-gray-500 tabular-nums">
+                {autoBackup.lastRunAt
+                  ? `${formatDate(new Date(autoBackup.lastRunAt).toISOString().split('T')[0])}${autoBackup.lastStatus && !autoBackup.lastStatus.ok ? ` · ${t('settings.auto_backup_failed')}` : ''}`
+                  : t('settings.auto_backup_never')}
+              </span>
+            </div>
+            <button
+              onClick={handleRunBackupNow}
+              disabled={runningBackup}
+              className="btn-secondary w-full text-xs flex items-center justify-center gap-2 disabled:opacity-40"
+            >
+              <RefreshCcw size={13} className={runningBackup ? 'animate-spin' : ''} />
+              {runningBackup ? t('settings.biometric_checking') : 'Run backup now'}
+            </button>
+          </div>
+        )}
       </GlassCard>
 
       {/* Security */}

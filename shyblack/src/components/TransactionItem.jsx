@@ -4,6 +4,7 @@ import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
 import { useTranslation } from '../i18n'
+import { getOriginalAmount, formatInCurrency, getBaseCurrencyCode } from '../utils/multiCurrency'
 
 function getSubtitle(tx, t) {
   const parts = []
@@ -75,6 +76,15 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, o
           >
             {isIncome ? '+' : '-'}{formatCurrency(transaction.amount)}
           </p>
+          {(() => {
+            const orig = getOriginalAmount(transaction)
+            if (!orig || orig.code === getBaseCurrencyCode()) return null
+            return (
+              <p className="text-[10px] text-gray-600 mt-0.5 whitespace-nowrap">
+                ≈ {formatInCurrency(orig.amount, orig.code)}
+              </p>
+            )
+          })()}
           {compact && (
             <p className="text-[11px] text-gray-600 mt-0.5">
               {formatDate(transaction.date)}

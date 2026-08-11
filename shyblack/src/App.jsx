@@ -18,6 +18,9 @@ import PrivacyGuard from './components/PrivacyGuard'
 import QuickActionCenter from './components/QuickActionCenter'
 import ScrollRestoration from './components/ScrollRestoration'
 import { App as CapApp } from '@capacitor/app'
+import { initTheme } from './utils/theme'
+
+initTheme()
 
 const onboardingDone = () => {
   const data = safeStorage.get(STORAGE_KEYS.ONBOARDING, {})
@@ -66,6 +69,8 @@ const AppInfoPage = lazy(() => import('./pages/AppInfoPage'))
 const PrivacyCenter = lazy(() => import('./pages/PrivacyCenter'))
 const BillsPage = lazy(() => import('./pages/BillsPage'))
 const SIPCalculatorPage = lazy(() => import('./pages/SIPCalculatorPage'))
+const CsvImportPage = lazy(() => import('./pages/CsvImportPage'))
+const SplitsPage = lazy(() => import('./pages/SplitsPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -110,6 +115,8 @@ const pages = {
   'privacy-center': PrivacyCenter,
   bills: BillsPage,
   'sip-calculator': SIPCalculatorPage,
+  'csv-import': CsvImportPage,
+  splits: SplitsPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']

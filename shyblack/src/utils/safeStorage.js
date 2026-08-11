@@ -36,6 +36,9 @@ export const STORAGE_KEYS = {
   WEALTH_ASSETS: `${STORAGE_PREFIX}wealth_assets`,
   BACKUPS: `${STORAGE_PREFIX}backups`,
   SCORE_HISTORY: `${STORAGE_PREFIX}score_history`,
+  CURRENCY_SETTINGS: `${STORAGE_PREFIX}currency_settings`,
+  AUTO_BACKUP: `${STORAGE_PREFIX}auto_backup`,
+  SPLITS: `${STORAGE_PREFIX}splits`,
 }
 
 const memoryCache = new Map()
