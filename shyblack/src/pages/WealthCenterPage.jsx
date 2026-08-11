@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import {
   ArrowLeft, Plus, Trash2, Edit3, TrendingUp, 
   Target, PieChart, Banknote, Building2,
@@ -47,6 +47,16 @@ export default function WealthCenterPage({ onNavigate }) {
     netWorthData, assetAllocation, portfolioSummary, wealthScore,
     accounts, goals,
   } = useFinance()
+
+  const [investmentsCount, setInvestmentsCount] = useState(0)
+
+  useEffect(() => {
+    let mounted = true
+    import('../utils/investmentLots').then((mod) => {
+      if (mounted) setInvestmentsCount(mod.getPortfolioSummary().assets)
+    })
+    return () => { mounted = false }
+  }, [])
 
   const [activeTab, setActiveTab] = useState(0)
   const [showForm, setShowForm] = useState(false)
@@ -168,8 +178,8 @@ export default function WealthCenterPage({ onNavigate }) {
           portfolioSummary={portfolioSummary}
           wealthScore={wealthScore}
           assetAllocation={assetAllocation}
-          wealthAssets={wealthAssets}
           accounts={accounts}
+          investmentsCount={investmentsCount}
           onNavigate={onNavigate}
           formatCurrency={formatCurrency}
         />
@@ -242,7 +252,7 @@ export default function WealthCenterPage({ onNavigate }) {
   )
 }
 
-function OverviewTab({ netWorthData, portfolioSummary, wealthScore, assetAllocation, wealthAssets, accounts, onNavigate, formatCurrency }) {
+function OverviewTab({ netWorthData, portfolioSummary, wealthScore, assetAllocation, accounts, investmentsCount, onNavigate, formatCurrency }) {
   const totalAssets = netWorthData.totalAssets + netWorthData.accountBalances
   return (
     <div className="space-y-3">
@@ -278,10 +288,10 @@ function OverviewTab({ netWorthData, portfolioSummary, wealthScore, assetAllocat
         </div>
       </GlassCard>
 
-      <div className="grid grid-cols-3 gap-2">
-        <GlassCard className="!p-3 !text-center">
-          <p className="text-xs font-bold text-white">{wealthAssets.length}</p>
-          <p className="text-[10px] text-gray-500">Assets</p>
+      <div className="grid grid-cols-4 gap-2">
+        <GlassCard className="!p-3 !text-center" onClick={() => onNavigate('investments')}>
+          <p className="text-xs font-bold text-white">{investmentsCount}</p>
+          <p className="text-[10px] text-gray-500">Lots</p>
         </GlassCard>
         <GlassCard className="!p-3 !text-center" onClick={() => onNavigate('networth')}>
           <p className="text-xs font-bold text-white">{accounts?.length || 0}</p>
@@ -292,6 +302,10 @@ function OverviewTab({ netWorthData, portfolioSummary, wealthScore, assetAllocat
             {wealthScore.overallScore || '-'}
           </p>
           <p className="text-[10px] text-gray-500">Score</p>
+        </GlassCard>
+        <GlassCard className="!p-3 !text-center" onClick={() => onNavigate('capital-gains')}>
+          <p className="text-xs font-bold text-amber-400">Gain</p>
+          <p className="text-[10px] text-gray-500">Tax</p>
         </GlassCard>
       </div>
 

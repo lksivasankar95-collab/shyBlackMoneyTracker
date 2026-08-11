@@ -1,10 +1,11 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2 } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2, Mic } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
+import { parseVoiceCommand, recognizeVoiceSpeech } from '../utils/voiceEntry'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getCurrencySettings, getBaseCurrencyCode, CURRENCIES, formatInCurrency } from '../utils/multiCurrency'
 import CategoryIcon from '../components/CategoryIcon'
@@ -80,6 +81,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
   const [error, setError] = useState('')
+  const [listening, setListening] = useState(false)
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showLargeConfirm, setShowLargeConfirm] = useState(false)
   const [pendingSubmit, setPendingSubmit] = useState(null)
@@ -128,6 +130,40 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const handleQuickAmount = (val) => {
     setAmount(String(val))
     setError('')
+  }
+
+  const handleVoiceEntry = () => {
+    if (listening) return
+    setListening(true)
+    recognizeVoiceSpeech()
+      .then((transcript) => {
+        const parsed = parseVoiceCommand(transcript)
+        if (!parsed) {
+          setError(t('transactions.voice_unparsed'))
+          return
+        }
+        setAmount(String(parsed.amount))
+        setNote(parsed.note)
+        setDate(parsed.date)
+        setPurpose(parsed.type)
+        setCategory('')
+        const predicted = getSmartCategoryPrediction(transactions, parsed.note)
+        if (predicted && categories.find((c) => c.id === predicted)) {
+          setCategory(predicted)
+        }
+        setError('')
+        addToast(`${parsed.note}: ${formatCurrency(parsed.amount)}`, 'success')
+      })
+      .catch((err) => {
+        if (err && err.unsupported) {
+          setError(t('transactions.voice_unsupported'))
+        } else if (err && err.permission) {
+          setError(t('transactions.voice_permission'))
+        } else {
+          setError(t('transactions.voice_failed'))
+        }
+      })
+      .finally(() => setListening(false))
   }
 
   const handleNoteChange = (e) => {
@@ -349,7 +385,22 @@ export default function AddTransaction({ onNavigate, navParams }) {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Amount - Core field */}
         <div>
-          <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.amount')}</label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-gray-500 font-medium">{t('transactions.amount')}</label>
+            <button
+              type="button"
+              onClick={handleVoiceEntry}
+              disabled={listening}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${
+                listening
+                  ? 'border-neon/60 text-neon bg-neon/10 animate-pulse'
+                  : 'border-glass-border text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
+            >
+              <Mic size={12} />
+              {listening ? t('transactions.listening') : t('transactions.voice')}
+            </button>
+          </div>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg font-semibold pointer-events-none">{amountSymbol}</span>
             <input

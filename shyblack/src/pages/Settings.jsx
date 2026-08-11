@@ -4,7 +4,7 @@ import {
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
-  Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users,
+  Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users, Wand2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -428,6 +428,17 @@ export default function Settings({ onNavigate }) {
             <ChevronRight size={14} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
           </button>
 
+          <button onClick={() => onNavigate('statement-import')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center group-hover:bg-indigo-500/20 transition-colors">
+              <FileText size={16} className="text-indigo-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.statement_import')}</p>
+              <p className="text-xs text-gray-500">{t('settings.statement_import_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-indigo-400 transition-colors" />
+          </button>
+
           <button onClick={() => onNavigate('splits')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center group-hover:bg-teal-500/20 transition-colors">
               <Users size={16} className="text-teal-400" />
@@ -437,6 +448,17 @@ export default function Settings({ onNavigate }) {
               <p className="text-xs text-gray-500">{t('settings.split_bills_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-teal-400 transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('rules')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center group-hover:bg-violet-500/20 transition-colors">
+              <Wand2 size={16} className="text-violet-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.rules')}</p>
+              <p className="text-xs text-gray-500">{t('settings.rules_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-violet-400 transition-colors" />
           </button>
         </div>
       </GlassCard>

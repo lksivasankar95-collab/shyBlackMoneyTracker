@@ -71,6 +71,10 @@ const BillsPage = lazy(() => import('./pages/BillsPage'))
 const SIPCalculatorPage = lazy(() => import('./pages/SIPCalculatorPage'))
 const CsvImportPage = lazy(() => import('./pages/CsvImportPage'))
 const SplitsPage = lazy(() => import('./pages/SplitsPage'))
+const RulesPage = lazy(() => import('./pages/RulesPage'))
+const CapitalGainsPage = lazy(() => import('./pages/CapitalGainsPage'))
+const StatementImportPage = lazy(() => import('./pages/StatementImportPage'))
+const InvestmentCenterPage = lazy(() => import('./pages/InvestmentCenterPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -117,6 +121,10 @@ const pages = {
   'sip-calculator': SIPCalculatorPage,
   'csv-import': CsvImportPage,
   splits: SplitsPage,
+  rules: RulesPage,
+  'capital-gains': CapitalGainsPage,
+  'statement-import': StatementImportPage,
+  investments: InvestmentCenterPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']

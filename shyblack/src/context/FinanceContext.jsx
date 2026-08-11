@@ -45,6 +45,7 @@ import { snapshotBeforeClearAll, snapshotBeforeBulkDelete, getBackupDashboardSta
 import { applyCurrencyToTransaction } from '../utils/multiCurrency'
 import { runAutoBackupIfDue, getAutoBackupSettings } from '../utils/autoBackup'
 import { getSplits, saveSplits, createSplit, updateSplit, deleteSplit, markParticipantPaid } from '../utils/splits'
+import { applyRulesToTransaction, recordRuleUsage, getRules } from '../utils/rules'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
@@ -367,8 +368,13 @@ export function FinanceProvider({ children }) {
       date: prepared.date || new Date().toISOString().split('T')[0],
       createdAt: Date.now(),
     }
-    const allTx = [newTx, ...transactionsRef.current]
-    setState((prev) => ({ ...prev, transactions: [newTx, ...prev.transactions] }))
+    let withRule = newTx
+    if (!withRule.category || withRule.source === 'csv_import') {
+      withRule = applyRulesToTransaction(newTx)
+      if (withRule.ruleId) recordRuleUsage(withRule.ruleId)
+    }
+    const allTx = [withRule, ...transactionsRef.current]
+    setState((prev) => ({ ...prev, transactions: [withRule, ...prev.transactions] }))
 
     if (transaction.type === 'expense' && transaction.category) {
       checkAndNotifyBudget(budgetsRef.current, allTx, transaction.category).catch(() => {})
@@ -381,7 +387,7 @@ export function FinanceProvider({ children }) {
     checkStreakMilestone(allTx).catch(() => {})
     hapticLight()
 
-    return newTx
+    return withRule
   }, [recalcBudgetsV2])
 
   const addTransactionsBulk = useCallback((list) => {
@@ -393,10 +399,12 @@ export function FinanceProvider({ children }) {
       const tx = hasCustomCurrency
         ? applyCurrencyToTransaction(base, t.amount, t.currency)
         : base
+      const ruled = applyRulesToTransaction(tx, getRules(), { override: true })
+      if (ruled.ruleId) recordRuleUsage(ruled.ruleId)
       return {
-        ...tx,
+        ...ruled,
         id: generateId(),
-        date: tx.date || now,
+        date: ruled.date || now,
         createdAt: Date.now(),
       }
     })

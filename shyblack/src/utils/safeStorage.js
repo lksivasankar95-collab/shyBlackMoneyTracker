@@ -39,6 +39,9 @@ export const STORAGE_KEYS = {
   CURRENCY_SETTINGS: `${STORAGE_PREFIX}currency_settings`,
   AUTO_BACKUP: `${STORAGE_PREFIX}auto_backup`,
   SPLITS: `${STORAGE_PREFIX}splits`,
+  RULES: `${STORAGE_PREFIX}rules`,
+  CAPITAL_GAINS: `${STORAGE_PREFIX}capital_gains`,
+  INVESTMENTS: `${STORAGE_PREFIX}investments`,
 }
 
 const memoryCache = new Map()
