@@ -75,6 +75,7 @@ const RulesPage = lazy(() => import('./pages/RulesPage'))
 const CapitalGainsPage = lazy(() => import('./pages/CapitalGainsPage'))
 const StatementImportPage = lazy(() => import('./pages/StatementImportPage'))
 const InvestmentCenterPage = lazy(() => import('./pages/InvestmentCenterPage'))
+const IncomeTaxPage = lazy(() => import('./pages/IncomeTaxPage'))
 
 const pages = {
   dashboard: Dashboard,
@@ -125,6 +126,7 @@ const pages = {
   'capital-gains': CapitalGainsPage,
   'statement-import': StatementImportPage,
   investments: InvestmentCenterPage,
+  'income-tax': IncomeTaxPage,
 }
 
 const navPages = ['dashboard', 'add', 'history', 'analytics', 'settings']

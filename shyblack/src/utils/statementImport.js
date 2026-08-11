@@ -7,6 +7,8 @@
  * Produces normalized transactions with dates, notes, amounts and types.
  */
 
+import { dedupeWithFuzzy } from './fuzzyDuplicates'
+
 export function parseUpiSms(text) {
   const messages = String(text || '')
     .split(/\r?\n+/)
@@ -226,4 +228,22 @@ export async function extractPdfText(arrayBuffer) {
     text += content.items.map((it) => (it.str != null ? it.str : '')).join(' ') + '\n'
   }
   return text
+}
+
+/**
+ * Smart PDF extraction: tries the embedded text layer first, then falls back
+ * to full-page OCR for scanned (image-based) statements.
+ * Returns { text, ocrUsed }. onProgress receives (progress, label).
+ */
+export async function extractPdfSmart(arrayBuffer, onProgress) {
+  const { extractPdfWithOcrFallback } = await import('./pdfOcr')
+  return extractPdfWithOcrFallback(extractPdfText, arrayBuffer, onProgress)
+}
+
+/**
+ * Exact-hash dedupe (existing behaviour) followed by a fuzzy pass that also
+ * catches near-duplicate merchants/notes within a small date + amount window.
+ */
+export function dedupeStatementTransactionsSmart(list, existingTransactions = [], options = {}) {
+  return dedupeWithFuzzy(list, existingTransactions, options)
 }

@@ -11,6 +11,7 @@ import EmptyState from '../components/EmptyState'
 const CHECK_ICONS = {
   'Missing Categories': Tag,
   'Duplicate Transactions': FileText,
+  'Similar Transactions': FileText,
   'Orphaned Documents': FileText,
   'Inactive Accounts': Wallet,
   'Broken Relationships': Link2,

@@ -3,7 +3,7 @@ import {
   ArrowLeft, BarChart3, Target, CreditCard,
   ChevronDown, ChevronUp, AlertTriangle, Lightbulb,
   PieChart, ShoppingBag, Briefcase, Activity, Calendar, DollarSign,
-  Clock, FileText,
+  Clock, FileText, Repeat2,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -15,6 +15,8 @@ import {
 } from '../utils/reviewEngine'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
+import { getBills } from '../utils/bills'
+import { checkDuplicateTransactions } from '../utils/dataQuality'
 
 const severityColors = {
   success: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
@@ -76,7 +78,7 @@ function InsightCard({ insight }) {
 }
 
 function AlertCard({ alert }) {
-  const iconMap = { emi: Clock, goal: Target, savings: DollarSign, budget: PieChart }
+  const iconMap = { emi: Clock, goal: Target, savings: DollarSign, budget: PieChart, bill: FileText, debt: CreditCard, recurring: Repeat2, duplicate: FileText, backup: FileText }
   const Icon = iconMap[alert.type] || AlertTriangle
   const colorMap = { alert: 'text-red-400', warning: 'text-amber-400', info: 'text-blue-400' }
   return (
@@ -189,7 +191,7 @@ export default function ReviewCenterPage({ onNavigate }) {
   const { t } = useTranslation()
   const {
     transactions, reviewSummary, budgetsV2, debts,
-    emis, goals, recurring, insights,
+    emis, goals, recurring, insights, backupHealth,
   } = useFinance()
   const [activePeriod, setActivePeriod] = useState('month')
   const [subTab, setSubTab] = useState('monthly')
@@ -256,8 +258,14 @@ export default function ReviewCenterPage({ onNavigate }) {
 
   const alerts = useMemo(() => {
     if (!transactions || transactions.length === 0) return []
-    return getSmartAlerts(transactions, budgetsV2, emis, debts, goals, recurring)
-  }, [transactions, budgetsV2, emis, debts, goals, recurring])
+    const bills = getBills()
+    const duplicates = checkDuplicateTransactions(transactions).length
+    return getSmartAlerts(transactions, budgetsV2, emis, debts, goals, recurring, {
+      bills,
+      backupHealth,
+      duplicateCount: duplicates,
+    })
+  }, [transactions, budgetsV2, emis, debts, goals, recurring, backupHealth])
 
   const chartData = useMemo(() => {
     if (!transactions || transactions.length === 0) return []

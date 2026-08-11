@@ -85,4 +85,28 @@ describe('statement import', () => {
     expect(norm.date).toBeTruthy()
     expect(norm.source).toBe('upi_sms')
   })
+
+  it('smart dedupe catches fuzzy near-duplicates too', () => {
+    const existing = [{ date: '2025-01-10', amount: 250, type: 'expense', note: 'Zomato order' }]
+    const fresh = [
+      { type: 'expense', amount: 250, date: '2025-01-11', note: 'zomato order ', source: 'upi_sms' },
+      { type: 'expense', amount: 9000, date: '2025-01-12', note: 'Rent payment', source: 'upi_sms' },
+    ]
+    const result = mod.dedupeStatementTransactionsSmart(fresh, existing)
+    expect(result.result).toHaveLength(1)
+    expect(result.result[0].note).toBe('Rent payment')
+    expect(result.duplicates).toBe(1)
+    expect(result.fuzzyDuplicates).toHaveLength(1)
+  })
+
+  it('smart dedupe keeps exact-hash behaviour intact', () => {
+    const existing = [{ date: '2024-04-01', amount: 250, type: 'expense', note: 'UPI/ZOMATO PAYMENTS' }]
+    const fresh = [
+      { type: 'expense', amount: 250, date: '2024-04-01', note: 'UPI/ZOMATO PAYMENTS', source: 'upi_sms' },
+      { type: 'income', amount: 900, date: '2024-04-02', note: 'Refund', source: 'upi_sms' },
+    ]
+    const result = mod.dedupeStatementTransactionsSmart(fresh, existing)
+    expect(result.result).toHaveLength(1)
+    expect(result.duplicates).toBe(1)
+  })
 })

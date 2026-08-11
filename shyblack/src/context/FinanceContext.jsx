@@ -46,6 +46,7 @@ import { applyCurrencyToTransaction } from '../utils/multiCurrency'
 import { runAutoBackupIfDue, getAutoBackupSettings } from '../utils/autoBackup'
 import { getSplits, saveSplits, createSplit, updateSplit, deleteSplit, markParticipantPaid } from '../utils/splits'
 import { applyRulesToTransaction, recordRuleUsage, getRules } from '../utils/rules'
+import { shouldAlertLargeExpense } from '../utils/spendingPulse'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
@@ -382,6 +383,18 @@ export function FinanceProvider({ children }) {
 
     if (transaction.type === 'expense') {
       recalcBudgetsV2(allTx)
+    }
+
+    if (withRule.type === 'expense' && shouldAlertLargeExpense(transactionsRef.current, withRule.amount)) {
+      import('../utils/notifications').then(({ sendNotification, NOTIF_TYPES }) => {
+        const amountStr = formatCurrency(withRule.amount)
+        return sendNotification(NOTIF_TYPES.EXPENSE_ADDED, {
+          title: 'Large expense alert',
+          body: `${amountStr} — ${withRule.note || withRule.category || 'expense'}`,
+          deepLink: 'history',
+          transactionId: withRule.id,
+        })
+      }).catch(() => {})
     }
 
     checkStreakMilestone(allTx).catch(() => {})

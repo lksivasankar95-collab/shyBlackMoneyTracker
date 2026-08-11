@@ -1,3 +1,5 @@
+import { findFuzzyDuplicates } from './fuzzyDuplicates'
+
 export function checkMissingCategories(transactions) {
   return transactions
     .filter((t) => !t.category || t.category === '' || t.category === 'other')
@@ -33,6 +35,20 @@ export function checkDuplicateTransactions(transactions) {
     }
   }
   return duplicates
+}
+
+export function checkSimilarTransactions(transactions) {
+  const pairs = findFuzzyDuplicates(transactions, { similarityThreshold: 0.82, dateWindowDays: 5 })
+  return pairs.map((p) => ({
+    id: p.tx.id,
+    date: p.tx.date,
+    note: p.tx.note || 'No description',
+    amount: p.tx.amount,
+    type: p.tx.type,
+    duplicateOf: p.duplicateOf.id,
+    issue: `Similar to "${(p.duplicateOf.note || '').slice(0, 40)}" (${p.score}% match)`,
+    severity: 'low',
+  }))
 }
 
 export function checkOrphanedDocuments(documents, transactions, debts, emis) {
@@ -127,6 +143,7 @@ export function runAllDataChecks(transactions, documents, debts, emis, accounts,
   const results = [
     ...checkMissingCategories(transactions).map((r) => ({ ...r, check: 'Missing Categories' })),
     ...checkDuplicateTransactions(transactions).map((r) => ({ ...r, check: 'Duplicate Transactions' })),
+    ...checkSimilarTransactions(transactions).map((r) => ({ ...r, check: 'Similar Transactions' })),
     ...checkOrphanedDocuments(documents, transactions, debts, emis).map((r) => ({ ...r, check: 'Orphaned Documents' })),
     ...checkInactiveAccounts(accounts, transactions, transfers?.length || 0).map((r) => ({ ...r, check: 'Inactive Accounts' })),
     ...checkBrokenRelationships(relationships || [], allEntityIds).map((r) => ({ ...r, check: 'Broken Relationships' })),

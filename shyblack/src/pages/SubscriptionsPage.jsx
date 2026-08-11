@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react'
-import { Repeat2, Plus, Trash2, Smartphone, XCircle, AlertTriangle, Play } from 'lucide-react'
+import { Repeat2, Plus, Trash2, Smartphone, XCircle, AlertTriangle, Play, ScanSearch, Check, X } from 'lucide-react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
 import { getSubscriptionSummary } from '../utils/recurring'
+import { detectSubscriptionCandidates } from '../utils/subscriptionDetector'
 
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -13,11 +14,14 @@ import Modal from '../components/Modal'
 
 export default function SubscriptionsPage() {
   const { t } = useTranslation()
-  const { recurring, addRecurring, removeRecurring, pauseRecurring, resumeRecurring } = useFinance()
+  const { transactions, recurring, addRecurring, removeRecurring, pauseRecurring, resumeRecurring } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [form, setForm] = useState({ name: '', amount: '', category: 'subscription', billingCycle: 'monthly', renewalDate: '', autoDebit: true })
+  const [scanning, setScanning] = useState(false)
+  const [suggestions, setSuggestions] = useState([])
+  const [dismissed, setDismissed] = useState([])
 
   const BILLING_CYCLES = [
     { id: 'monthly', label: t('subscriptions.monthly') },
@@ -26,6 +30,49 @@ export default function SubscriptionsPage() {
   ]
 
   const summary = useMemo(() => getSubscriptionSummary(recurring), [recurring])
+
+  const visibleSuggestions = useMemo(
+    () => suggestions.filter((s) => !dismissed.includes(s.merchant)),
+    [suggestions, dismissed]
+  )
+
+  const handleScan = useCallback(() => {
+    if (scanning) return
+    setScanning(true)
+    try {
+      const candidates = detectSubscriptionCandidates(transactions, recurring, { minOccurrences: 2 })
+      setSuggestions(candidates)
+      if (candidates.length === 0) {
+        addToast(t('subscriptions.scan_none'), 'info')
+      } else {
+        addToast(t('subscriptions.scan_found', { count: candidates.length }), 'success')
+      }
+    } catch {
+      addToast(t('subscriptions.scan_error'), 'error')
+    }
+    setScanning(false)
+  }, [scanning, transactions, recurring, addToast, t])
+
+  const addSuggestion = useCallback((s) => {
+    addRecurring({
+      type: 'expense',
+      amount: s.amount,
+      category: s.category || 'subscription',
+      note: s.sampleNote,
+      source: 'subscription',
+      frequency: s.frequency,
+      nextDate: s.nextDate,
+      active: true,
+      subscriptionName: s.merchant,
+      billingCycle: s.frequency,
+      renewalDate: s.nextDate,
+      autoDebit: true,
+      detected: true,
+      confidence: s.confidence,
+    })
+    addToast(t('subscriptions.toastAdded'), 'success')
+    setDismissed((prev) => [...prev, s.merchant])
+  }, [addRecurring, addToast, t])
 
   const resetForm = useCallback(() => {
     const nextMonth = new Date()
@@ -86,11 +133,54 @@ export default function SubscriptionsPage() {
           </div>
           <h1 className="text-xl font-bold">{t('subscriptions.title')}</h1>
         </div>
-        <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all">
-          <Plus size={14} />
-          {t('subscriptions.add')}
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handleScan} disabled={scanning || transactions.length < 2} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-500/10 text-blue-400 text-xs font-medium hover:bg-blue-500/20 transition-all disabled:opacity-40">
+            <ScanSearch size={14} className={scanning ? 'animate-pulse' : ''} />
+            {scanning ? t('subscriptions.scanning') : t('subscriptions.scan')}
+          </button>
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all">
+            <Plus size={14} />
+            {t('subscriptions.add')}
+          </button>
+        </div>
       </div>
+
+      {visibleSuggestions.length > 0 && (
+        <div className="mb-5">
+          <h2 className="text-xs font-semibold text-blue-400 mb-2 flex items-center gap-1.5">
+            <ScanSearch size={12} />
+            {t('subscriptions.suggestions_title', { count: visibleSuggestions.length })}
+          </h2>
+          <div className="space-y-2">
+            {visibleSuggestions.map((s) => (
+              <GlassCard key={s.merchant} className="!p-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold capitalize truncate">{s.merchant}</p>
+                    <p className="text-xs text-gray-500">
+                      {formatCurrency(s.amount)}/{s.frequency}
+                      {' · '}{s.occurrences}x {t('subscriptions.occurrences')}
+                      {' · '}{s.confidence}% {t('subscriptions.confidence')}
+                    </p>
+                    <p className="text-[10px] text-gray-600">
+                      {t('subscriptions.last')} {s.lastDate} · {t('subscriptions.next')} {s.nextDate}
+                      {' · '}{formatCurrency(s.estimatedMonthlyCost)}{t('subscriptions.per_month')}
+                    </p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button onClick={() => addSuggestion(s)} className="p-1.5 rounded-lg bg-neon/10 text-neon hover:bg-neon/20 transition-all" title={t('subscriptions.add')}>
+                      <Check size={14} />
+                    </button>
+                    <button onClick={() => setDismissed((prev) => [...prev, s.merchant])} className="p-1.5 rounded-lg text-gray-500 hover:text-gray-300 hover:bg-white/[0.05] transition-all" title={t('subscriptions.dismiss')}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                </div>
+              </GlassCard>
+            ))}
+          </div>
+        </div>
+      )}
 
       {subscriptions.length > 0 && (
         <div className="grid grid-cols-2 gap-2.5 mb-5">

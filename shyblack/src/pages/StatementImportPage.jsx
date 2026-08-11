@@ -1,13 +1,13 @@
 import { useState, useRef, useCallback } from 'react'
-import { Upload, FileText, CheckCircle2, AlertTriangle, MessageSquareText, BookOpenText, ArrowLeft } from 'lucide-react'
+import { Upload, FileText, CheckCircle2, AlertTriangle, MessageSquareText, BookOpenText, ArrowLeft, ScanSearch } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { useTranslation } from '../i18n'
 import GlassCard from '../components/GlassCard'
 import { formatInCurrency, getCurrencySettings, getBaseCurrencyCode } from '../utils/multiCurrency'
 import {
-  parseUpiSms, parseSmsBackupXml, parseBankStatementText, extractPdfText,
-  dedupeStatementTransactions, normalizeStatementTransaction,
+  parseUpiSms, parseSmsBackupXml, parseBankStatementText, extractPdfSmart,
+  dedupeStatementTransactionsSmart, normalizeStatementTransaction,
 } from '../utils/statementImport'
 
 const SOURCES = ['upi_sms', 'sms_backup', 'bank_pdf']
@@ -24,11 +24,13 @@ export default function StatementImportPage({ onNavigate }) {
   const [importing, setImporting] = useState(false)
   const [parsed, setParsed] = useState([])
   const [duplicates, setDuplicates] = useState(0)
+  const [ocrUsed, setOcrUsed] = useState(false)
+  const [ocrProgress, setOcrProgress] = useState(null)
 
   const baseCurrency = getBaseCurrencyCode()
   const multiSettings = getCurrencySettings()
 
-  const parseCurrentText = useCallback(async (src, txt) => {
+  const parseCurrentText = useCallback((src, txt) => {
     if (!txt || !txt.trim()) {
       setParsed([])
       setDuplicates(0)
@@ -39,7 +41,7 @@ export default function StatementImportPage({ onNavigate }) {
       : src === 'sms_backup'
         ? parseSmsBackupXml(txt, { fallbackDate: new Date().toISOString().split('T')[0] })
         : parseBankStatementText(txt, { fallbackDate: new Date().toISOString().split('T')[0] })
-    const deduped = dedupeStatementTransactions(raw, transactions)
+    const deduped = dedupeStatementTransactionsSmart(raw, transactions)
     setParsed(deduped.result)
     setDuplicates(deduped.duplicates)
   }, [transactions])
@@ -47,9 +49,14 @@ export default function StatementImportPage({ onNavigate }) {
   const handleFile = useCallback(async (file) => {
     if (!file) return
     if (source === 'bank_pdf' && /\.pdf$/i.test(file.name)) {
+      setOcrUsed(false)
+      setOcrProgress(null)
       try {
         const buf = await file.arrayBuffer()
-        const pdfText = await extractPdfText(buf)
+        const { text: pdfText, ocrUsed: usedOcr } = await extractPdfSmart(buf, (p, label) => {
+          setOcrProgress(label ? `OCR ${Math.round(p * 100)}% — ${label}` : `OCR ${Math.round(p * 100)}%`)
+        })
+        setOcrUsed(usedOcr)
         if (!pdfText.trim()) {
           addToast(t('statement_import.no_text_pdf'), 'warning')
           return
@@ -110,7 +117,7 @@ export default function StatementImportPage({ onNavigate }) {
         {SOURCES.map((s) => (
           <button
             key={s}
-            onClick={() => { setSource(s); setParsed([]); setText(''); setFileName('') }}
+            onClick={() => { setSource(s); setParsed([]); setText(''); setFileName(''); setOcrUsed(false); setOcrProgress(null) }}
             className={`p-3 rounded-xl text-left transition-all ${source === s ? 'bg-neon/[0.08] border border-neon/40' : 'bg-white/[0.03] border border-transparent'}`}
           >
             {s === 'upi_sms' ? <MessageSquareText size={16} className="text-neon" /> : s === 'sms_backup' ? <FileText size={16} className="text-blue-400" /> : <BookOpenText size={16} className="text-amber-400" />}
@@ -147,6 +154,15 @@ export default function StatementImportPage({ onNavigate }) {
           <p className="text-[10px] text-gray-500 leading-relaxed">
             {t('statement_import.upi_example')}
           </p>
+        )}
+        {source === 'bank_pdf' && ocrUsed && (
+          <p className="text-[10px] text-blue-400 flex items-center gap-1.5">
+            <ScanSearch size={12} />
+            {ocrProgress || t('statement_import.ocr_badge')}
+          </p>
+        )}
+        {source === 'bank_pdf' && ocrProgress && !ocrUsed && (
+          <p className="text-[10px] text-gray-400 animate-pulse">{ocrProgress}</p>
         )}
       </GlassCard>
 

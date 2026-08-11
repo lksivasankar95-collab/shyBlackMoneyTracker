@@ -207,21 +207,88 @@ export function getGoalReview(goals, _transactions) {
     })
 }
 
-export function getSmartAlerts(transactions, budgetsV2, emis, debts, goals, _recurring) {
+export function getSmartAlerts(transactions, budgetsV2, emis, debts, goals, recurring, options = {}) {
   const alerts = []
   const now = new Date()
+  const { bills, backupHealth, duplicateCount } = options
+
+  const daysUntil = (dateStr) => {
+    if (!dateStr) return null
+    const due = new Date(dateStr)
+    if (isNaN(due.getTime())) return null
+    return Math.ceil((due - now) / 86400000)
+  }
 
   const emiDueSoon = (Array.isArray(emis) ? emis : [])
     .filter((e) => {
       if (e.status === 'closed' || (e.remainingAmount !== undefined && e.remainingAmount <= 0)) return false
       if (!e.nextDate && !e.dueDate) return false
-      const due = new Date(e.nextDate || e.dueDate)
-      const diffDays = Math.ceil((due - now) / 86400000)
-      return diffDays >= 0 && diffDays <= 7
+      const diffDays = daysUntil(e.nextDate || e.dueDate)
+      return diffDays !== null && diffDays >= 0 && diffDays <= 7
     })
   emiDueSoon.forEach((e) => {
     alerts.push({ type: 'emi', severity: 'warning', message: `EMI due: ${e.loanName || e.name || 'EMI'}`, detail: `Due ${e.nextDate || e.dueDate}` })
   })
+
+  const billsList = Array.isArray(bills) ? bills : []
+  const overdueBills = billsList.filter((b) => b.active !== false && b.dueDate && !b.paidDates?.includes(b.dueDate) && b.dueDate < todayStr())
+  overdueBills.forEach((b) => {
+    alerts.push({ type: 'bill', severity: 'alert', message: `Bill overdue: ${b.name || b.type}`, detail: `${b.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })} — due ${b.dueDate}` })
+  })
+  const billsDueSoon = billsList
+    .filter((b) => {
+      if (b.active === false || b.paidDates?.includes(b.dueDate)) return false
+      const diff = daysUntil(b.dueDate)
+      return diff !== null && diff >= 0 && diff <= 7
+    })
+    .sort((a, b) => a.dueDate.localeCompare(b.dueDate))
+  billsDueSoon.slice(0, 5).forEach((b) => {
+    alerts.push({ type: 'bill', severity: 'warning', message: `Bill due: ${b.name || b.type}`, detail: `${b.amount.toLocaleString('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 })} on ${b.dueDate}` })
+  })
+
+  const debtList = Array.isArray(debts) ? debts : []
+  debtList
+    .filter((d) => d.status === 'active' && d.currentBalance > 0 && d.dueDate)
+    .forEach((d) => {
+      const diff = daysUntil(d.dueDate)
+      if (diff === null) return
+      if (diff < 0) {
+        alerts.push({ type: 'debt', severity: 'alert', message: `Overdue: ${d.personName || 'Debt'}`, detail: `₹${Math.round(d.currentBalance).toLocaleString('en-IN')} — was due ${d.dueDate}` })
+      } else if (diff <= 7) {
+        alerts.push({ type: 'debt', severity: 'warning', message: `Debt due soon: ${d.personName || 'Debt'}`, detail: `₹${Math.round(d.currentBalance).toLocaleString('en-IN')} due ${d.dueDate}` })
+      }
+    })
+
+  const dueRecurring = Array.isArray(recurring) ? recurring.filter((r) => {
+    const isActive = r.isActive !== undefined ? r.isActive : (r.active !== false)
+    return isActive && !r.paused && r.nextDate && r.nextDate <= todayStr()
+  }) : []
+  dueRecurring.slice(0, 5).forEach((r) => {
+    alerts.push({
+      type: 'recurring',
+      severity: 'info',
+      message: `Recurring due today: ${r.note || r.subscriptionName || r.category || 'item'}`,
+      detail: `₹${Math.round(r.amount).toLocaleString('en-IN')} — execute it from Recurring Transactions`,
+    })
+  })
+
+  if (duplicateCount > 0) {
+    alerts.push({
+      type: 'duplicate',
+      severity: 'info',
+      message: `${duplicateCount} possible duplicate transaction${duplicateCount > 1 ? 's' : ''} detected`,
+      detail: 'Review them in Data Quality before they distort your reports',
+    })
+  }
+
+  if (backupHealth && backupHealth.status && backupHealth.status !== 'healthy' && backupHealth.status !== 'ok') {
+    alerts.push({
+      type: 'backup',
+      severity: 'warning',
+      message: 'Backup health needs attention',
+      detail: backupHealth.message || 'Check Settings → Backup & Restore',
+    })
+  }
 
   const goalsNearDeadline = (Array.isArray(goals) ? goals : [])
     .filter((g) => {
