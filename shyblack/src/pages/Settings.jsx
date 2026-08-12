@@ -4,7 +4,7 @@ import {
   DollarSign, AlertTriangle, Repeat2, FileText, ChevronRight,
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
-  Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users, Wand2, Calculator,
+  Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users, Wand2, Calculator, Store, Link as LinkIcon,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -927,6 +927,28 @@ export default function Settings({ onNavigate }) {
             <div className="flex-1 text-left min-w-0">
               <p className="text-sm font-medium">{t('settings.income_tax')}</p>
               <p className="text-xs text-gray-500">{t('settings.income_tax_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('merchant-analytics')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <Store size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.merchant_analytics')}</p>
+              <p className="text-xs text-gray-500">{t('settings.merchant_analytics_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
+          </button>
+
+          <button onClick={() => onNavigate('reconciliation')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
+              <LinkIcon size={16} className="text-gray-400 group-hover:text-neon transition-colors" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.reconciliation')}</p>
+              <p className="text-xs text-gray-500">{t('settings.reconciliation_desc')}</p>
             </div>
             <ChevronRight size={14} className="text-gray-500 group-hover:text-neon transition-colors" />
           </button>

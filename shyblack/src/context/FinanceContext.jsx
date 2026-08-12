@@ -47,6 +47,8 @@ import { runAutoBackupIfDue, getAutoBackupSettings } from '../utils/autoBackup'
 import { getSplits, saveSplits, createSplit, updateSplit, deleteSplit, markParticipantPaid } from '../utils/splits'
 import { applyRulesToTransaction, recordRuleUsage, getRules } from '../utils/rules'
 import { shouldAlertLargeExpense } from '../utils/spendingPulse'
+import { createUndoStack, applyUndoEntry, applyRedoEntry } from '../utils/undoManager'
+import { mergeDuplicateTransactions } from '../utils/duplicateMerge'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
@@ -164,6 +166,11 @@ export function FinanceProvider({ children }) {
   const [backupVersion, setBackupVersion] = useState(0)
   const overspendTimer = useRef(null)
   const txPersistTimer = useRef(null)
+  const undoStackRef = useRef(createUndoStack())
+  const [undoVersion, setUndoVersion] = useState(0)
+
+  const canUndo = useMemo(() => undoVersion >= 0 && undoStackRef.current.canUndo, [undoVersion])
+  const canRedo = useMemo(() => undoVersion >= 0 && undoStackRef.current.canRedo, [undoVersion])
 
   // Refs for non-blocking async operations (budget notifications, etc.)
   const budgetsRef = useRef(budgets)
@@ -377,6 +384,9 @@ export function FinanceProvider({ children }) {
     const allTx = [withRule, ...transactionsRef.current]
     setState((prev) => ({ ...prev, transactions: [withRule, ...prev.transactions] }))
 
+    undoStackRef.current.push({ kind: 'add', tx: withRule, index: 0, expense: withRule.type === 'expense' })
+    setUndoVersion((v) => v + 1)
+
     if (transaction.type === 'expense' && transaction.category) {
       checkAndNotifyBudget(budgetsRef.current, allTx, transaction.category).catch(() => {})
     }
@@ -423,6 +433,10 @@ export function FinanceProvider({ children }) {
     })
     const allTx = [...prepared, ...transactionsRef.current]
     setState((prev) => ({ ...prev, transactions: [...prepared, ...prev.transactions] }))
+    if (prepared.length > 0) {
+      undoStackRef.current.push({ kind: 'addMany', txs: prepared, expense: prepared.some((t) => t.type === 'expense') })
+      setUndoVersion((v) => v + 1)
+    }
     const hasExpenses = prepared.some((t) => t.type === 'expense')
     if (hasExpenses) {
       try {
@@ -437,6 +451,11 @@ export function FinanceProvider({ children }) {
 
   const deleteTransaction = useCallback((id) => {
     const deleted = transactionsRef.current.find((t) => t.id === id)
+    if (deleted) {
+      const index = transactionsRef.current.findIndex((t) => t.id === id)
+      undoStackRef.current.push({ kind: 'delete', tx: deleted, index, expense: deleted.type === 'expense' })
+      setUndoVersion((v) => v + 1)
+    }
     setState((prev) => {
       const remaining = prev.transactions.filter((t) => t.id !== id)
       if (deleted && deleted.type === 'expense') {
@@ -450,21 +469,31 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const updateTransaction = useCallback((id, updates) => {
-    setState((prev) => {
-      const oldTx = prev.transactions.find((t) => t.id === id)
-      const nextUpdates = { ...updates }
-      if (updates.amount !== undefined && (updates.currency !== undefined || oldTx?.currency)) {
-        const effectiveCurrency = updates.currency || oldTx?.currency
-        const converted = applyCurrencyToTransaction({}, updates.amount, effectiveCurrency)
-        nextUpdates.amount = converted.amount
-        if (converted.currency) {
-          nextUpdates.originalAmount = converted.originalAmount
-          nextUpdates.currency = converted.currency
-        } else {
-          nextUpdates.originalAmount = undefined
-          nextUpdates.currency = undefined
-        }
+    const oldTx = transactionsRef.current.find((t) => t.id === id)
+    const nextUpdates = { ...updates }
+    if (updates.amount !== undefined && (updates.currency !== undefined || oldTx?.currency)) {
+      const effectiveCurrency = updates.currency || oldTx?.currency
+      const converted = applyCurrencyToTransaction({}, updates.amount, effectiveCurrency)
+      nextUpdates.amount = converted.amount
+      if (converted.currency) {
+        nextUpdates.originalAmount = converted.originalAmount
+        nextUpdates.currency = converted.currency
+      } else {
+        nextUpdates.originalAmount = undefined
+        nextUpdates.currency = undefined
       }
+    }
+    const nextTx = oldTx ? { ...oldTx, ...nextUpdates } : null
+    if (oldTx && nextTx) {
+      undoStackRef.current.push({
+        kind: 'update', id,
+        before: oldTx,
+        after: nextTx,
+        expense: oldTx.type === 'expense' || nextTx.type === 'expense',
+      })
+      setUndoVersion((v) => v + 1)
+    }
+    setState((prev) => {
       const updated = prev.transactions.map((t) => (t.id === id ? { ...t, ...nextUpdates } : t))
       if ((oldTx?.type === 'expense' || updates?.type === 'expense') &&
           (updates?.amount !== undefined || updates?.category !== undefined)) {
@@ -475,6 +504,74 @@ export function FinanceProvider({ children }) {
       }
       return { ...prev, transactions: updated }
     })
+  }, [])
+
+  const mergeDuplicateTransactionsCb = useCallback((keepId, removeId) => {
+    const keep = transactionsRef.current.find((t) => t.id === keepId)
+    const dup = transactionsRef.current.find((t) => t.id === removeId)
+    if (!keep || !dup) return false
+    const merged = mergeDuplicateTransactions(keep, dup)
+    const dupIndex = transactionsRef.current.findIndex((t) => t.id === removeId)
+    undoStackRef.current.push({
+      kind: 'merge', id: keepId, dupTx: dup, index: dupIndex,
+      before: keep, after: merged,
+      expense: keep.type === 'expense' || dup.type === 'expense',
+    })
+    setUndoVersion((v) => v + 1)
+    setState((prev) => {
+      const next = prev.transactions
+        .filter((t) => t.id !== removeId)
+        .map((t) => (t.id === keepId ? merged : t))
+      if (keep.type === 'expense' || dup.type === 'expense') {
+        try {
+          const recalc = recalculateBudgetSpending(next)
+          return { ...prev, transactions: next, budgetsV2: recalc }
+        } catch { /* silent */ }
+      }
+      return { ...prev, transactions: next }
+    })
+    return true
+  }, [])
+
+  const undoLastAction = useCallback(() => {
+    const entry = undoStackRef.current.popUndo()
+    if (!entry) return false
+    undoStackRef.current.pushRedo(entry)
+    setState((prev) => {
+      const transactions = applyUndoEntry(entry, prev.transactions)
+      if (entry.expense) {
+        try {
+          const recalc = recalculateBudgetSpending(transactions)
+          return { ...prev, transactions, budgetsV2: recalc }
+        } catch { /* silent */ }
+      }
+      return { ...prev, transactions }
+    })
+    setUndoVersion((v) => v + 1)
+    return true
+  }, [])
+
+  const redoLastAction = useCallback(() => {
+    const entry = undoStackRef.current.popRedo()
+    if (!entry) return false
+    undoStackRef.current.push(entry)
+    setState((prev) => {
+      const transactions = applyRedoEntry(entry, prev.transactions)
+      if (entry.expense) {
+        try {
+          const recalc = recalculateBudgetSpending(transactions)
+          return { ...prev, transactions, budgetsV2: recalc }
+        } catch { /* silent */ }
+      }
+      return { ...prev, transactions }
+    })
+    setUndoVersion((v) => v + 1)
+    return true
+  }, [])
+
+  const clearUndoHistory = useCallback(() => {
+    undoStackRef.current.clear()
+    setUndoVersion((v) => v + 1)
   }, [])
 
   const getBalance = useCallback(() => {
@@ -894,6 +991,7 @@ export function FinanceProvider({ children }) {
 
   const clearAllData = useCallback(() => {
     snapshotBeforeClearAll()
+    clearUndoHistory()
     cancelAllEmiNotifications(emisRef.current).catch(() => {})
     safeStorage.clear()
     safeStorage.remove(STORAGE_KEYS.SCHEMA)
@@ -918,9 +1016,10 @@ export function FinanceProvider({ children }) {
       _migrationResult: null,
       _recoverySnapshot: null,
     })
-  }, [])
+  }, [clearUndoHistory])
 
   const importData = useCallback((data) => {
+    clearUndoHistory()
     const txs = data.transactions ? sanitizeTransactions(data.transactions) : undefined
     const dts = data.debts ? sanitizeDebts(data.debts) : undefined
     const svg = data.savings || data.savingsGoal ? sanitizeSavingsGoal(data.savings || data.savingsGoal) : undefined
@@ -947,22 +1046,24 @@ export function FinanceProvider({ children }) {
     if (data.emis) {
       rescheduleAllEmiNotifications(data.emis).catch(() => {})
     }
-  }, [])
+  }, [clearUndoHistory])
 
   const restoreFromSnapshot = useCallback(() => {
     if (!recoverySnapshot) return
+    clearUndoHistory()
     const txs = sanitizeTransactions(recoverySnapshot.transactions || [])
     const svg = sanitizeSavingsGoal(recoverySnapshot.savingsGoal)
     setState((prev) => ({ ...prev, transactions: txs, savingsGoal: svg }))
     setRecoverySnapshot(null)
-  }, [recoverySnapshot])
+  }, [recoverySnapshot, clearUndoHistory])
 
   const reloadFromStorage = useCallback(() => {
+    clearUndoHistory()
     const newState = loadInitialState()
     setState(newState)
     setRecoverySnapshot(newState._recoverySnapshot || null)
     rescheduleAllEmiNotifications(newState.emis).catch(() => {})
-  }, [])
+  }, [clearUndoHistory])
 
   const [debouncedInsights, setDebouncedInsights] = useState({
     score: { score: 0, level: 'N/A', factors: [] },
@@ -1464,8 +1565,9 @@ export function FinanceProvider({ children }) {
 
   const transactionActions = useMemo(() => ({
     addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance,
-    getMonthlySummary, getMonthlyData,
-  }), [addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData])
+    getMonthlySummary, getMonthlyData, undoLastAction, redoLastAction, clearUndoHistory, canUndo, canRedo,
+    mergeDuplicateTransactionsCb,
+  }), [addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData, undoLastAction, redoLastAction, clearUndoHistory, canUndo, canRedo, mergeDuplicateTransactionsCb])
 
   const recurringActions = useMemo(() => ({
     addRecurring, updateRecurring, toggleRecurring, removeRecurring,

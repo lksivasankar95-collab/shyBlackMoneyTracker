@@ -1,12 +1,13 @@
-import { useMemo } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import {
-  AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, FileText, Tag, Calendar, Wallet, Link2,
+  AlertCircle, CheckCircle2, ShieldAlert, ArrowLeft, FileText, Tag, Calendar, Wallet, Link2, GitMerge,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
+import { useToast } from '../components/Toast'
 
 const CHECK_ICONS = {
   'Missing Categories': Tag,
@@ -26,7 +27,19 @@ const SEVERITY_COLORS = {
 
 export default function DataQualityPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, dataQuality } = useFinance()
+  const { transactions, dataQuality, mergeDuplicateTransactionsCb, undoLastAction } = useFinance()
+  const { addToast } = useToast()
+  const [mergedIds, setMergedIds] = useState(() => new Set())
+
+  const handleMerge = useCallback((keepId, removeId) => {
+    if (mergeDuplicateTransactionsCb(keepId, removeId)) {
+      setMergedIds((prev) => new Set(prev).add(removeId))
+      addToast(t('data_quality.merged'), 'success', 4000, () => {
+        undoLastAction()
+        addToast(t('transactions.undone'), 'info', 2000)
+      })
+    }
+  }, [mergeDuplicateTransactionsCb, undoLastAction, addToast, t])
 
   const checks = useMemo(() => {
     if (!dataQuality || !dataQuality.issues) return []
@@ -104,6 +117,15 @@ export default function DataQualityPage({ onNavigate }) {
                     {issue.title && <p className="text-[10px] text-gray-600 truncate">{issue.title}</p>}
                     {issue.name && <p className="text-[10px] text-gray-600 truncate">{issue.name} · {formatCurrency(Math.abs(issue.balance || 0))}</p>}
                   </div>
+                  {(check.name === 'Duplicate Transactions' || check.name === 'Similar Transactions') && issue.duplicateOf && !mergedIds.has(issue.id) && (
+                    <button
+                      onClick={() => handleMerge(issue.duplicateOf, issue.id)}
+                      className="shrink-0 px-2 py-1 rounded-lg text-[10px] font-semibold text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 transition-colors flex items-center gap-1"
+                    >
+                      <GitMerge size={11} />
+                      {t('data_quality.merge')}
+                    </button>
+                  )}
                 </div>
               ))}
               {check.items.length > 10 && (

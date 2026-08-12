@@ -10,8 +10,10 @@ import {
   getPortfolioSummary, getInvestmentSummary, deleteAsset,
 } from '../utils/investmentLots'
 import { formatInCurrency, getBaseCurrencyCode } from '../utils/multiCurrency'
+import { xirrForAsset, xirrForPortfolio } from '../utils/xirr'
 
 const fmt = (v) => formatInCurrency(v || 0, getBaseCurrencyCode())
+const fmtPct = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`)
 const KIND_LABELS = { stock: 'Stock', mutual_fund: 'Mutual Fund', crypto: 'Crypto', gold: 'Gold', other: 'Other' }
 
 const emptyBuy = { name: '', kind: 'stock', date: new Date().toISOString().split('T')[0], quantity: '', price: '', fees: '' }
@@ -95,6 +97,7 @@ export default function InvestmentCenterPage({ onNavigate }) {
   }
 
   const detail = view ? getInvestmentSummary(view) : null
+  const holdingXirr = (name) => xirrForAsset(name)
 
   return (
     <div className="min-h-screen pb-24">
@@ -146,6 +149,12 @@ export default function InvestmentCenterPage({ onNavigate }) {
                 </span>
               </div>
               <div className="flex items-center justify-between text-xs">
+                <span className="text-gray-400">{t('investments.xirr')}</span>
+                <span className={`font-semibold ${holdingXirr(view) >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                  {fmtPct(holdingXirr(view))}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-xs">
                 <span className="text-gray-400">{t('investments.dividend_income')}</span>
                 <span className="text-neon font-semibold">{fmt(detail.dividendIncome)}</span>
               </div>
@@ -176,6 +185,7 @@ export default function InvestmentCenterPage({ onNavigate }) {
                 <p className="text-gray-400">{t('investments.invested')}: <span className="text-white font-semibold">{fmt(summary.invested)}</span></p>
                 <p className="text-gray-400">{t('investments.dividend_income')}: <span className="text-neon font-semibold">{fmt(summary.dividends)}</span></p>
                 <p className="text-gray-400">{t('investments.realized')}: <span className={`font-semibold ${summary.realizedGain >= 0 ? 'text-neon' : 'text-red-400'}`}>{fmt(summary.realizedGain)}</span></p>
+                <p className="text-gray-400">{t('investments.xirr')}: <span className={`font-semibold ${xirrForPortfolio() >= 0 ? 'text-neon' : 'text-red-400'}`}>{fmtPct(xirrForPortfolio())}</span></p>
               </div>
               <Wallet size={18} className="text-gray-600" />
             </GlassCard>
@@ -204,6 +214,9 @@ export default function InvestmentCenterPage({ onNavigate }) {
                         <p className="text-sm font-semibold text-white">{h.lastPrice ? fmt(h.currentValue) : '—'}</p>
                         <p className={`text-xs ${h.unrealizedGain >= 0 ? 'text-neon' : 'text-red-400'}`}>
                           {h.unrealizedGain != null ? fmt(h.unrealizedGain) : ''}
+                        </p>
+                        <p className={`text-[10px] ${holdingXirr(h.name) >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                          XIRR {fmtPct(holdingXirr(h.name))}
                         </p>
                       </div>
                     </div>

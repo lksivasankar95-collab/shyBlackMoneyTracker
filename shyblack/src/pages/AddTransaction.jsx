@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
-import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2, Mic } from 'lucide-react'
+import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2, Mic, SplitSquareHorizontal, Plus } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
@@ -8,6 +8,7 @@ import { getSuggestedTags } from '../utils/tags'
 import { parseVoiceCommand, recognizeVoiceSpeech } from '../utils/voiceEntry'
 import { safeStorage, STORAGE_KEYS } from '../utils/safeStorage'
 import { getCurrencySettings, getBaseCurrencyCode, CURRENCIES, formatInCurrency } from '../utils/multiCurrency'
+import { attachSplits, validateSplits, hasSplits } from '../utils/splitUtils'
 import CategoryIcon from '../components/CategoryIcon'
 import ConfirmationModal from '../components/ConfirmationModal'
 import { useToast } from '../components/Toast'
@@ -54,7 +55,7 @@ function formatAmountShort(amount, symbol) {
 
 export default function AddTransaction({ onNavigate, navParams }) {
   const { t } = useTranslation()
-  const { addTransaction, updateTransaction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
+  const { addTransaction, updateTransaction, undoLastAction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
   const { addToast } = useToast()
   const amountInputRef = useRef(null)
   const lastCategoryByType = useRef({ income: '', expense: '' })
@@ -89,6 +90,10 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const [paymentMethod, setPaymentMethod] = useState(() => editTx?.paymentMethod || '')
   const [showPersonSuggestions, setShowPersonSuggestions] = useState(false)
   const [showMore, setShowMore] = useState(!!editTx)
+  const [splitMode, setSplitMode] = useState(() => hasSplits(editTx))
+  const [splitLines, setSplitLines] = useState(() => (hasSplits(editTx) && Array.isArray(editTx.splits)
+    ? editTx.splits.map((s) => ({ category: s.category, amount: String(s.amount) }))
+    : [{ category: '', amount: '' }]))
 
   const personSuggestions = useMemo(() => {
     if (!personName.trim()) return []
@@ -131,6 +136,27 @@ export default function AddTransaction({ onNavigate, navParams }) {
     setAmount(String(val))
     setError('')
   }
+
+  const updateSplitLine = (idx, patch) => {
+    setSplitLines((prev) => prev.map((l, i) => (i === idx ? { ...l, ...patch } : l)))
+  }
+
+  const addSplitLine = () => {
+    setSplitLines((prev) => [...prev, { category: '', amount: '' }])
+  }
+
+  const removeSplitLine = (idx) => {
+    setSplitLines((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const splitStatus = useMemo(() => {
+    const total = parseFloat(amount)
+    const sum = splitLines.reduce((s, l) => s + (parseFloat(l.amount) || 0), 0)
+    if (!total || total <= 0) return { ok: false, label: t('transactions.split_enter_total') }
+    const diff = Math.abs(sum - total)
+    if (diff <= 0.01) return { ok: true, label: `${t('transactions.split_matches')} ${formatCurrency(total)}` }
+    return { ok: false, label: `${t('transactions.split_remaining')} ${formatCurrency(total - sum)}` }
+  }, [splitLines, amount, t])
 
   const handleVoiceEntry = () => {
     if (listening) return
@@ -190,11 +216,10 @@ export default function AddTransaction({ onNavigate, navParams }) {
 
     try {
       if (isEditing && editTx) {
-        const prevTx = { ...editTx }
         updateTransaction(editTx.id, transactionData)
 
         addToast(t('transactions.updated_success'), 'success', 4000, () => {
-          updateTransaction(editTx.id, prevTx)
+          undoLastAction()
           addToast(t('transactions.undone'), 'info', 2000)
         })
 
@@ -206,6 +231,11 @@ export default function AddTransaction({ onNavigate, navParams }) {
       } else {
         addTransaction(transactionData)
         addTemplate(transactionData)
+
+        addToast(t('transactions.added_success'), 'success', 4000, () => {
+          undoLastAction()
+          addToast(t('transactions.undone'), 'info', 2000)
+        })
 
         if (isRecurring) {
           const nextDate = new Date(date)
@@ -235,6 +265,8 @@ export default function AddTransaction({ onNavigate, navParams }) {
         setPaymentMethod('')
         setCurrency('')
         setShowMore(false)
+        setSplitMode(false)
+        setSplitLines([{ category: '', amount: '' }])
         setSuccess(true)
         setError('')
         setPendingSubmit(null)
@@ -247,7 +279,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
     }
 
     setIsSubmitting(false)
-  }, [addTransaction, updateTransaction, addRecurring, isRecurring, isEditing, editTx, date, frequency, addTemplate, addToast, t, onNavigate])
+  }, [addTransaction, updateTransaction, undoLastAction, addRecurring, isRecurring, isEditing, editTx, date, frequency, addTemplate, addToast, t, onNavigate])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -263,7 +295,13 @@ export default function AddTransaction({ onNavigate, navParams }) {
       setError(t('transactions.amount_exceeds_limit'))
       return
     }
-    if (!category) {
+    if (splitMode) {
+      const res = validateSplits(splitLines, numAmount)
+      if (!res.valid) {
+        setError(res.errors.includes('sum_mismatch') ? t('transactions.split_sum_mismatch') : t('transactions.split_invalid'))
+        return
+      }
+    } else if (!category) {
       setError(t('transactions.select_category'))
       return
     }
@@ -278,7 +316,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
       type: transactionType,
       amount: numAmount,
       currency: showCurrencyPicker && currency ? currency : undefined,
-      category,
+      category: splitMode ? splitLines[0].category : category,
       note: note.trim(),
       date,
       tags: selectedTags,
@@ -287,13 +325,15 @@ export default function AddTransaction({ onNavigate, navParams }) {
       paymentMethod: paymentMethod || undefined,
     }
 
+    const finalData = splitMode ? attachSplits(transactionData, splitLines) : transactionData
+
     if (numAmount >= LARGE_AMOUNT_THRESHOLD) {
-      setPendingSubmit(transactionData)
+      setPendingSubmit(finalData)
       setShowLargeConfirm(true)
       return
     }
 
-    doSubmit(transactionData)
+    doSubmit(finalData)
   }
 
   const confirmLargeTransaction = useCallback(() => {
@@ -473,6 +513,75 @@ export default function AddTransaction({ onNavigate, navParams }) {
               </button>
             ))}
           </div>
+          {transactionType === TRANSACTION_TYPES.EXPENSE && (
+            <>
+              <button
+                type="button"
+                onClick={() => setSplitMode(!splitMode)}
+                className={`mt-2 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${
+                  splitMode
+                    ? 'border-teal-500/40 text-teal-400 bg-teal-500/10'
+                    : 'border-glass-border text-gray-500 hover:text-white hover:border-gray-500'
+                }`}
+              >
+                <SplitSquareHorizontal size={12} />
+                {splitMode ? t('transactions.split_on') : t('transactions.split_off')}
+              </button>
+              {splitMode && (
+                <div className="mt-3 p-3 rounded-xl border border-teal-500/20 bg-teal-500/[0.03] space-y-2 animate-slide-up">
+                  <p className="text-[10px] text-gray-500">{t('transactions.split_hint')}</p>
+                  {splitLines.map((line, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <select
+                        value={line.category}
+                        onChange={(e) => updateSplitLine(idx, { category: e.target.value })}
+                        className="input-field flex-1 py-2 text-xs"
+                        aria-label={`Split category ${idx + 1}`}
+                      >
+                        <option value="">{t('transactions.split_select')}</option>
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.id}>{c.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="number"
+                        inputMode="decimal"
+                        min="0"
+                        step="0.01"
+                        value={line.amount}
+                        onChange={(e) => updateSplitLine(idx, { amount: e.target.value })}
+                        placeholder="0.00"
+                        className="input-field w-24 py-2 text-xs tabular-nums text-right"
+                        aria-label={`Split amount ${idx + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeSplitLine(idx)}
+                        disabled={splitLines.length <= 1}
+                        className="p-1.5 text-gray-500 hover:text-red-400 disabled:opacity-30"
+                        aria-label={t('transactions.split_remove')}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={addSplitLine}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-semibold text-teal-400 bg-teal-500/10 hover:bg-teal-500/20 transition-colors"
+                    >
+                      <Plus size={11} />
+                      {t('transactions.split_add')}
+                    </button>
+                    <span className={`text-[10px] tabular-nums ${splitStatus.ok ? 'text-teal-400' : 'text-amber-400'}`}>
+                      {splitStatus.label}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {/* Note */}

@@ -10,6 +10,7 @@ import TransactionItem from '../components/TransactionItem'
 import EmptyState from '../components/EmptyState'
 import GlassCard from '../components/GlassCard'
 import ConfirmationModal from '../components/ConfirmationModal'
+import { useToast } from '../components/Toast'
 
 const PAGE_SIZE = 50
 
@@ -39,7 +40,8 @@ function getDateRange(preset) {
 
 export default function History({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, deleteTransaction, tags } = useFinance()
+  const { transactions, deleteTransaction, undoLastAction, tags } = useFinance()
+  const { addToast } = useToast()
 
   const SORT_OPTIONS = [
     { id: 'newest', label: t('transactions.sort_newest') },
@@ -124,8 +126,12 @@ export default function History({ onNavigate }) {
   const confirmDelete = useCallback(() => {
     if (!pendingDelete) return
     deleteTransaction(pendingDelete)
+    addToast(t('transactions.deleted_success'), 'success', 4000, () => {
+      undoLastAction()
+      addToast(t('transactions.undone'), 'info', 2000)
+    })
     setPendingDelete(null)
-  }, [pendingDelete, deleteTransaction])
+  }, [pendingDelete, deleteTransaction, undoLastAction, addToast, t])
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)

@@ -1,3 +1,5 @@
+import { getSplitLines } from './splitUtils'
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 
 export function getMonthlyData(transactions, monthsBack = 6) {
@@ -30,8 +32,11 @@ export function getCategoryBreakdown(transactions, type, year, month) {
   })
   const grouped = {}
   filtered.forEach((t) => {
-    if (!grouped[t.category]) grouped[t.category] = 0
-    grouped[t.category] += t.amount
+    for (const line of getSplitLines(t)) {
+      const cat = line.splitCategory || t.category || 'other'
+      if (!grouped[cat]) grouped[cat] = 0
+      grouped[cat] += line.splitAmount
+    }
   })
   return Object.entries(grouped)
     .map(([category, amount]) => ({ category, amount }))
@@ -48,8 +53,11 @@ export function getCategoryTrends(transactions, monthsBack = 3) {
       return t.type === 'expense' && td.getMonth() === d.getMonth() && td.getFullYear() === d.getFullYear()
     })
     filtered.forEach((t) => {
-      if (!trends[t.category]) trends[t.category] = []
-      trends[t.category].push({ month: MONTHS[d.getMonth()], amount: t.amount })
+      for (const line of getSplitLines(t)) {
+        const cat = line.splitCategory || t.category || 'other'
+        if (!trends[cat]) trends[cat] = []
+        trends[cat].push({ month: MONTHS[d.getMonth()], amount: line.splitAmount })
+      }
     })
   }
   return Object.entries(trends).map(([category, data]) => ({
