@@ -506,6 +506,77 @@ export function FinanceProvider({ children }) {
     })
   }, [])
 
+  const deleteTransactionsBulk = useCallback((ids) => {
+    const idSet = new Set(ids)
+    const deleted = transactionsRef.current.filter((t) => idSet.has(t.id))
+    if (!deleted.length) return 0
+    const withIndexes = deleted.map((tx) => ({
+      tx,
+      index: transactionsRef.current.findIndex((t) => t.id === tx.id),
+    }))
+    undoStackRef.current.push({
+      kind: 'deleteMany',
+      txs: withIndexes,
+      expense: deleted.some((t) => t.type === 'expense'),
+    })
+    setUndoVersion((v) => v + 1)
+    setState((prev) => {
+      const remaining = prev.transactions.filter((t) => !idSet.has(t.id))
+      if (deleted.some((t) => t.type === 'expense')) {
+        try {
+          const recalc = recalculateBudgetSpending(remaining)
+          return { ...prev, transactions: remaining, budgetsV2: recalc }
+        } catch { /* silent */ }
+      }
+      return { ...prev, transactions: remaining }
+    })
+    return deleted.length
+  }, [])
+
+  const updateTransactionsBulk = useCallback((updates) => {
+    const changes = []
+    for (const u of updates || []) {
+      const oldTx = transactionsRef.current.find((t) => t.id === u.id)
+      if (!oldTx) continue
+      const patch = { ...u }
+      delete patch.id
+      if (patch.amount !== undefined && (patch.currency !== undefined || oldTx.currency)) {
+        const effectiveCurrency = patch.currency || oldTx.currency
+        const converted = applyCurrencyToTransaction({}, patch.amount, effectiveCurrency)
+        patch.amount = converted.amount
+        if (converted.currency) {
+          patch.originalAmount = converted.originalAmount
+          patch.currency = converted.currency
+        } else {
+          patch.originalAmount = undefined
+          patch.currency = undefined
+        }
+      }
+      const nextTx = { ...oldTx, ...patch }
+      if (nextTx.category === '') nextTx.category = undefined
+      changes.push({ id: oldTx.id, before: oldTx, after: nextTx })
+    }
+    if (!changes.length) return 0
+    undoStackRef.current.push({
+      kind: 'updateMany',
+      changes,
+      expense: changes.some((c) => c.before.type === 'expense' || c.after.type === 'expense'),
+    })
+    setUndoVersion((v) => v + 1)
+    setState((prev) => {
+      const map = new Map(changes.map((c) => [c.id, c.after]))
+      const updated = prev.transactions.map((t) => (map.has(t.id) ? map.get(t.id) : t))
+      if (changes.some((c) => c.before.type === 'expense' || c.after.type === 'expense')) {
+        try {
+          const recalc = recalculateBudgetSpending(updated)
+          return { ...prev, transactions: updated, budgetsV2: recalc }
+        } catch { /* silent */ }
+      }
+      return { ...prev, transactions: updated }
+    })
+    return changes.length
+  }, [])
+
   const mergeDuplicateTransactionsCb = useCallback((keepId, removeId) => {
     const keep = transactionsRef.current.find((t) => t.id === keepId)
     const dup = transactionsRef.current.find((t) => t.id === removeId)
@@ -1564,10 +1635,14 @@ export function FinanceProvider({ children }) {
   }, [])
 
   const transactionActions = useMemo(() => ({
-    addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance,
+    addTransaction, addTransactionsBulk, deleteTransaction, deleteTransactionsBulk,
+    updateTransaction, updateTransactionsBulk, getBalance,
     getMonthlySummary, getMonthlyData, undoLastAction, redoLastAction, clearUndoHistory, canUndo, canRedo,
     mergeDuplicateTransactionsCb,
-  }), [addTransaction, addTransactionsBulk, deleteTransaction, updateTransaction, getBalance, getMonthlySummary, getMonthlyData, undoLastAction, redoLastAction, clearUndoHistory, canUndo, canRedo, mergeDuplicateTransactionsCb])
+  }), [addTransaction, addTransactionsBulk, deleteTransaction, deleteTransactionsBulk,
+    updateTransaction, updateTransactionsBulk, getBalance, getMonthlySummary, getMonthlyData,
+    undoLastAction, redoLastAction, clearUndoHistory, canUndo, canRedo,
+    mergeDuplicateTransactionsCb])
 
   const recurringActions = useMemo(() => ({
     addRecurring, updateRecurring, toggleRecurring, removeRecurring,

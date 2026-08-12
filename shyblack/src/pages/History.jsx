@@ -1,15 +1,18 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import {
   Search, X, SlidersHorizontal, Calendar, ArrowUpDown, Filter, Tag,
+  SquareCheck, CheckCheck, Tags as TagsIcon, Trash2, FolderInput, CircleSlash,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatDate, groupBy } from '../utils/helpers'
 import { EXPENSE_CATEGORIES, INCOME_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import TransactionItem from '../components/TransactionItem'
+import CategoryIcon from '../components/CategoryIcon'
 import EmptyState from '../components/EmptyState'
 import GlassCard from '../components/GlassCard'
 import ConfirmationModal from '../components/ConfirmationModal'
+import Modal from '../components/Modal'
 import { useToast } from '../components/Toast'
 
 const PAGE_SIZE = 50
@@ -40,7 +43,7 @@ function getDateRange(preset) {
 
 export default function History({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, deleteTransaction, undoLastAction, tags } = useFinance()
+  const { transactions, deleteTransaction, undoLastAction, tags, addTag, deleteTransactionsBulk, updateTransactionsBulk } = useFinance()
   const { addToast } = useToast()
 
   const SORT_OPTIONS = [
@@ -70,6 +73,12 @@ export default function History({ onNavigate }) {
   const [showFilters, setShowFilters] = useState(false)
   const [pendingDelete, setPendingDelete] = useState(null)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState(() => new Set())
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showTagModal, setShowTagModal] = useState(false)
+  const [showBulkDelete, setShowBulkDelete] = useState(false)
+  const [newTagName, setNewTagName] = useState('')
 
   const allCategories = useMemo(() => [...EXPENSE_CATEGORIES, ...INCOME_CATEGORIES], [])
   const categoriesForType = useMemo(() => {
@@ -111,6 +120,83 @@ export default function History({ onNavigate }) {
     if (sortId !== 'newest') count++
     return count
   }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, sortId])
+
+  const toggleSelectMode = useCallback(() => {
+    setSelectMode((prev) => {
+      if (prev) setSelectedIds(new Set())
+      return !prev
+    })
+  }, [])
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }, [])
+
+  const selectAllFiltered = useCallback(() => {
+    setSelectedIds(new Set(filtered.map((tx) => tx.id)))
+  }, [filtered])
+
+  const selectedTxs = useMemo(() => filtered.filter((tx) => selectedIds.has(tx.id)), [filtered, selectedIds])
+  const allSelected = filtered.length > 0 && selectedIds.size === filtered.length
+  const selectionTypes = useMemo(() => {
+    const types = new Set(selectedTxs.map((tx) => tx.type))
+    return { allIncome: types.size === 1 && types.has('income'), allExpense: types.size === 1 && types.has('expense') }
+  }, [selectedTxs])
+
+  const finishBatch = useCallback(() => {
+    setSelectMode(false)
+    setSelectedIds(new Set())
+    setShowCategoryModal(false)
+    setShowTagModal(false)
+  }, [])
+
+  const withUndo = useCallback((msg) => {
+    addToast(msg, 'success', 4000, () => {
+      undoLastAction()
+      addToast(t('transactions.undone'), 'info', 2000)
+    })
+  }, [addToast, undoLastAction, t])
+
+  const applyBulkCategory = useCallback((category) => {
+    if (!selectedTxs.length) return
+    const applied = updateTransactionsBulk(selectedTxs.map((tx) => ({ id: tx.id, category })))
+    if (applied > 0) withUndo(t('transactions.batch_recategorized', { count: applied }))
+    finishBatch()
+  }, [selectedTxs, updateTransactionsBulk, withUndo, finishBatch, t])
+
+  const applyBulkTag = useCallback((tagName) => {
+    if (!selectedTxs.length) return
+    const target = tagName.trim().toLowerCase()
+    if (!target) return
+    if (!tags.some((tag) => tag.name.toLowerCase() === target)) addTag(target)
+    const applied = updateTransactionsBulk(selectedTxs.map((tx) => {
+      const existing = (tx.tags || []).map((x) => x.toLowerCase())
+      return existing.includes(target) ? null : { id: tx.id, tags: [...(tx.tags || []), target] }
+    }).filter(Boolean))
+    if (applied > 0) withUndo(t('transactions.batch_tags_added', { count: applied }))
+    setNewTagName('')
+    setShowTagModal(false)
+  }, [selectedTxs, tags, addTag, updateTransactionsBulk, withUndo, t])
+
+  const clearBulkTags = useCallback(() => {
+    if (!selectedTxs.length) return
+    const applied = updateTransactionsBulk(selectedTxs.filter((tx) => (tx.tags || []).length > 0).map((tx) => ({ id: tx.id, tags: [] })))
+    if (applied > 0) withUndo(t('transactions.batch_tags_cleared', { count: applied }))
+    finishBatch()
+  }, [selectedTxs, updateTransactionsBulk, withUndo, finishBatch, t])
+
+  const confirmBulkDelete = useCallback(() => {
+    if (!selectedTxs.length) return
+    const deleted = deleteTransactionsBulk(selectedTxs.map((tx) => tx.id))
+    if (deleted > 0) withUndo(t('transactions.batch_deleted', { count: deleted }))
+    setShowBulkDelete(false)
+    finishBatch()
+  }, [selectedTxs, deleteTransactionsBulk, withUndo, finishBatch, t])
 
   const handleDeleteRequest = useCallback((id) => {
     setPendingDelete(id)
@@ -224,11 +310,26 @@ export default function History({ onNavigate }) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-xl font-bold">{t('transactions.history_title')}</h1>
-        {filtered.length > 0 && (
-          <span className="text-[10px] text-gray-600 bg-matte-200 px-2 py-1 rounded-lg">
-            {t('transactions.results_count', { count: filtered.length })}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {filtered.length > 0 && (
+            <span className="text-[10px] text-gray-600 bg-matte-200 px-2 py-1 rounded-lg">
+              {t('transactions.results_count', { count: filtered.length })}
+            </span>
+          )}
+          {filtered.length > 0 && (
+            <button
+              onClick={toggleSelectMode}
+              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-medium transition-all ${
+                selectMode
+                  ? 'bg-neon/10 text-neon border border-neon/30'
+                  : 'text-gray-500 border border-white/[0.06] hover:text-white'
+              }`}
+            >
+              <SquareCheck size={12} />
+              {selectMode ? t('transactions.batch_cancel') : t('transactions.batch_select')}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Search */}
@@ -456,6 +557,143 @@ export default function History({ onNavigate }) {
         danger
       />
 
+      <ConfirmationModal
+        open={showBulkDelete}
+        onClose={() => setShowBulkDelete(false)}
+        onConfirm={confirmBulkDelete}
+        title={t('transactions.batch_delete_confirm_title', { count: selectedTxs.length })}
+        description={t('transactions.batch_delete_confirm_desc', { count: selectedTxs.length })}
+        confirmLabel={t('common.delete')}
+        cancelLabel={t('common.cancel')}
+        danger
+      />
+
+      <Modal open={showCategoryModal} onClose={() => setShowCategoryModal(false)} title={t('transactions.batch_category_title', { count: selectedTxs.length })}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
+            {(!selectionTypes.allExpense && !selectionTypes.allIncome ? EXPENSE_CATEGORIES : selectionTypes.allIncome ? [] : EXPENSE_CATEGORIES).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => applyBulkCategory(cat.id)}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.03] hover:bg-neon/10 border border-transparent hover:border-neon/30 transition-all text-left"
+              >
+                <CategoryIcon icon={cat.icon} size={15} />
+                <span className="text-xs font-medium">{cat.label}</span>
+              </button>
+            ))}
+            {(!selectionTypes.allExpense && !selectionTypes.allIncome ? INCOME_CATEGORIES : selectionTypes.allIncome ? INCOME_CATEGORIES : []).map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => applyBulkCategory(cat.id)}
+                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white/[0.03] hover:bg-neon/10 border border-transparent hover:border-neon/30 transition-all text-left"
+              >
+                <CategoryIcon icon={cat.icon} size={15} />
+                <span className="text-xs font-medium">{cat.label}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showTagModal} onClose={() => setShowTagModal(false)} title={t('transactions.batch_tags_title', { count: selectedTxs.length })}>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <p className="text-[10px] text-gray-500">{t('transactions.batch_tags_existing')}</p>
+            <div className="flex flex-wrap gap-1.5 max-h-40 overflow-y-auto">
+              {tags.length === 0 && <p className="text-[10px] text-gray-500">{t('transactions.batch_tags_no_tags')}</p>}
+              {tags.map((tag) => (
+                <button
+                  key={tag.id}
+                  onClick={() => applyBulkTag(tag.name)}
+                  className="px-3 py-1.5 rounded-lg text-[10px] font-medium bg-purple-500/10 text-purple-400 border border-purple-500/30 hover:bg-purple-500/20 transition-all"
+                >
+                  #{tag.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter' && newTagName.trim()) applyBulkTag(newTagName) }}
+              placeholder={t('transactions.batch_new_tag_placeholder')}
+              className="flex-1 bg-matte-200 rounded-lg px-3 py-2 text-xs border border-white/[0.06] focus:border-neon/30 focus:outline-none placeholder-gray-600"
+            />
+            <button
+              onClick={() => applyBulkTag(newTagName)}
+              disabled={!newTagName.trim()}
+              className="px-4 py-2 rounded-lg text-xs font-semibold bg-neon text-black disabled:opacity-40"
+            >
+              {t('transactions.batch_add')}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {selectMode && (
+        <div className="fixed bottom-20 left-0 right-0 z-40 px-4 pointer-events-none">
+          <div className="max-w-lg mx-auto bg-glass backdrop-blur-xl border border-glass-border rounded-2xl shadow-lg p-3 pointer-events-auto animate-slide-up">
+            <div className="flex items-center justify-between mb-2.5">
+              <p className="text-xs font-semibold text-neon">{t('transactions.batch_selected', { count: selectedTxs.length })}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={selectAllFiltered}
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg bg-white/[0.05] text-gray-300 hover:text-white transition-colors"
+                >
+                  <CheckCheck size={11} />
+                  {allSelected
+                    ? t('transactions.batch_clear_all')
+                    : t('transactions.batch_select_all', { count: filtered.length })}
+                </button>
+                <button
+                  onClick={toggleSelectMode}
+                  className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg text-gray-500 hover:text-white transition-colors"
+                >
+                  <X size={11} />
+                  {t('transactions.batch_cancel')}
+                </button>
+              </div>
+            </div>
+            <div className="flex gap-1.5">
+              <button
+                onClick={() => setShowCategoryModal(true)}
+                disabled={selectedTxs.length === 0}
+                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl bg-white/[0.04] hover:bg-neon/10 text-gray-300 hover:text-neon disabled:opacity-40 transition-all"
+              >
+                <FolderInput size={15} />
+                <span className="text-[9px] font-medium">{t('transactions.batch_recategorize')}</span>
+              </button>
+              <button
+                onClick={() => setShowTagModal(true)}
+                disabled={selectedTxs.length === 0}
+                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl bg-white/[0.04] hover:bg-neon/10 text-gray-300 hover:text-neon disabled:opacity-40 transition-all"
+              >
+                <TagsIcon size={15} />
+                <span className="text-[9px] font-medium">{t('transactions.batch_add_tags')}</span>
+              </button>
+              <button
+                onClick={clearBulkTags}
+                disabled={selectedTxs.length === 0}
+                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl bg-white/[0.04] hover:bg-amber-500/10 text-gray-300 hover:text-amber-400 disabled:opacity-40 transition-all"
+              >
+                <CircleSlash size={15} />
+                <span className="text-[9px] font-medium">{t('transactions.batch_clear_tags')}</span>
+              </button>
+              <button
+                onClick={() => setShowBulkDelete(true)}
+                disabled={selectedTxs.length === 0}
+                className="flex-1 flex flex-col items-center gap-1 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-40 transition-all"
+              >
+                <Trash2 size={15} />
+                <span className="text-[9px] font-medium">{t('transactions.batch_delete')}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <GlassCard>
           <EmptyState
@@ -479,7 +717,15 @@ export default function History({ onNavigate }) {
                 </div>
                 <GlassCard>
                   {txs.map((tx) => (
-                    <TransactionItem key={tx.id} transaction={tx} onDelete={handleDeleteRequest} onEdit={handleEditRequest} />
+                    <TransactionItem
+                      key={tx.id}
+                      transaction={tx}
+                      onDelete={handleDeleteRequest}
+                      onEdit={handleEditRequest}
+                      selectable={selectMode}
+                      selected={selectedIds.has(tx.id)}
+                      onToggleSelect={toggleSelect}
+                    />
                   ))}
                 </GlassCard>
               </div>

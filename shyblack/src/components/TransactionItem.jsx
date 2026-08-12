@@ -1,5 +1,5 @@
 import { memo, useMemo } from 'react'
-import { Trash2, Pencil, User, Smartphone } from 'lucide-react'
+import { Trash2, Pencil, User, Smartphone, Check } from 'lucide-react'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
@@ -22,14 +22,30 @@ function getSubtitle(tx, t) {
   return parts.join(' · ')
 }
 
-const TransactionItem = memo(function TransactionItem({ transaction, onDelete, onEdit, compact }) {
+const TransactionItem = memo(function TransactionItem({ transaction, onDelete, onEdit, compact, selectable, selected, onToggleSelect }) {
   const { t } = useTranslation()
   const cat = ALL_CATEGORIES.find((c) => c.id === transaction.category)
   const isIncome = transaction.type === 'income'
   const subtitle = useMemo(() => getSubtitle(transaction, t), [transaction, t])
 
   return (
-    <div className="flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2">
+    <div className={`flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2 ${selected ? 'bg-neon/[0.04]' : ''}`}
+      onClick={selectable ? () => onToggleSelect?.(transaction.id) : undefined}
+      role={selectable ? 'button' : undefined}
+      tabIndex={selectable ? 0 : undefined}
+      onKeyDown={selectable ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggleSelect?.(transaction.id) } } : undefined}
+    >
+      {selectable && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSelect?.(transaction.id) }}
+          className={`shrink-0 w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
+            selected ? 'bg-neon border-neon text-black' : 'border-white/15 text-transparent'
+          }`}
+          aria-label="Select transaction"
+        >
+          <Check size={12} strokeWidth={3} />
+        </button>
+      )}
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ring-1 ring-inset ${
           isIncome ? 'bg-neon/10 text-neon ring-neon/20' : 'bg-red-500/10 text-red-400 ring-red-500/20'
         }`}
@@ -94,7 +110,7 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, o
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-all duration-150">
           {onEdit && (
             <button
-              onClick={() => onEdit(transaction.id)}
+              onClick={(e) => { e.stopPropagation(); onEdit(transaction.id) }}
               className="p-1.5 rounded-lg text-gray-600 hover:text-neon hover:bg-neon/10 transition-all duration-150"
               aria-label="Edit transaction"
             >
@@ -103,7 +119,7 @@ const TransactionItem = memo(function TransactionItem({ transaction, onDelete, o
           )}
           {onDelete && (
             <button
-              onClick={() => onDelete(transaction.id)}
+              onClick={(e) => { e.stopPropagation(); onDelete(transaction.id) }}
               className="p-1.5 rounded-lg text-gray-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150"
               aria-label="Delete transaction"
             >

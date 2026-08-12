@@ -80,6 +80,34 @@ describe('undo stack', () => {
     expect(applyRedoEntry({ kind: 'addMany', txs }, [{ id: 'r' }])).toEqual([{ id: 'p' }, { id: 'q' }, { id: 'r' }])
   })
 
+  it('applies undo/redo for deleteMany entries with position restore', () => {
+    const txs = [
+      { tx: { id: 'a', amount: 10 }, index: 1 },
+      { tx: { id: 'c', amount: 30 }, index: 3 },
+    ]
+    const after = [{ id: 'x' }, { id: 'y' }, { id: 'z' }]
+    const restored = applyUndoEntry({ kind: 'deleteMany', txs }, after)
+    expect(restored).toEqual([{ id: 'x' }, { id: 'a', amount: 10 }, { id: 'y' }, { id: 'c', amount: 30 }, { id: 'z' }])
+    expect(applyRedoEntry({ kind: 'deleteMany', txs }, restored)).toEqual(after)
+  })
+
+  it('applies undo/redo for updateMany entries', () => {
+    const changes = [
+      { id: 'a', before: { id: 'a', amount: 10 }, after: { id: 'a', amount: 99 } },
+      { id: 'b', before: { id: 'b', category: 'food' }, after: { id: 'b', category: 'fuel' } },
+    ]
+    const after = [{ id: 'a', amount: 99 }, { id: 'b', category: 'fuel' }, { id: 'c' }]
+    const restored = applyUndoEntry({ kind: 'updateMany', changes }, after)
+    expect(restored).toEqual([{ id: 'a', amount: 10 }, { id: 'b', category: 'food' }, { id: 'c' }])
+    expect(applyRedoEntry({ kind: 'updateMany', changes }, restored)).toEqual(after)
+  })
+
+  it('passes through when updateMany has no changes', () => {
+    const list = [{ id: 'a' }]
+    expect(applyUndoEntry({ kind: 'updateMany', changes: [] }, list)).toEqual(list)
+    expect(applyRedoEntry({ kind: 'deleteMany', txs: [] }, list)).toEqual(list)
+  })
+
   it('tolerates bad entries', () => {
     expect(applyUndoEntry(null, [{ id: 'x' }])).toEqual([{ id: 'x' }])
     expect(applyRedoEntry({ kind: 'nope' }, [{ id: 'x' }])).toEqual([{ id: 'x' }])

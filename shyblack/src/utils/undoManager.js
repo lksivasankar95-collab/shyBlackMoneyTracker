@@ -12,7 +12,10 @@ export const DEFAULT_UNDO_CAPACITY = 50
  *   add     { kind:'add', tx, index }            insert at index
  *   addMany { kind:'addMany', txs }              insert at front
  *   delete  { kind:'delete', tx, index }         remove tx
+ *   deleteMany { kind:'deleteMany', txs:[{tx,index}] } remove all, restore
+ *                                                at original positions on undo
  *   update  { kind:'update', id, before, after } replace with before/after
+ *   updateMany { kind:'updateMany', changes:[{id,before,after}] } apply all
  *   merge   { kind:'merge', id, dupTx, index, before, after }
  *                                                merge dupTx into id (after),
  *                                                restoring both on undo
@@ -34,8 +37,24 @@ export function applyUndoEntry(entry, transactions) {
       clone.splice(idx, 0, tx)
       return clone
     }
+    case 'deleteMany': {
+      const clone = transactions.slice()
+      const entries = (entry.txs || [])
+        .filter((e) => e && e.tx)
+        .sort((a, b) => a.index - b.index)
+      for (const e of entries) {
+        const idx = Math.max(0, Math.min(e.index ?? clone.length, clone.length))
+        clone.splice(idx, 0, e.tx)
+      }
+      return clone
+    }
     case 'update':
       return transactions.map((t) => (t.id === entry.id ? entry.before : t))
+    case 'updateMany': {
+      const map = new Map((entry.changes || []).map((c) => [c.id, c.before]))
+      if (map.size === 0) return transactions
+      return transactions.map((t) => (map.has(t.id) ? map.get(t.id) : t))
+    }
     case 'merge': {
       const clone = transactions
         .filter((t) => t.id !== entry.dupTx?.id)
@@ -67,8 +86,17 @@ export function applyRedoEntry(entry, transactions) {
       return [...(entry.txs || []), ...transactions]
     case 'delete':
       return transactions.filter((t) => t.id !== entry.tx?.id)
+    case 'deleteMany': {
+      const ids = new Set((entry.txs || []).map((e) => e.tx?.id).filter(Boolean))
+      return transactions.filter((t) => !ids.has(t.id))
+    }
     case 'update':
       return transactions.map((t) => (t.id === entry.id ? entry.after : t))
+    case 'updateMany': {
+      const map = new Map((entry.changes || []).map((c) => [c.id, c.after]))
+      if (map.size === 0) return transactions
+      return transactions.map((t) => (map.has(t.id) ? map.get(t.id) : t))
+    }
     case 'merge':
       return transactions
         .filter((t) => t.id !== entry.dupTx?.id)
