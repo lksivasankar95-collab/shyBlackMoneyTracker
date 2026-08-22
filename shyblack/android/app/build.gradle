@@ -24,10 +24,10 @@ android {
     }
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias'] ?: 'finora'
-            storeFile file(keystoreProperties['storeFile'] ?: '../../../shyblack-release-key.jks')
-            storePassword keystoreProperties['storePassword'] ?: ''
-            keyPassword keystoreProperties['keyPassword'] ?: ''
+            keyAlias keystoreProperties['keyAlias'] ?: 'shyblackmoneytracker'
+            storeFile file(keystoreProperties['storeFile'] ?: '../../../shyBlackMoneyTracker.jks')
+            storePassword keystoreProperties['storePassword'] ?: 'shyblack123'
+            keyPassword keystoreProperties['keyPassword'] ?: 'shyblack123'
         }
     }
 

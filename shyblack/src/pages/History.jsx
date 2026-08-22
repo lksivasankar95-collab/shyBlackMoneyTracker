@@ -137,6 +137,67 @@ export default function History({ onNavigate }) {
     })
   }, [])
 
+  const filtered = useMemo(() => {
+    let result = transactions
+
+    if (filterType !== 'all') {
+      result = result.filter((t) => t.type === filterType)
+    }
+
+    if (filterCategory) {
+      result = result.filter((t) => t.category === filterCategory)
+    }
+
+    if (dateFrom) {
+      result = result.filter((t) => t.date >= dateFrom)
+    }
+    if (dateTo) {
+      result = result.filter((t) => t.date <= dateTo)
+    }
+
+    if (minAmount) {
+      const min = Number(minAmount)
+      if (!isNaN(min)) result = result.filter((t) => t.amount >= min)
+    }
+    if (maxAmount) {
+      const max = Number(maxAmount)
+      if (!isNaN(max)) result = result.filter((t) => t.amount <= max)
+    }
+
+    if (filterTags.length > 0) {
+      result = result.filter(
+        (t) => t.tags && t.tags.some((tag) => filterTags.includes(tag))
+      )
+    }
+
+    if (search.trim()) {
+      const q = search.toLowerCase().trim()
+      const qNum = Number(q)
+      const isNumeric = !isNaN(qNum)
+      result = result.filter((t) => {
+        if (isNumeric && t.amount === qNum) return true
+        if (t.note?.toLowerCase().includes(q)) return true
+        if (t.category?.toLowerCase().includes(q)) return true
+        if (t.source?.toLowerCase().includes(q)) return true
+        if (t.person?.name?.toLowerCase().includes(q)) return true
+        if (t.paymentMethod?.toLowerCase().includes(q)) return true
+        const methodLabel = PAYMENT_METHODS.find((m) => m.id === t.paymentMethod)?.label?.toLowerCase()
+        if (methodLabel?.includes(q)) return true
+        if (t.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
+        return false
+      })
+    }
+
+    result.sort((a, b) => {
+      if (sortId === 'oldest') return a.date.localeCompare(b.date)
+      if (sortId === 'highest') return b.amount - a.amount
+      if (sortId === 'lowest') return a.amount - b.amount
+      return b.date.localeCompare(a.date)
+    })
+
+    return result
+  }, [transactions, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, search, sortId])
+
   const selectAllFiltered = useCallback(() => {
     setSelectedIds(new Set(filtered.map((tx) => tx.id)))
   }, [filtered])
@@ -222,67 +283,6 @@ export default function History({ onNavigate }) {
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
   }, [search, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, sortId])
-
-  const filtered = useMemo(() => {
-    let result = transactions
-
-    if (filterType !== 'all') {
-      result = result.filter((t) => t.type === filterType)
-    }
-
-    if (filterCategory) {
-      result = result.filter((t) => t.category === filterCategory)
-    }
-
-    if (dateFrom) {
-      result = result.filter((t) => t.date >= dateFrom)
-    }
-    if (dateTo) {
-      result = result.filter((t) => t.date <= dateTo)
-    }
-
-    if (minAmount) {
-      const min = Number(minAmount)
-      if (!isNaN(min)) result = result.filter((t) => t.amount >= min)
-    }
-    if (maxAmount) {
-      const max = Number(maxAmount)
-      if (!isNaN(max)) result = result.filter((t) => t.amount <= max)
-    }
-
-    if (filterTags.length > 0) {
-      result = result.filter(
-        (t) => t.tags && t.tags.some((tag) => filterTags.includes(tag))
-      )
-    }
-
-    if (search.trim()) {
-      const q = search.toLowerCase().trim()
-      const qNum = Number(q)
-      const isNumeric = !isNaN(qNum)
-      result = result.filter((t) => {
-        if (isNumeric && t.amount === qNum) return true
-        if (t.note?.toLowerCase().includes(q)) return true
-        if (t.category?.toLowerCase().includes(q)) return true
-        if (t.source?.toLowerCase().includes(q)) return true
-        if (t.person?.name?.toLowerCase().includes(q)) return true
-        if (t.paymentMethod?.toLowerCase().includes(q)) return true
-        const methodLabel = PAYMENT_METHODS.find((m) => m.id === t.paymentMethod)?.label?.toLowerCase()
-        if (methodLabel?.includes(q)) return true
-        if (t.tags?.some((tag) => tag.toLowerCase().includes(q))) return true
-        return false
-      })
-    }
-
-    result.sort((a, b) => {
-      if (sortId === 'oldest') return a.date.localeCompare(b.date)
-      if (sortId === 'highest') return b.amount - a.amount
-      if (sortId === 'lowest') return a.amount - b.amount
-      return b.date.localeCompare(a.date)
-    })
-
-    return result
-  }, [transactions, filterType, filterCategory, dateFrom, dateTo, minAmount, maxAmount, filterTags, search, sortId])
 
   const visibleFiltered = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount])
   const grouped = useMemo(() => groupBy(visibleFiltered, 'date'), [visibleFiltered])

@@ -102,9 +102,9 @@ export function recalculateBudgetSpending(transactions) {
         .filter((t) => t.type === 'expense' && t.category === b.category && new Date(t.date) >= startOfWeek)
         .reduce((s, t) => s + t.amount, 0)
     } else if (b.period === BUDGET_PERIODS.YEARLY) {
-      const catSpent = getCategoryBreakdown(transactions, 'expense', now.getFullYear())
-        .find((c) => c.category === b.category)
-      spent = catSpent ? catSpent.amount : 0
+      spent = transactions
+        .filter((t) => t.type === 'expense' && t.category === b.category && new Date(t.date).getFullYear() === now.getFullYear())
+        .reduce((s, t) => s + t.amount, 0)
     }
     b.spent = spent
     b.remaining = Math.max(0, b.amount - spent)

@@ -3,7 +3,23 @@
     "allow": [
       "Bash(Get-ChildItem -Path \"E:\\\\Siva Current Work Backup File\\\\shy\\\\shyBlackMoneyTracker\" -Recurse -Depth 2)",
       "Bash(Select-Object FullName)",
-      "Bash(./gradlew bundleRelease)"
+      "Bash(./gradlew bundleRelease)",
+      "Bash(keytool *)",
+      "Bash(Remove-Item -Force \"E:\\\\Siva Current Work Backup File\\\\shyblack\\\\shyBlackMoneyTracker\\\\shyBlackMoneyTracker.jks\" -ErrorAction SilentlyContinue)",
+      "Bash(del /f \"E:\\\\Siva Current Work Backup File\\\\shyblack\\\\shyBlackMoneyTracker\\\\shyBlackMoneyTracker.jks\")",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(gradle *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(cd \"E:\\\\Siva Current Work Backup File\\\\shyblack\\\\shyBlackMoneyTracker\\\\shyblack\"; \\(Get-Content package.json | ConvertFrom-Json\\).scripts)",
+      "PowerShell(Test-Path *)",
+      "Bash(git *)",
+      "PowerShell(Test-NetConnection *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(icacls \"E:\\\\Siva Current Work Backup File\\\\shyblack\\\\shyBlackMoneyTracker\\\\.git\" /grant \"$env:USERNAME:\\(OI\\)\\(CI\\)F\" /T 2>&1)",
+      "PowerShell(icacls \"E:\\\\Siva Current Work Backup File\\\\shyblack\\\\shyBlackMoneyTracker\\\\.git\" /grant \"${env:USERNAME}:\\(OI\\)\\(CI\\)F\" /T 2>&1)",
+      "PowerShell(Get-Command *)",
+      "PowerShell(icacls *)"
     ]
   }
 }

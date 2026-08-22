@@ -71,6 +71,7 @@ export function updateRule(id, updates) {
   const idx = rules.findIndex((r) => r.id === id)
   if (idx === -1) return null
   const next = { ...rules[idx], ...updates, id }
+  rules[idx] = next
   saveRules(rules)
   return next
 }

@@ -60,11 +60,6 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const amountInputRef = useRef(null)
   const lastCategoryByType = useRef({ income: '', expense: '' })
   const currencySymbol = useMemo(() => getCurrencySymbol(), [])
-  const amountSymbol = useMemo(() => {
-    if (!currency) return currencySymbol
-    const c = CURRENCIES.find((x) => x.code === currency)
-    return c ? c.symbol : currency
-  }, [currency, currencySymbol])
 
   const editTx = navParams?.editTransaction || null
   const isEditing = !!editTx
@@ -72,6 +67,11 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const [purpose, setPurpose] = useState(() => editTx?.type || TRANSACTION_TYPES.EXPENSE)
   const [amount, setAmount] = useState(() => editTx ? String(editTx.originalAmount ?? editTx.amount) : '')
   const [currency, setCurrency] = useState(() => editTx?.currency || '')
+  const amountSymbol = useMemo(() => {
+    if (!currency) return currencySymbol
+    const c = CURRENCIES.find((x) => x.code === currency)
+    return c ? c.symbol : currency
+  }, [currency, currencySymbol])
   const [category, setCategory] = useState(() => editTx?.category || lastCategoryByType.current[TRANSACTION_TYPES.EXPENSE] || '')
   const [note, setNote] = useState(() => editTx?.note || '')
   const [date, setDate] = useState(() => editTx?.date || new Date().toISOString().split('T')[0])

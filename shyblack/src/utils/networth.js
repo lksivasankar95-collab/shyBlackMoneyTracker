@@ -75,12 +75,12 @@ export function calculateNetWorth(transactions, debts, accounts) {
     tradingCapital = tradingDeposits - tradingWithdrawals
   }
 
-  const debtsGiven = debts
+  const debtsGiven = (debts || [])
     .filter((d) => d.type === DEBT_TYPES.LENT && isOpenDebt(d))
-    .reduce((s, d) => s + d.remainingAmount, 0)
-  const debtsTaken = debts
+    .reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
+  const debtsTaken = (debts || [])
     .filter((d) => d.type === DEBT_TYPES.BORROWED && isOpenDebt(d))
-    .reduce((s, d) => s + d.remainingAmount, 0)
+    .reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0)
 
   const totalAssets = Math.max(0, cashAndBank) + Math.max(0, tradingCapital) + debtsGiven
   const totalLiabilities = Math.max(0, -cashAndBank) + Math.max(0, -tradingCapital) + debtsTaken

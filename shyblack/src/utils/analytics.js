@@ -104,7 +104,7 @@ export function getIncomeForecast(transactions) {
   if (monthly.length < 2) return null
   const incomes = monthly.map((m) => m.income)
   const avgIncome = incomes.reduce((s, i) => s + i, 0) / incomes.length
-  const trend = incomes.length > 1 ? (incomes[incomes.length - 1] - incomes[0]) / incomes.length : 0
+  const trend = incomes.length > 1 ? (incomes[incomes.length - 1] - incomes[0]) / (incomes.length - 1) : 0
   return {
     average: Math.round(avgIncome),
     trend: Math.round(trend),
