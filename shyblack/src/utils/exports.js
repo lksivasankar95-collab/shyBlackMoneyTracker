@@ -1,5 +1,6 @@
 import { formatCurrency } from './helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from './constants'
+import { downloadBlob as saveBlob } from './downloadUtils'
 
 // TZ-safe month/year matcher for date-only strings (YYYY-MM-DD).
 // Avoids new Date('YYYY-MM-DD') UTC parsing that shifts day-1 across
@@ -23,12 +24,9 @@ function escapeHtml(value) {
 }
 
 function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 5000)
+  // Routes through the shared storage layer: MediaStore Downloads on Android,
+  // anchor download in the browser.
+  return saveBlob(blob, filename)
 }
 
 // ── CSV ──────────────────────────────────────────────
@@ -446,7 +444,7 @@ export function exportToExcelWithSummary(data, summary) {
   ${sheets.join('')}
 </Workbook>`
 
-  const blob = new Blob([xml], { type: 'application/vnd.ms-excel' })
+  const blob = new Blob([xml], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
   return blob
 }
 
@@ -454,18 +452,18 @@ export function exportAllToXlsx(data) {
   return exportToExcelWithSummary(data, null)
 }
 
-export function downloadCsv(csv, filename) {
+export async function downloadCsv(csv, filename) {
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
-  downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.csv`)
+  await downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.csv`)
 }
 
-export function downloadXlsx(blob, filename) {
-  downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.xlsx`)
+export async function downloadXlsx(blob, filename) {
+  await downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.xlsx`)
 }
 
-export function downloadHtml(html, filename) {
+export async function downloadHtml(html, filename) {
   const blob = new Blob([html], { type: 'text/html' })
-  downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.html`)
+  await downloadBlob(blob, filename || `etracker_export_${new Date().toISOString().split('T')[0]}.html`)
 }
 
 // ── Keep existing API compatible ─────────────────────
@@ -564,7 +562,7 @@ export function generateStatementHTML(statement) {
 </body></html>`
 }
 
-export function downloadHTML(html, filename) {
+export async function downloadHTML(html, filename) {
   const blob = new Blob([html], { type: 'text/html' })
-  downloadBlob(blob, filename || `etracker_statement_${new Date().toISOString().split('T')[0]}.html`)
+  await downloadBlob(blob, filename || `etracker_statement_${new Date().toISOString().split('T')[0]}.html`)
 }

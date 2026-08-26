@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useRef } from 'react'
 import { Download, FileText, BarChart3, Calendar, Share2, Loader2, ExternalLink, CheckCircle2, Tag, FileSpreadsheet, Code, Layers, History } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
-  generateMonthlyStatement, generateStatementHTML, downloadHTML,
-  transactionsToCsv, downloadCsv, downloadXlsx, exportToExcelWithSummary,
-  exportWithChartsToHTML, downloadHtml, generateExportSummary,
+  generateMonthlyStatement, generateStatementHTML,
+  transactionsToCsv, exportToExcelWithSummary,
+  exportWithChartsToHTML, generateExportSummary,
   exportByMonth, exportByYear, exportByCategory, exportByCustomRange,
 } from '../utils/exports'
 import {
@@ -14,6 +14,10 @@ import {
   generateCustomReport,
 } from '../utils/pdfReport'
 import { downloadBlob, shareBlob, openFileNative } from '../utils/downloadUtils'
+import {
+  buildReportFilename, openSavedFile, isAndroidNative,
+  DOWNLOAD_RELATIVE_PATH,
+} from '../utils/downloadService'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import { useToast } from '../components/Toast'
@@ -54,8 +58,14 @@ export default function ReportsPage() {
   const [pdfBlob, setPdfBlob] = useState(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [pdfError, setPdfError] = useState(null)
+  const [pdfFilename, setPdfFilename] = useState('')
+  const [downloading, setDownloading] = useState(false)
+  const [exporting, setExporting] = useState(false)
+  const [statementLoading, setStatementLoading] = useState(false)
+  const [sharingPdf, setSharingPdf] = useState(false)
   const [downloadResult, setDownloadResult] = useState(null)
   const [showDownloadInfo, setShowDownloadInfo] = useState(false)
+  const downloadBusyRef = useRef(false)
   const [selectedTags, setSelectedTags] = useState([])
   const [exportFormat, setExportFormat] = useState('csv')
   const [exportScope, setExportScope] = useState('all')
@@ -93,29 +103,46 @@ export default function ReportsPage() {
   const statement = useMemo(() => generateMonthlyStatement(transactions, selectedYear, selectedMonth), [transactions, selectedYear, selectedMonth])
 
   const getExportFilename = useCallback((ext) => {
-    const dateStr = new Date().toISOString().split('T')[0]
-    const scopePrefix = exportScope !== 'all' ? exportScope : 'all'
-    return `etracker_${scopePrefix}_${dateStr}.${ext}`
-  }, [exportScope])
+    const pad2 = (n) => String(n + 1).padStart(2, '0')
+    const ym = `${now.getFullYear()}-${pad2(now.getMonth())}`
+    const dateStr = now.toISOString().split('T')[0]
+    switch (exportScope) {
+      case 'this_month':
+        return `Monthly_Expense_${ym}.${ext}`
+      case 'this_year':
+        return `Annual_Expense_${now.getFullYear()}.${ext}`
+      case 'custom_range':
+        return `Expense_Report_${customDateFrom || 'start'}_to_${customDateTo || 'end'}.${ext}`
+      case 'by_category':
+        return `Category_Report_${customCategory || 'selected'}_${dateStr}.${ext}`
+      default:
+        return `Expense_Report_${dateStr}.${ext}`
+    }
+  }, [exportScope, customDateFrom, customDateTo, customCategory, now])
 
   const handleExport = useCallback(async (singleFormat) => {
     const formats = singleFormat ? [singleFormat] : (batchExport ? EXPORT_FORMATS.map((f) => f.id) : [exportFormat])
     const results = []
+    const failures = []
+    setExporting(true)
 
     for (const fmt of formats) {
       try {
         if (filteredTxs.length === 0) throw new Error('No transactions to export')
+        let blob = null
+        let filename = getExportFilename(fmt === 'excel' ? 'xlsx' : fmt)
+        let label = fmt.toUpperCase()
+
         if (fmt === 'csv') {
-          const csv = transactionsToCsv(filteredTxs)
-          downloadCsv(csv, getExportFilename('csv'))
-          results.push('CSV')
+          const csvContent = transactionsToCsv(filteredTxs)
+          if (!csvContent) throw new Error('CSV generation returned empty data')
+          blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8' })
+          label = 'CSV'
         } else if (fmt === 'excel') {
           const data = { transactions: filteredTxs, debts: [], goals: [], emis: [], transfers: [], accounts: [] }
-          const blob = exportToExcelWithSummary(data, exportSummary)
-          if (blob) {
-            downloadXlsx(blob, getExportFilename('xlsx'))
-            results.push('Excel')
-          }
+          blob = exportToExcelWithSummary(data, exportSummary)
+          if (!blob) throw new Error('Excel generation failed')
+          label = 'Excel'
         } else if (fmt === 'html') {
           let html
           if (exportWithCharts) {
@@ -124,10 +151,10 @@ export default function ReportsPage() {
             const stmt = generateMonthlyStatement(filteredTxs, selectedYear, selectedMonth)
             html = stmt ? generateStatementHTML(stmt) : exportWithChartsToHTML(filteredTxs, exportSummary)
           }
-          downloadHtml(html, getExportFilename('html'))
-          results.push('HTML')
+          if (!html) throw new Error('HTML generation returned empty data')
+          blob = new Blob([html], { type: 'text/html' })
+          label = 'HTML'
         } else if (fmt === 'pdf') {
-          setPdfLoading(true)
           setPdfError(null)
           let result
           const opts = { includeCharts: exportWithCharts, includeSummary: true }
@@ -142,52 +169,110 @@ export default function ReportsPage() {
           } else {
             result = generateCustomReport(filteredTxs, { ...opts, dateFrom: '', dateTo: '', title: 'Full Report', periodLabel: 'All Transactions' })
           }
+          if (!result || !result.blob) throw new Error('PDF generation failed')
+          blob = result.blob
+          filename = buildReportFilename(
+            exportScope === 'custom_range' ? 'daterange' : exportScope === 'this_month' ? 'monthly'
+              : exportScope === 'this_year' ? 'annual' : exportScope === 'by_category' ? 'category' : 'full',
+            { month: now.getMonth(), year: now.getFullYear(), dateFrom: customDateFrom, dateTo: customDateTo },
+            'pdf',
+          )
           setPdfDataUri(result.dataUri)
           setPdfBlob(result.blob)
-          const saveResult = await downloadBlob(result.blob, getExportFilename('pdf'))
-          if (saveResult.success) {
-            setDownloadResult(saveResult)
+          setPdfFilename(filename)
+          label = `PDF (${result.pageCount}p)`
+        }
+
+        if (!blob || blob.size === 0) throw new Error(`${label} export produced an empty file`)
+
+        if (batchExport) {
+          const saved = await downloadBlob(blob, filename)
+          if (saved.success) {
+            results.push(label)
+            setDownloadResult(saved)
             setShowDownloadInfo(true)
-            results.push(`PDF (${result.pageCount}p)`)
           } else {
-            results.push('PDF (saved)')
+            failures.push(label)
+            addToast(saved.error || `${label} download failed`, 'error')
           }
+        } else {
+          const shared = await shareBlob(blob, filename, 'Expense Tracker ShyBlack — Report')
+          if (shared.shared || shared.method === 'cancelled') results.push(label)
+          else failures.push(label)
         }
       } catch (e) {
-        addToast(e.message || 'Export failed', 'error')
+        console.error(`[REPORTS][PIPELINE] Export ${fmt} failed:`, e)
+        addToast(e.message || t('notifications.download_error'), 'error')
       }
     }
 
-    if (results.length > 0) {
+    if (results.length > 0 || failures.length > 0) {
       const exportRecord = {
         id: Date.now(),
-        formats: results,
+        formats: [...results, ...failures.map((f) => `${f} !`)],
         scope: exportScope,
         count: filteredTxs.length,
         timestamp: new Date().toLocaleString('en-IN'),
       }
       setExportHistory((prev) => [exportRecord, ...prev].slice(0, 20))
-      addToast(`Exported: ${results.join(', ')}`, 'success')
     }
-    setPdfLoading(false)
-  }, [filteredTxs, exportFormat, exportScope, batchExport, exportWithCharts, exportSummary, getExportFilename, customDateFrom, customDateTo, customCategory, selectedMonth, selectedYear, now, addToast])
+    if (results.length > 0) {
+      addToast(
+        batchExport
+          ? t('notifications.saved_to_path', { path: DOWNLOAD_RELATIVE_PATH })
+          : `Shared: ${results.join(', ')}`,
+        'success',
+      )
+    }
+    if (failures.length > 0) {
+      addToast(t('notifications.download_error'), 'error')
+    }
+    setExporting(false)
+  }, [filteredTxs, exportFormat, exportScope, batchExport, exportWithCharts, exportSummary, getExportFilename, customDateFrom, customDateTo, customCategory, selectedMonth, selectedYear, now, addToast, t])
 
 
-  const handleExportStatement = useCallback(() => {
-    if (statement) {
+  const handleExportStatement = useCallback(async () => {
+    if (!statement || statementLoading) return
+    setStatementLoading(true)
+    try {
       const html = generateStatementHTML(statement)
-      downloadHTML(html, `etracker_statement_${MONTHS[selectedMonth]}_${selectedYear}.html`)
-      addToast(t('notifications.statement_generated'), 'success')
+      if (!html) throw new Error('Failed to generate statement HTML')
+      const blob = new Blob([html], { type: 'text/html' })
+      if (blob.size === 0) throw new Error('Generated statement is empty')
+      const filename = `Monthly_Statement_${MONTHS[selectedMonth]}_${selectedYear}.html`
+
+      /* Store the blob and filename so Open/Share buttons in the
+       * Download Info Modal can access them (previously pdfBlob was null
+       * after statement download, causing Share to silently fail). */
+      setPdfBlob(blob)
+      setPdfFilename(filename)
+      setPdfDataUri(null)
+
+      const saved = await downloadBlob(blob, filename)
+      if (saved.success) {
+        setDownloadResult(saved)
+        setShowDownloadInfo(true)
+        addToast(t('notifications.saved_to_path', { path: DOWNLOAD_RELATIVE_PATH }), 'success')
+      } else {
+        addToast(saved.error || t('notifications.download_error'), 'error')
+      }
+    } catch (e) {
+      console.error('[REPORTS][PIPELINE] Statement export failed:', e)
+      addToast(e.message || t('notifications.download_error'), 'error')
+    } finally {
+      setStatementLoading(false)
     }
-  }, [statement, selectedMonth, selectedYear, addToast, t])
+  }, [statement, statementLoading, selectedMonth, selectedYear, addToast, t])
 
   const handleGeneratePDF = useCallback(async () => {
+    if (pdfLoading || downloading) return
     setPdfLoading(true)
     setPdfError(null)
     setPdfDataUri(null)
     setPdfBlob(null)
     setDownloadResult(null)
     setShowDownloadInfo(false)
+    const filename = buildReportFilename(reportType, { month: selectedMonth, year: selectedYear, dateFrom, dateTo }, 'pdf')
     try {
       if (filteredTxs.length === 0) throw new Error(t('reports.no_data_desc'))
       let result
@@ -209,51 +294,120 @@ export default function ReportsPage() {
         default:
           throw new Error(t('reports.unknown_type'))
       }
+      if (!result || !result.blob) throw new Error('PDF generation returned no data')
+      if (result.blob.size === 0) throw new Error('Generated PDF is empty')
       setPdfDataUri(result.dataUri)
       setPdfBlob(result.blob)
-      const saveResult = await downloadBlob(result.blob, `etracker_report_${Date.now()}.pdf`)
+      setPdfFilename(filename)
+      const saveResult = await downloadBlob(result.blob, filename)
       if (saveResult.success) {
         setDownloadResult(saveResult)
         setShowDownloadInfo(true)
-        addToast(t('notifications.pdf_saved', { pageCount: result.pageCount }), 'success')
+        addToast(
+          `${t('notifications.download_success')} — ${t('notifications.saved_to_path', { path: DOWNLOAD_RELATIVE_PATH })}`,
+          'success',
+          6000,
+          null,
+          { label: t('reports.open_report'), onClick: () => openSavedFile(saveResult.uri, saveResult.mimeType) },
+        )
       } else {
-        addToast(t('notifications.file_saved_unknown'), 'info')
+        addToast(saveResult.error || t('notifications.download_error'), 'error')
       }
     } catch (e) {
+      console.error('[REPORTS][PIPELINE] PDF generation failed:', e)
       setPdfError(e.message || t('notifications.pdf_generate_failed'))
       addToast(e.message || t('notifications.pdf_generate_failed'), 'error')
     } finally {
       setPdfLoading(false)
     }
-  }, [filteredTxs, reportType, selectedMonth, selectedYear, dateFrom, dateTo, addToast, t])
+  }, [filteredTxs, reportType, selectedMonth, selectedYear, dateFrom, dateTo, pdfLoading, downloading, addToast, t])
 
   const handleOpenPDF = useCallback(async () => {
-    if (!pdfBlob) return
-    const result = await openFileNative(pdfBlob, `etracker_report_${Date.now()}.pdf`)
-    if (result.action === 'cancelled') return
-  }, [pdfBlob])
+    try {
+      if (isAndroidNative()) {
+        /* Primary path: if we already have a saved file (content:// URI from
+         * MediaStore), open it directly via ACTION_VIEW.  This works for both
+         * PDFs and HTML statements because DownloadStorage.openFile() uses
+         * ACTION_VIEW with the correct MIME type. */
+        if (downloadResult?.uri) {
+          console.log('[REPORTS][OPEN] Opening saved file:', downloadResult.uri, downloadResult.mimeType)
+          const opened = await openSavedFile(downloadResult.uri, downloadResult.mimeType)
+          if (!opened.opened && opened.error) {
+            addToast(opened.error, 'error')
+          }
+          return
+        }
+        /* Fallback: no saved file yet (e.g. page reloaded). Save the blob
+         * first, then open it via ACTION_VIEW. */
+        if (pdfBlob) {
+          console.log('[REPORTS][OPEN] No saved file — saving then opening')
+          const result = await openFileNative(pdfBlob, pdfFilename)
+          if (!result.success && result.error) {
+            addToast(result.error, 'error')
+          } else if (result.openError) {
+            addToast(result.openError, 'info')
+          }
+          return
+        }
+      }
+      /* Non-Android or no blob — nothing to open */
+    } catch (e) {
+      console.error('[REPORTS][OPEN] Failed:', e)
+      addToast(e.message || 'Unable to open file', 'error')
+    }
+  }, [downloadResult, pdfBlob, pdfFilename, addToast])
 
   const handleSharePDF = useCallback(async () => {
-    if (!pdfBlob) return
-    const result = await shareBlob(pdfBlob, `etracker_report_${Date.now()}.pdf`, 'Expense Tracker Report')
-    if (result.shared) {
-      addToast(t('notifications.file_shared'), 'success')
-    } else if (result.method === 'unsupported') {
-      addToast(t('notifications.share_unsupported'), 'info')
+    if (!pdfBlob || sharingPdf) return
+    setSharingPdf(true)
+    try {
+      console.log('[REPORTS][SHARE] Sharing blob:', pdfFilename, pdfBlob.size, 'bytes')
+      const result = await shareBlob(pdfBlob, pdfFilename, 'Expense Tracker Report')
+      if (result.shared) {
+        addToast(t('notifications.file_shared'), 'success')
+      } else if (result.method === 'cancelled') {
+        /* User cancelled — no toast needed */
+      } else if (result.method === 'unsupported') {
+        addToast(t('notifications.share_unsupported'), 'info')
+      } else {
+        addToast(result.error || t('notifications.share_unsupported'), 'error')
+      }
+    } catch (e) {
+      console.error('[REPORTS][SHARE] Failed:', e)
+      addToast(e.message || t('notifications.share_unsupported'), 'error')
+    } finally {
+      setSharingPdf(false)
     }
-  }, [pdfBlob, addToast, t])
+  }, [pdfBlob, pdfFilename, sharingPdf, addToast, t])
 
   const handleDownloadPDF = useCallback(async () => {
-    if (!pdfBlob) return
-    const result = await downloadBlob(pdfBlob, `etracker_report_${Date.now()}.pdf`)
-    if (result.success) {
-      setDownloadResult(result)
-      setShowDownloadInfo(true)
-      addToast(t('notifications.file_downloaded'), 'success')
-    } else {
-      addToast(t('notifications.download_failed'), 'error')
+    if (!pdfBlob || downloadBusyRef.current) return
+    downloadBusyRef.current = true
+    setDownloading(true)
+    try {
+      const filename = pdfFilename || buildReportFilename(reportType, { month: selectedMonth, year: selectedYear }, 'pdf')
+      const result = await downloadBlob(pdfBlob, filename)
+      if (result.success) {
+        setDownloadResult(result)
+        setShowDownloadInfo(true)
+        addToast(
+          `${t('notifications.download_success')} — ${t('notifications.saved_to_path', { path: DOWNLOAD_RELATIVE_PATH })}`,
+          'success',
+          6000,
+          null,
+          { label: t('reports.open_report'), onClick: () => openSavedFile(result.uri, result.mimeType) },
+        )
+      } else {
+        addToast(result.error || t('notifications.download_error'), 'error')
+      }
+    } catch (e) {
+      console.error('[REPORTS][PIPELINE] PDF download failed:', e)
+      addToast(e.message || t('notifications.download_error'), 'error')
+    } finally {
+      downloadBusyRef.current = false
+      setDownloading(false)
     }
-  }, [pdfBlob, addToast, t])
+  }, [pdfBlob, pdfFilename, reportType, selectedMonth, selectedYear, addToast, t])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -406,13 +560,13 @@ export default function ReportsPage() {
             {/* Export Button */}
             <button
               onClick={() => handleExport(null)}
-              disabled={filteredTxs.length === 0 || pdfLoading}
+              disabled={filteredTxs.length === 0 || exporting || pdfLoading}
               className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-50"
             >
-              {pdfLoading ? (
+              {exporting ? (
                 <><Loader2 size={16} className="animate-spin" /> {t('common.generating')}</>
               ) : (
-                <><Download size={16} /> {batchExport ? (t('reports.batch_export_btn') || 'Export All Formats') : `${t('reports.export') || 'Export'} ${EXPORT_FORMATS.find((f) => f.id === exportFormat)?.label}`}</>
+                <><Share2 size={16} /> {batchExport ? (t('reports.batch_export_btn') || 'Export All Formats') : `${t('reports.export') || 'Export'} ${EXPORT_FORMATS.find((f) => f.id === exportFormat)?.label}`}</>
               )}
             </button>
           </GlassCard>
@@ -557,17 +711,25 @@ export default function ReportsPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSharePDF}
-                    className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2"
+                    disabled={downloading || sharingPdf}
+                    className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2 disabled:opacity-50"
                   >
-                    <Share2 size={13} />
-                    {t('reports.share')}
+                    {sharingPdf ? (
+                      <><Loader2 size={13} className="animate-spin" /> {t('common.generating')}</>
+                    ) : (
+                      <><Share2 size={13} /> {t('reports.share')}</>
+                    )}
                   </button>
                   <button
                     onClick={handleDownloadPDF}
-                    className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2"
+                    disabled={downloading}
+                    className="btn-secondary flex-1 text-[10px] flex items-center justify-center gap-1.5 py-2 disabled:opacity-50"
                   >
-                    <Download size={13} />
-                    {t('reports.save_again')}
+                    {downloading ? (
+                      <><Loader2 size={13} className="animate-spin" /> {t('common.saving') || 'Saving...'}</>
+                    ) : (
+                      <><Download size={13} /> {t('reports.save_again')}</>
+                    )}
                   </button>
                 </div>
               </div>
@@ -607,10 +769,14 @@ export default function ReportsPage() {
                   </button>
                   <button
                     onClick={handleSharePDF}
-                    className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5"
+                    disabled={sharingPdf}
+                    className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
-                    <Share2 size={13} />
-                    {t('reports.share')}
+                    {sharingPdf ? (
+                      <><Loader2 size={13} className="animate-spin" /> {t('common.generating')}</>
+                    ) : (
+                      <><Share2 size={13} /> {t('reports.share')}</>
+                    )}
                   </button>
                 </div>
               </div>
@@ -665,9 +831,12 @@ export default function ReportsPage() {
                   </span>
                 </div>
 
-                <button onClick={handleExportStatement} className="btn-primary w-full text-sm flex items-center justify-center gap-2">
-                  <Download size={16} />
-                  {t('reports.download_statement')}
+                <button onClick={handleExportStatement} disabled={statementLoading} className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+                  {statementLoading ? (
+                    <><Loader2 size={16} className="animate-spin" /> {t('common.generating')}</>
+                  ) : (
+                    <><Download size={16} /> {t('reports.download_statement')}</>
+                  )}
                 </button>
               </div>
             ) : (

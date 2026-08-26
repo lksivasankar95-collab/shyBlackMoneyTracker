@@ -13,3 +13,11 @@
 4. Update `src/pages/Dashboard.jsx` — add Reports card in Quick Links section
 5. Verify build (0 errors) and all 109 tests
 
+### Build Rule (ALWAYS follow this workflow)
+**NEVER use `.\gradlew.bat assembleDebug` directly.** Always follow this sequence:
+1. `npm run build` — build the web app (Vite)
+2. `npx cap sync android` — sync web assets to Android project
+3. Open Android Studio and build APK from there (or use `npx cap run android`)
+
+Do NOT skip steps or use Gradle directly.
+

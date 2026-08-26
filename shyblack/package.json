@@ -11,6 +11,7 @@
     "cap:sync": "npx cap sync",
     "cap:open:android": "npx cap open android",
     "cap:build:android": "npm run build && npx cap sync",
+    "postinstall": "node scripts/patch-share-plugin.js",
     "test": "node --require ./src/__tests__/setup.cjs ./node_modules/vitest/vitest.mjs run",
     "test:watch": "node --require ./src/__tests__/setup.cjs ./node_modules/vitest/vitest.mjs"
   },
