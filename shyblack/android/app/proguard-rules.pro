@@ -32,6 +32,9 @@
 # Keep ViewBinding
 -keep class * implements androidx.viewbinding.ViewBinding { *; }
 
+# ── App-level DownloadStorage plugin (MediaStore Downloads) ──
+-keep class com.shyblack.finance.DownloadStoragePlugin { *; }
+
 # ── Capacitor Filesystem Plugin ──
 -keep class com.capacitorjs.plugins.filesystem.** { *; }
 -keepclassmembers class com.capacitorjs.plugins.filesystem.FilesystemPlugin {

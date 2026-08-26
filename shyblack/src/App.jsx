@@ -323,15 +323,20 @@ export default function App() {
     document.addEventListener('visibilitychange', handleVisibility)
 
     let capListener = null
+    let capCancelled = false
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (isActive) {
         handleResume()
       } else {
         privacy.onAppBackground()
       }
-    }).then(l => { capListener = l }).catch(() => {})
+    }).then(l => {
+      if (capCancelled) { l.remove(); return }
+      capListener = l
+    }).catch(() => {})
 
     return () => {
+      capCancelled = true
       document.removeEventListener('visibilitychange', handleVisibility)
       if (pendingResume.current) clearTimeout(pendingResume.current)
       if (capListener) capListener.remove()

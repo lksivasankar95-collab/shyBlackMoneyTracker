@@ -15,12 +15,17 @@ export default function PrivacyGuard() {
     document.addEventListener('visibilitychange', handleVisibility)
 
     let capListener = null
+    let capCancelled = false
     CapApp.addListener('appStateChange', ({ isActive }) => {
       if (pending.current) clearTimeout(pending.current)
       pending.current = setTimeout(() => setBackgrounded(!isActive), 100)
-    }).then((l) => { capListener = l }).catch(() => {})
+    }).then((l) => {
+      if (capCancelled) { l.remove(); return }
+      capListener = l
+    }).catch(() => {})
 
     return () => {
+      capCancelled = true
       document.removeEventListener('visibilitychange', handleVisibility)
       if (pending.current) clearTimeout(pending.current)
       if (capListener) capListener.remove()

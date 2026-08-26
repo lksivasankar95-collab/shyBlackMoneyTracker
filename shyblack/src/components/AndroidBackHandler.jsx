@@ -24,7 +24,10 @@ export default function AndroidBackHandler({ canGoBack, onGoBack }) {
         onGoBackRef.current()
       } else {
         const now = Date.now()
-        if (now - lastBackTime.current > 0 && now - lastBackTime.current < 2000) {
+        const elapsed = now - lastBackTime.current
+        // Require at least 400ms between presses to ignore duplicate events from
+        // Android gesture navigation, while still allowing intentional double-press.
+        if (elapsed >= 400 && elapsed < 2000) {
           App.exitApp()
         } else {
           lastBackTime.current = now

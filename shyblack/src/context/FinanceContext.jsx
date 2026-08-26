@@ -95,16 +95,8 @@ function loadInitialState() {
       }
     }
 
-    const integrityResult = runIntegrityCheck({ transactions, debts: sanitizeDebts(safeStorage.get(STORAGE_KEYS.DEBTS, [])), goals: getGoals(), accounts: getAccounts(), transfers: safeStorage.get(STORAGE_KEYS.TRANSFERS, []), emis: getEmis() })
-    if (integrityResult.hasIssues && integrityResult.summary.totalRepairs > 0) {
-      const repaired = applyRepairs(integrityResult)
-      if (repaired.transactions) transactions = sanitizeTransactions(repaired.transactions)
-      if (repaired.debts) safeStorage.set(STORAGE_KEYS.DEBTS, repaired.debts)
-      if (repaired.goals) safeStorage.set(STORAGE_KEYS.GOALS, repaired.goals)
-      if (repaired.accounts) safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, repaired.accounts)
-      if (repaired.transfers) safeStorage.set(STORAGE_KEYS.TRANSFERS, repaired.transfers)
-      if (repaired.emis) saveEmis(repaired.emis)
-    }
+    // Integrity check is deferred to a post-mount useEffect to avoid blocking
+    // the JavaScript main thread synchronously, which can cause ANR on Android.
 
     const archiveResult = archiveOldTransactions(transactions)
     if (archiveResult.archivedCount > 0) {
@@ -254,6 +246,64 @@ export function FinanceProvider({ children }) {
     }, 3000)
     return () => clearTimeout(timer)
   }, [])
+
+  // Deferred integrity check — runs 800 ms after first mount so the UI paints
+  // before we iterate over all data. This prevents the main thread from blocking
+  // at startup (which caused ANR / "app closing" on slower Android devices).
+  const integrityChecked = useRef(false)
+  useEffect(() => {
+    if (integrityChecked.current) return
+    integrityChecked.current = true
+    const timer = setTimeout(() => {
+      try {
+        const currentDebts = safeStorage.get(STORAGE_KEYS.DEBTS, [])
+        const currentGoals = safeStorage.get(STORAGE_KEYS.GOALS, [])
+        const currentAccounts = safeStorage.get(STORAGE_KEYS.NET_WORTH_ACCOUNTS, [])
+        const currentTransfers = safeStorage.get(STORAGE_KEYS.TRANSFERS, [])
+        const currentEmis = safeStorage.get(STORAGE_KEYS.EMIS, [])
+        const integrityResult = runIntegrityCheck({
+          transactions,
+          debts: sanitizeDebts(currentDebts),
+          goals: Array.isArray(currentGoals) ? currentGoals : [],
+          accounts: Array.isArray(currentAccounts) ? currentAccounts : [],
+          transfers: Array.isArray(currentTransfers) ? currentTransfers : [],
+          emis: Array.isArray(currentEmis) ? currentEmis : [],
+        })
+        if (integrityResult.hasIssues && integrityResult.summary.totalRepairs > 0) {
+          const repaired = applyRepairs(integrityResult)
+          setState((prev) => {
+            const next = { ...prev }
+            if (repaired.transactions) {
+              const fixedTxs = sanitizeTransactions(repaired.transactions)
+              safeStorage.set(STORAGE_KEYS.TRANSACTIONS, fixedTxs)
+              next.transactions = fixedTxs
+            }
+            if (repaired.debts) {
+              safeStorage.set(STORAGE_KEYS.DEBTS, repaired.debts)
+              next.debts = sanitizeDebts(repaired.debts)
+            }
+            if (repaired.goals) {
+              safeStorage.set(STORAGE_KEYS.GOALS, repaired.goals)
+              next.goals = repaired.goals
+            }
+            if (repaired.accounts) {
+              safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, repaired.accounts)
+              next.accounts = repaired.accounts
+            }
+            if (repaired.transfers) {
+              safeStorage.set(STORAGE_KEYS.TRANSFERS, repaired.transfers)
+            }
+            if (repaired.emis) {
+              saveEmis(repaired.emis)
+              next.emis = repaired.emis
+            }
+            return next
+          })
+        }
+      } catch { /* silent — integrity check is best-effort */ }
+    }, 800)
+    return () => clearTimeout(timer)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isFirstMount = useRef(true)
   useEffect(() => {
