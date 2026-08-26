@@ -13,8 +13,8 @@ android {
         applicationId "com.shyblack.finance"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 7
-        versionName "1.0.7"
+        versionCode 9
+        versionName "1.1.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -24,10 +24,10 @@ android {
     }
     signingConfigs {
         release {
-            keyAlias keystoreProperties['keyAlias'] ?: 'shyblackmoneytracker'
-            storeFile file(keystoreProperties['storeFile'] ?: '../../../shyBlackMoneyTracker.jks')
-            storePassword keystoreProperties['storePassword'] ?: 'shyblack123'
-            keyPassword keystoreProperties['keyPassword'] ?: 'shyblack123'
+            keyAlias keystoreProperties['keyAlias']
+            storeFile keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword keystoreProperties['storePassword']
+            keyPassword keystoreProperties['keyPassword']
         }
     }
 
