@@ -980,6 +980,9 @@
     "file_saved_unknown": "ಫೈಲ್ ಉಳಿಸಲಾಗಿದೆ ಆದರೆ ಸ್ಥಳ ತಿಳಿಯದು",
     "share_unsupported": "ಹಂಚಿಕೆ ಬೆಂಬಲಿಸಲಾಗುತ್ತಿಲ್ಲ",
     "download_failed": "ಡೌನ್‌ಲೋಡ್ ವಿಫಲ",
+    "download_success": "ವರದಿ ಯಶಸ್ವಿಯಾಗಿ ಡೌನ್‌ಲೋಡ್ ಆಗಿದೆ",
+    "saved_to_path": "{{path}} ನಲ್ಲಿ ಉಳಿಸಲಾಗಿದೆ",
+    "download_error": "ವರದಿಯನ್ನು ಡೌನ್‌ಲೋಡ್ ಮಾಡಲು ಸಾಧ್ಯವಾಗಲಿಲ್ಲ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
     "pdf_generate_failed": "PDF ರಚಿಸಲು ವಿಫಲ",
     "savings_goal_updated": "ಉಳಿತಾಯ ಗುರಿ ನವೀಕರಿಸಲಾಗಿದೆ"
   },

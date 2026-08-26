@@ -980,6 +980,9 @@
     "file_saved_unknown": "फ़ाइल सहेजी गई लेकिन स्थान अज्ञात",
     "share_unsupported": "साझा करना समर्थित नहीं",
     "download_failed": "डाउनलोड विफल",
+    "download_success": "रिपोर्ट सफलतापूर्वक डाउनलोड हुई",
+    "saved_to_path": "{{path}} में सहेजी गई",
+    "download_error": "रिपोर्ट डाउनलोड नहीं हो सकी। कृपया पुनः प्रयास करें।",
     "pdf_generate_failed": "PDF तैयार करने में विफल",
     "savings_goal_updated": "बचत लक्ष्य अपडेट किया गया"
   },

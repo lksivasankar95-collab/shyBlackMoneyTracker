@@ -46,12 +46,13 @@ export default function StatementExportPage() {
     }
   }
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     try {
       const html = generateMonthlyStatement(transactions, debts, accounts || [], budgets, selectedYear, selectedMonth)
       const monthName = new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long', year: 'numeric' }).replace(/ /g, '_')
-      downloadStatement(html, `etracker_statement_${monthName}.html`)
-      addToast(t('statements.downloaded'), 'success')
+      const ok = await downloadStatement(html, `etracker_statement_${monthName}.html`)
+      if (ok !== false) addToast(t('statements.downloaded'), 'success')
+      else addToast(t('statements.generateFailed'), 'error')
     } catch {
       addToast(t('statements.generateFailed'), 'error')
     }

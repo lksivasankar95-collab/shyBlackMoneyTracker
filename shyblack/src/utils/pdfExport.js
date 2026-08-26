@@ -247,14 +247,25 @@ export function printStatement(html) {
   }
 }
 
-export function downloadStatement(html, filename) {
+export async function downloadStatement(html, filename) {
   const blob = new Blob([html], { type: 'text/html' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = filename || 'statement.html'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  setTimeout(() => URL.revokeObjectURL(url), 5000)
+  try {
+    const { downloadBlob } = await import('./downloadUtils')
+    const result = await downloadBlob(blob, filename || 'statement.html')
+    return result.success
+  } catch {
+    // Web fallback
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename || 'statement.html'
+    a.style.display = 'none'
+    document.body.appendChild(a)
+    a.click()
+    setTimeout(() => {
+      try { document.body.removeChild(a) } catch (_) {}
+      try { URL.revokeObjectURL(url) } catch (_) {}
+    }, 30000)
+    return true
+  }
 }

@@ -39,7 +39,15 @@ function validateModule(modDef) {
     if (modDef.kind === 'array' && !Array.isArray(parsed)) {
       issues.push({ severity: 'error', message: `"${modDef.key}" expected array, got ${typeof parsed}`, code: 'TYPE_MISMATCH' })
     } else if (modDef.kind === 'object' && (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed))) {
-      issues.push({ severity: 'error', message: `"${modDef.key}" expected object`, code: 'TYPE_MISMATCH' })
+      // Archive may be stored as a plain array in older app versions.
+      // Auto-migrate to the expected object format so export is not blocked.
+      if (modDef.key === 'archive' && Array.isArray(parsed)) {
+        const migrated = { version: 1, transactions: parsed, archivedAt: null }
+        safeStorage.set(modDef.storageKey, migrated)
+        issues.push({ severity: 'info', message: '"archive" auto-migrated from legacy array to object format', code: 'MIGRATED' })
+      } else {
+        issues.push({ severity: 'error', message: `"${modDef.key}" expected object`, code: 'TYPE_MISMATCH' })
+      }
     }
     if (modDef.key === 'transactions' && Array.isArray(parsed)) {
       const invalid = parsed.filter(t => !t || typeof t.id !== 'string' || typeof t.amount !== 'number')

@@ -396,6 +396,8 @@
     "title": "Settings",
     "appearance": "Appearance",
     "appearance_desc": "Switch between the ShyBlack dark theme and a light theme",
+    "theme_dark": "Dark Theme",
+    "theme_light": "Light Theme",
     "advanced": "Advanced",
     "csv_import": "Import from CSV",
     "csv_import_desc": "Bulk add transactions from bank statement files",
@@ -1687,6 +1689,9 @@
     "file_saved_unknown": "File saved but location unknown",
     "share_unsupported": "Share not supported",
     "download_failed": "Download failed",
+    "download_success": "Report downloaded successfully",
+    "saved_to_path": "Saved to {{path}}",
+    "download_error": "Unable to download report. Please try again.",
     "pdf_generate_failed": "Failed to generate PDF",
     "savings_goal_updated": "Savings goal updated"
   },
