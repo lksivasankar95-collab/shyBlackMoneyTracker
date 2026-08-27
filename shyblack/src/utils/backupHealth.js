@@ -1,6 +1,7 @@
 import { safeStorage } from './safeStorage'
 
 const BACKUP_HEALTH_KEY = 'backup_health'
+const BACKUP_BANNER_DISMISS_KEY = 'backup_banner_dismissed'
 const BACKUP_RECOMMEND_DAYS = 7
 const BACKUP_WARN_DAYS = 14
 const BACKUP_CRITICAL_DAYS = 30
@@ -83,6 +84,14 @@ export function shouldShowBackupBanner() {
   if (health.status === 'overdue' || health.status === 'critical') return true
   if (health.daysSinceLastBackup === null) return true
   return false
+}
+
+export function isBackupBannerDismissed() {
+  return safeStorage.get(BACKUP_BANNER_DISMISS_KEY, false) === true
+}
+
+export function dismissBackupBanner() {
+  safeStorage.set(BACKUP_BANNER_DISMISS_KEY, { dismissedAt: Date.now() })
 }
 
 export function getBackupStats() {

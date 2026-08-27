@@ -15,6 +15,7 @@ import {
   generateForecastRecommendations,
   simulateScenario,
   getBestScenarioLever,
+  getForecastDashboardStats,
 } from '../utils/forecastEngine'
 
 /* ── Sample data ── */
@@ -495,5 +496,32 @@ describe('getBestScenarioLever', () => {
 
   it('returns null for empty transactions and empty levers', () => {
     expect(getBestScenarioLever([], [])).toBeNull()
+  })
+})
+
+describe('getForecastDashboardStats', () => {
+  it('returns dashboard-ready stats from full data', () => {
+    const stats = getForecastDashboardStats({
+      transactions: sampleTxs,
+      recurring: [],
+      emis: [sampleEmi],
+      debts: [],
+      goals: [sampleGoal],
+      budgets: sampleBudgets,
+    })
+    expect(stats.forecastCount).toBe(2)
+    expect(stats.predictedMonthEndBalance).toBeDefined()
+    expect(stats.cashflowConfidence).toBeGreaterThanOrEqual(0)
+    expect(stats.cashflowConfidence).toBeLessThanOrEqual(100)
+    expect(stats.lowCashAlerts).toBeGreaterThanOrEqual(0)
+    expect(stats.emergencyFundProgress).toBeGreaterThanOrEqual(0)
+    expect(stats.retirementReadiness).toBeGreaterThanOrEqual(0)
+  })
+
+  it('handles empty data gracefully', () => {
+    const stats = getForecastDashboardStats({})
+    expect(stats.forecastCount).toBe(0)
+    expect(stats.cashflowConfidence).toBeGreaterThanOrEqual(0)
+    expect(typeof stats.projectedBalance).toBe('number')
   })
 })

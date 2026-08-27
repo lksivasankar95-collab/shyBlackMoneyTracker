@@ -1,9 +1,11 @@
-import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft, PieChart, Wallet, Repeat, FileText, DollarSign, ArrowUpCircle, AlertCircle } from 'lucide-react'
+import { Lightbulb, AlertTriangle, Heart, TrendingUp, TrendingDown, Target, Sun, Calendar, Flame, BarChart2, Activity, ArrowRightLeft, PieChart, Wallet, Repeat, FileText, DollarSign, ArrowUpCircle, PiggyBank } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts'
+import { useMemo } from 'react'
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { ALL_CATEGORIES } from '../utils/constants'
+import { calculateSavingsRate, generateSavingsInsights } from '../utils/insightsEngine'
 import GlassCard from '../components/GlassCard'
 import FinancialScore from '../components/FinancialScore'
 import EmptyState from '../components/EmptyState'
@@ -30,6 +32,10 @@ export default function InsightsPage() {
   const hasScoreHistory = scoreHistory.some((m) => m.score !== null)
   const hasCashflowData = cashflowForecast.some((m) => m.income > 0 || m.expense > 0)
 
+  const savingsRate = useMemo(() => calculateSavingsRate(transactions), [transactions])
+  const savingsInsights = useMemo(() => generateSavingsInsights(transactions), [transactions])
+  const hasSavingsData = savingsRate.income > 0 || savingsRate.expense > 0
+
   if (transactions.length === 0) {
     return (
       <div className="p-4 max-w-lg mx-auto animate-fade-in">
@@ -50,6 +56,46 @@ export default function InsightsPage() {
       <h1 className="text-xl font-bold mb-6">{t('insights.title')}</h1>
 
       <FinancialScore score={insights.score?.value ?? insights.score} factors={insights.score?.factors ?? []} breakdown={insights.scoreBreakdown} />
+
+      {hasSavingsData && (
+        <GlassCard className="mt-4 border-neon/10">
+          <div className="flex items-center gap-2 mb-3">
+            <PiggyBank size={16} className="text-neon" />
+            <h2 className="text-sm font-semibold">{t('insights.savingsRate')}</h2>
+            <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+              savingsRate.rate >= 20 ? 'bg-neon/10 text-neon' :
+              savingsRate.rate >= 15 ? 'bg-green-500/10 text-green-400' :
+              savingsRate.rate >= 10 ? 'bg-blue-500/10 text-blue-400' :
+              savingsRate.rate >= 0 ? 'bg-yellow-500/10 text-yellow-400' :
+              'bg-red-500/10 text-red-400'
+            }`}>
+              {savingsRate.level}
+            </span>
+          </div>
+          <div className="flex items-baseline gap-2 mb-1">
+            <span className="text-2xl font-extrabold tabular-nums text-neon">{savingsRate.rate}%</span>
+            <span className="text-xs text-gray-500">{t('insights.savingsRate')}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-3">
+            <div>
+              <p className="text-[11px] text-gray-500 mb-1">{t('insights.monthlySaved')}</p>
+              <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(savingsRate.savings)}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-gray-500 mb-1">{t('insights.averageIncome')}</p>
+              <p className="text-sm font-bold tabular-nums text-white">{formatCurrency(savingsRate.income)}</p>
+            </div>
+          </div>
+          {savingsInsights.length > 0 && (
+            <div className="mt-3 p-3 rounded-xl bg-white/[0.03]">
+              <p className="text-xs text-gray-300">{savingsInsights[0].message}</p>
+              {savingsInsights[0].detail && (
+                <p className="text-[10px] text-gray-500 mt-0.5">{savingsInsights[0].detail}</p>
+              )}
+            </div>
+          )}
+        </GlassCard>
+      )}
 
       {insights.health && (
         <GlassCard brand className="mt-4">

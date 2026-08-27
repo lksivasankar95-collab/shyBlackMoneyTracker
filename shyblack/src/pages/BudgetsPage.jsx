@@ -1,10 +1,10 @@
 import { useState, useMemo, useCallback} from 'react'
-import { Target, X, TrendingUp, AlertTriangle, Check, Plus, Bell, Calendar, ChevronDown, ChevronUp, Gauge } from 'lucide-react'
+import { Target, X, TrendingUp, AlertTriangle, Check, Plus, Bell, Calendar, ChevronDown, ChevronUp, Gauge, RotateCcw } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
-import { getBudgetHealth, getAIBudgetSuggestions} from '../utils/budgets'
+import { getBudgetHealth, getAIBudgetSuggestions, rolloverBudgets } from '../utils/budgets'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import CategoryIcon from '../components/CategoryIcon'
@@ -139,6 +139,24 @@ export default function BudgetsPage() {
   const overCount = Object.values(calculatedBudgets).filter((b) => b.isOver).length
   const warnCount = Object.values(calculatedBudgets).filter((b) => b.isWarning && !b.isOver).length
 
+  const hasLeftover = useMemo(
+    () => Object.values(calculatedBudgets).some((b) => (b.limit || 0) > 0 && (b.remaining || 0) > 0),
+    [calculatedBudgets]
+  )
+
+  const handleCarryOver = () => {
+    const rolled = rolloverBudgets(transactions, calculatedBudgets)
+    const applied = Object.entries(rolled).filter(([, b]) => (b.rollover || 0) > 0)
+    if (applied.length === 0) {
+      addToast(t('budgets.carry_over_none'), 'info')
+      return
+    }
+    applied.forEach(([cat, b]) => {
+      updateBudgetCtx(cat, (calculatedBudgets[cat].limit || 0) + b.rollover)
+    })
+    addToast(t('budgets.carry_over_success', { count: applied.length }), 'success')
+  }
+
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
       <div className="flex items-center justify-between mb-5">
@@ -200,6 +218,15 @@ export default function BudgetsPage() {
             {overCount > 0 && <span className="text-red-400 font-medium">{t('budgets.over_count', { count: overCount })}</span>}
             {warnCount > 0 && <span className="text-yellow-400 font-medium">{t('budgets.near_limit_count', { count: warnCount })}</span>}
           </div>
+          {hasLeftover && viewMode === 'current' && (
+            <button
+              onClick={handleCarryOver}
+              className="mt-3 flex items-center justify-center gap-1.5 w-full px-3 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all"
+            >
+              <RotateCcw size={13} />
+              {t('budgets.carry_over')}
+            </button>
+          )}
         </GlassCard>
       )}
 
@@ -445,6 +472,12 @@ export default function BudgetsPage() {
                       <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 rounded-lg p-2">
                         <AlertTriangle size={12} />
                         <span>{t('budgets.over_by', { amount: formatCurrency(budget.spent - budget.limit) })}</span>
+                      </div>
+                    )}
+                    {budget.limit > 0 && budget.remaining > 0 && !budget.isOver && (
+                      <div className="flex items-center gap-1.5 text-xs text-neon bg-neon/10 rounded-lg p-2">
+                        <RotateCcw size={12} />
+                        <span>{t('budgets.carry_over_hint', { amount: formatCurrency(Math.round(budget.remaining * 0.5)) })}</span>
                       </div>
                     )}
                     {budget.limit > 0 && budget.isWarning && !budget.isOver && (

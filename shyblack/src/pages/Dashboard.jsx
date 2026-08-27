@@ -24,6 +24,9 @@ import QuickActions from '../components/QuickActions'
 import { getTodaysTip } from '../utils/dailyTip'
 import { shouldShowReviewBanner } from '../utils/reminders'
 import { isMonthlyReviewBannerDismissed, dismissMonthlyReviewBanner } from '../utils/review'
+import { shouldShowBackupBanner, isBackupBannerDismissed, dismissBackupBanner } from '../utils/backupHealth'
+import { getForecastDashboardStats } from '../utils/forecastEngine'
+import { getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
@@ -32,7 +35,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     transactions, getBalance, getMonthlySummary, savingsGoal,
     deleteTransaction, insights, notification, dismissNotification,
     security, updateSecurity, debtsSummary, debts,
-    recurring,
+    recurring, budgets, emis,
     pendingRecurring, executeAllRecurring, skipAllRecurring,
     recoverySnapshot, restoreFromSnapshot,
     goals, goalsProjections,
@@ -48,6 +51,8 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     const now = new Date()
     return isMonthlyReviewBannerDismissed(now.getFullYear(), now.getMonth())
   })
+  const [backupBannerDismissed, setBackupBannerDismissed] = useState(() => isBackupBannerDismissed())
+  const [nwPeriod, setNwPeriod] = useState('6m')
   const privacyOn = security.privacyMode === true
   const balanceHidden = hideBalance || privacyOn
 
@@ -72,7 +77,46 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     setReviewBannerDismissed(true)
   }, [])
 
+  const showBackupBanner = useMemo(
+    () => !backupBannerDismissed && transactions.length > 0 && shouldShowBackupBanner(),
+    [backupBannerDismissed, transactions]
+  )
+
+  const handleDismissBackupBanner = useCallback(() => {
+    dismissBackupBanner()
+    setBackupBannerDismissed(true)
+  }, [])
+
   const totalCash = useMemo(() => transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0), [transactions])
+
+  const forecastStats = useMemo(
+    () => getForecastDashboardStats({ transactions, recurring, emis, debts, goals, budgets }),
+    [transactions, recurring, emis, debts, goals, budgets]
+  )
+
+  const nwTrend = useMemo(() => {
+    const history = getStoredNetWorthHistory()
+    return getNetWorthTrend(history, nwPeriod)
+  }, [nwPeriod])
+  const nwDelta = nwTrend.length >= 2 ? nwTrend[nwTrend.length - 1].netWorth - nwTrend[0].netWorth : 0
+
+  const nwSparkline = useMemo(() => {
+    if (nwTrend.length < 2) return ''
+    const values = nwTrend.map((h) => h.netWorth)
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const range = max - min || 1
+    const w = 100
+    const h = 32
+    const pad = 3
+    return values
+      .map((v, i) => {
+        const x = pad + (i * (w - pad * 2)) / (values.length - 1)
+        const y = pad + (h - pad * 2) * (1 - (v - min) / range)
+        return `${x.toFixed(1)},${y.toFixed(1)}`
+      })
+      .join(' ')
+  }, [nwTrend])
   const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + (a.balance || 0), 0), [accounts])
   const lentDebts = useMemo(() => debts.filter((d) => d.type === 'lent' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
   const borrowedDebts = useMemo(() => debts.filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
@@ -173,6 +217,54 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
             </span>
           </div>
         ) : null}
+
+        {nwTrend.length > 0 && (
+          <div className="mt-3">
+            <GlassCard className="!p-3">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <BarChart3 size={14} className="text-neon" />
+                  <p className="text-xs font-semibold">{t('dashboard.netWorthTrend')}</p>
+                </div>
+                <div className="flex bg-matte-100 rounded-lg p-0.5 gap-0.5">
+                  {[['7d', t('dashboard.trend7d')], ['30d', t('dashboard.trend30d')], ['6m', t('dashboard.trend6m')], ['1y', t('dashboard.trend1y')]].map(([val, label]) => (
+                    <button
+                      key={val}
+                      onClick={() => setNwPeriod(val)}
+                      className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                        nwPeriod === val ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {nwTrend.length >= 2 ? (
+                <svg viewBox="0 0 100 32" className="w-full h-10" preserveAspectRatio="none" aria-hidden="true">
+                  <polyline
+                    points={nwSparkline}
+                    fill="none"
+                    stroke={nwDelta >= 0 ? '#39ff14' : '#ef4444'}
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <p className="text-[10px] text-gray-500 py-2">{t('dashboard.trendNoData')}</p>
+              )}
+              {nwTrend.length >= 2 && (
+                <p className={`text-[10px] font-semibold mt-1 flex items-center gap-1 ${
+                  nwDelta >= 0 ? 'text-neon' : 'text-red-400'
+                }`}>
+                  {nwDelta >= 0 ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
+                  {t('dashboard.trendDelta', { amount: formatCurrency(Math.abs(nwDelta)) })}
+                </p>
+              )}
+            </GlassCard>
+          </div>
+        )}
       </div>
 
       {/* ── Snapshot recovery ───────────────────────── */}
@@ -189,6 +281,29 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
             className="text-[10px] font-semibold text-yellow-400 border border-yellow-500/30 rounded-lg px-2.5 py-1.5 hover:bg-yellow-500/10 transition-colors shrink-0"
           >
             {t('dashboard.restore')}
+          </button>
+        </div>
+      )}
+
+      {/* ── Backup reminder banner ───────────────────── */}
+      {showBackupBanner && (
+        <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 to-red-500/10 border border-amber-500/20 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
+            <ShieldCheck size={17} className="text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-gray-100">{t('dashboard.backupBannerTitle')}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{t('dashboard.backupBannerDesc')}</p>
+          </div>
+          <button
+            onClick={() => onNavigate('recovery-center')}
+            className="text-[10px] font-semibold text-gray-900 bg-amber-400 rounded-lg px-3 py-2 hover:bg-amber-300 transition-colors shrink-0"
+          >
+            {t('dashboard.backupBannerCta')}
+          </button>
+          <button onClick={handleDismissBackupBanner} aria-label={t('dashboard.backupBannerDismiss')}
+            className="text-gray-400 hover:text-gray-200 transition-colors shrink-0">
+            <span className="text-xs font-semibold">{t('dashboard.backupBannerDismiss')}</span>
           </button>
         </div>
       )}
@@ -244,6 +359,45 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           onClick={() => onNavigate('account-center')}
         />
       </div>
+
+      {/* ── Forecast snapshot ───────────────────────── */}
+      {transactions.length > 0 && (
+        <button onClick={() => onNavigate('forecast-center')} className="text-left w-full mb-4">
+          <GlassCard className="!p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Activity size={14} className="text-cyan-400" />
+              <p className="text-xs font-semibold">{t('dashboard.forecastSnapshotTitle')}</p>
+            </div>
+            <div className="grid grid-cols-4 gap-2">
+              <div>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.monthEndProjection')}</p>
+                <p className={`text-sm font-bold tabular-nums ${forecastStats.predictedMonthEndBalance >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                  {balanceHidden ? '••••' : formatCurrency(forecastStats.predictedMonthEndBalance)}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.forecastConfidence')}</p>
+                <p className="text-sm font-bold tabular-nums text-white">{forecastStats.cashflowConfidence}%</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.lowCashAlerts')}</p>
+                <p className={`text-sm font-bold tabular-nums ${forecastStats.lowCashAlerts > 0 ? 'text-red-400' : 'text-white'}`}>
+                  {forecastStats.lowCashAlerts}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500 mb-0.5">{t('dashboard.emergencyFundCoverage')}</p>
+                <p className={`text-sm font-bold tabular-nums ${forecastStats.emergencyFundProgress >= 100 ? 'text-neon' : 'text-yellow-400'}`}>
+                  {forecastStats.emergencyFundProgress}%
+                </p>
+              </div>
+            </div>
+            {forecastStats.atRiskGoals > 0 && (
+              <p className="text-[10px] text-amber-400 mt-1.5">{t('dashboard.atRiskGoals', { count: forecastStats.atRiskGoals })}</p>
+            )}
+          </GlassCard>
+        </button>
+      )}
 
       {/* ── 3. What's Due ───────────────────────────── */}
       {(hasPendingActions || emiSummary?.active > 0) && (
