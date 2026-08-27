@@ -602,6 +602,8 @@ export function simulateScenario(transactions = [], scenario = {}) {
     salaryIncrease = 0,
     emiReduction = 0,
     savingsIncrease = 0,
+    expenseReduction = 0,
+    lumpSum = 0,
   } = scenario
 
   const adjusted = transactions.map((t) => {
@@ -616,14 +618,20 @@ export function simulateScenario(transactions = [], scenario = {}) {
   const expense = adjusted.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0)
 
   const monthly = monthlyFromTxs(adjusted, 3)
+  const baselineMonthly = monthlyFromTxs(transactions, 3)
   const avgMonthlyIncome = monthly.length > 0 ? avg(monthly.map((m) => m.income)) : 0
   const avgMonthlyExpense = monthly.length > 0 ? avg(monthly.map((m) => m.expense)) : 0
+  const baselineAvgIncome = baselineMonthly.length > 0 ? avg(baselineMonthly.map((m) => m.income)) : 0
+  const baselineAvgExpense = baselineMonthly.length > 0 ? avg(baselineMonthly.map((m) => m.expense)) : 0
 
   const emiSavings = emiReduction > 0 ? emiReduction : 0
   const extraSavings = savingsIncrease > 0 ? savingsIncrease : 0
+  const expenseCut = expenseReduction > 0 ? expenseReduction : 0
 
-  const monthlySurplus = avgMonthlyIncome - avgMonthlyExpense + emiSavings + extraSavings
-  const currentBalance = Math.max(0, income - expense)
+  const monthlySurplus = avgMonthlyIncome - avgMonthlyExpense + emiSavings + extraSavings + expenseCut
+  const baselineSurplus = Math.round(baselineAvgIncome - baselineAvgExpense)
+  const oneTime = lumpSum > 0 ? lumpSum : 0
+  const currentBalance = Math.max(0, income - expense) + oneTime
 
   const periods = PERIOD_DAYS.map((days) => {
     const months = days / 30
@@ -636,20 +644,64 @@ export function simulateScenario(transactions = [], scenario = {}) {
     }
   })
 
+  const summaryParts = []
+  if (salaryIncrease > 0) summaryParts.push(`Salary +${salaryIncrease}%`)
+  if (emiReduction > 0) summaryParts.push(`EMI -₹${emiReduction.toLocaleString()}`)
+  if (savingsIncrease > 0) summaryParts.push(`Savings +₹${savingsIncrease.toLocaleString()}/mo`)
+  if (expenseReduction > 0) summaryParts.push(`Expense -₹${expenseReduction.toLocaleString()}/mo`)
+  if (lumpSum > 0) summaryParts.push(`Lump sum ₹${lumpSum.toLocaleString()}`)
+
+  const summary = summaryParts.length > 0
+    ? `${summaryParts.join(', ')} → Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`
+    : `Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`
+
   return {
     scenario,
     currentBalance: Math.round(currentBalance),
     monthlySurplus: Math.round(monthlySurplus),
+    baselineSurplus,
+    improvement: Math.round(monthlySurplus) - baselineSurplus,
     periods,
     annualSavings: Math.round(monthlySurplus * 12),
-    summary: salaryIncrease > 0
-      ? `Salary +${salaryIncrease}%: Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`
-      : emiReduction > 0
-        ? `EMI -₹${emiReduction.toLocaleString()}: Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`
-        : savingsIncrease > 0
-          ? `Savings +₹${savingsIncrease.toLocaleString()}/mo: Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`
-          : `Monthly surplus ₹${Math.round(monthlySurplus).toLocaleString()}`,
+    projectedBalance365d: periods[4]?.projectedBalance || 0,
+    summary,
   }
+}
+
+/**
+ * Evaluates each single "lever" against the baseline and picks the one that
+ * grows annual savings the most. Great for a "what should I do next" card.
+ */
+export function getBestScenarioLever(transactions = [], customLevers = null) {
+  const options = Array.isArray(customLevers)
+    ? customLevers
+    : [
+        { key: 'salary', label: 'Salary +10%', scenario: { salaryIncrease: 10 } },
+        { key: 'spending', label: 'Cut spending ₹2,000/mo', scenario: { expenseReduction: 2000 } },
+        { key: 'emi', label: 'Refinance EMI −₹2,000/mo', scenario: { emiReduction: 2000 } },
+        { key: 'savings', label: 'Save ₹2,000/mo more', scenario: { savingsIncrease: 2000 } },
+      ]
+
+  const baseline = simulateScenario(transactions, {})
+  let best = null
+  for (const opt of options) {
+    const result = simulateScenario(transactions, opt.scenario)
+    const gain = result.annualSavings - baseline.annualSavings
+    if (!best || gain > best.gain) {
+      best = { key: opt.key, label: opt.label, scenario: opt.scenario, gain, result }
+    }
+  }
+
+  return best
+    ? {
+        key: best.key,
+        label: best.label,
+        gain: best.gain,
+        monthlySurplus: best.result.monthlySurplus,
+        annualSavings: best.result.annualSavings,
+        improvement: best.result.improvement,
+      }
+    : null
 }
 
 /* ═══════════════════════════════════

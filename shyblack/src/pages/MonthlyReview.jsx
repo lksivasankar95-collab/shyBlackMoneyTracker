@@ -26,7 +26,7 @@ const TYPE_ICON_COLORS = {
 
 export default function MonthlyReview() {
   const { t } = useTranslation()
-  const { transactions, recurring, insights } = useFinance()
+  const { transactions, recurring } = useFinance()
   const [review, setReview] = useState(null)
 
   useEffect(() => {

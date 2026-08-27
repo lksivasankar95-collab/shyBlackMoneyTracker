@@ -4,14 +4,112 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, LineChart, Line, AreaChart, Area,
 } from 'recharts'
-import { TrendingUp, TrendingDown, BarChart3, Calendar, Activity } from 'lucide-react'
+import { TrendingUp, TrendingDown, BarChart3, Calendar, Activity, Zap, AlertTriangle } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
 import { getMonthlyData, getCategoryTrends, getDailyExpenseHeatmap, getIncomeForecast, compareSpending, getMonthlyGrowth } from '../utils/analytics'
+import { getPulseStats, detectSpendingAnomalies } from '../utils/spendingPulse'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import AnimatedNumber from '../components/AnimatedNumber'
+
+const PULSE_COLORS = {
+  calm: { label: 'text-neon', bg: 'bg-neon/10', bar: 'bg-neon' },
+  moderate: { label: 'text-blue-400', bg: 'bg-blue-500/10', bar: 'bg-blue-400' },
+  elevated: { label: 'text-amber-400', bg: 'bg-amber-500/10', bar: 'bg-amber-400' },
+  hot: { label: 'text-red-400', bg: 'bg-red-500/10', bar: 'bg-red-400' },
+}
+
+function PulseView({ transactions, t }) {
+  const pulse = useMemo(() => getPulseStats(transactions), [transactions])
+  const anomalies = useMemo(() => detectSpendingAnomalies(transactions, 30), [transactions])
+  const colors = PULSE_COLORS[pulse.pulseLevel] || PULSE_COLORS.calm
+  const maxDay = Math.max(...pulse.series.map((d) => d.amount), 1)
+
+  return (
+    <div className="space-y-4">
+      <GlassCard brand className="mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Zap size={15} className="text-amber-400" />
+            <h2 className="text-sm font-semibold">{t('analytics.spending_pulse')}</h2>
+          </div>
+          <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${colors.bg} ${colors.label}`}>
+            {pulse.pulseLabel}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="p-2.5 rounded-xl bg-white/[0.03]">
+            <p className="text-[10px] text-gray-500 mb-0.5">{t('analytics.today')}</p>
+            <p className="text-sm font-extrabold text-white tabular-nums">{formatCurrency(pulse.today)}</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.03]">
+            <p className="text-[10px] text-gray-500 mb-0.5">{t('analytics.last_7d')}</p>
+            <p className="text-sm font-extrabold tabular-nums">{formatCurrency(pulse.weekTotal)}</p>
+            <p className={`text-[9px] mt-0.5 tabular-nums ${pulse.weekOverWeekDelta > 0 ? 'text-red-400' : pulse.weekOverWeekDelta < 0 ? 'text-neon' : 'text-gray-600'}`}>
+              {pulse.weekOverWeekDelta > 0 ? '+' : ''}{pulse.weekOverWeekDelta}% {t('analytics.week_vs_prev')}
+            </p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/[0.03]">
+            <p className="text-[10px] text-gray-500 mb-0.5">{t('analytics.last_30d')}</p>
+            <p className="text-sm font-extrabold tabular-nums">{formatCurrency(pulse.monthTotal)}</p>
+          </div>
+        </div>
+
+        <div className="h-32 -mx-1 mb-2">
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={pulse.series} margin={{ top: 4, right: 4, bottom: 0, left: 0 }}>
+              <defs>
+                <linearGradient id="pulseGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.25} />
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fill: '#6b7280', fontSize: 9 }} interval={4} />
+              <YAxis hide />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+              <Area type="monotone" dataKey="amount" stroke="#f59e0b" strokeWidth={2} fill="url(#pulseGrad)" name={t('common.expense')} />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="flex items-end gap-[3px] h-10 mt-1">
+          {pulse.series.slice(-14).map((d) => (
+            <div key={d.day} className="flex-1 flex flex-col items-center gap-0.5" title={`${d.day}: ${formatCurrency(d.amount)}`}>
+              <div className={`w-full rounded-t ${d.amount > 0 ? colors.bar : 'bg-matte-200'}`} style={{ height: `${Math.max(d.amount > 0 ? 10 : 2, (d.amount / maxDay) * 30)}px` }} />
+            </div>
+          ))}
+        </div>
+      </GlassCard>
+
+      <GlassCard brand>
+        <div className="flex items-center gap-2 mb-3">
+          <AlertTriangle size={15} className="text-amber-400" />
+          <h2 className="text-sm font-semibold">{t('analytics.anomalies')}</h2>
+        </div>
+        {anomalies.length === 0 ? (
+          <p className="text-xs text-gray-500">{t('analytics.no_anomalies')}</p>
+        ) : (
+          <div className="space-y-2">
+            {anomalies.map((a) => (
+              <div key={a.date} className="flex items-start gap-2 p-2.5 rounded-xl bg-white/[0.03] border border-white/5">
+                <AlertTriangle size={13} className="text-amber-400 shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-medium text-white">{a.label} · {formatCurrency(a.amount)}</p>
+                  <p className="text-[10px] text-gray-500 mt-0.5">
+                    {a.ratio}× {t('analytics.daily_avg', { value: formatCurrency(a.avg) })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </GlassCard>
+    </div>
+  )
+}
 
 const NEON = '#39ff14'
 const RED = '#ef4444'
@@ -99,7 +197,7 @@ export default function Analytics() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold">{t('analytics.title')}</h1>
         <div className="flex bg-matte-100 rounded-lg p-0.5">
-          {['overview', 'trends', 'heatmap'].map((v) => (
+          {['overview', 'trends', 'heatmap', 'pulse'].map((v) => (
             <button
               key={v}
               onClick={() => setViewMode(v)}
@@ -107,7 +205,7 @@ export default function Analytics() {
                 viewMode === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
               }`}
             >
-              {v === 'overview' ? t('analytics.overview') : v === 'trends' ? t('analytics.trends') : t('analytics.heatmap')}
+              {v === 'overview' ? t('analytics.overview') : v === 'trends' ? t('analytics.trends') : v === 'heatmap' ? t('analytics.heatmap') : t('analytics.pulse')}
             </button>
           ))}
         </div>
@@ -324,6 +422,8 @@ export default function Analytics() {
           )}
         </GlassCard>
       )}
+
+      {viewMode === 'pulse' && <PulseView transactions={normalTx} t={t} />}
     </div>
   )
 }

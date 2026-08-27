@@ -35,6 +35,7 @@ const Settings = lazy(() => import('./pages/Settings'))
 const InsightsPage = lazy(() => import('./pages/InsightsPage'))
 const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const MonthlyReviewPage = lazy(() => import('./pages/MonthlyReview'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
@@ -88,6 +89,7 @@ const pages = {
   insights: InsightsPage,
   budgets: BudgetsPage,
   reports: ReportsPage,
+  'monthly-review': MonthlyReviewPage,
   debts: DebtsPage,
   timeline: TimelinePage,
   diagnostics: DiagnosticsPage,

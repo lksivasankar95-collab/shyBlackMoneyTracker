@@ -1013,7 +1013,7 @@ export default function Settings({ onNavigate }) {
             <ChevronRight size={14} className="text-gray-500 group-hover:text-blue-400 transition-colors" />
           </button>
 
-          <button onClick={() => onNavigate('review')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+          <button onClick={() => onNavigate('monthly-review')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-matte-200 flex items-center justify-center group-hover:bg-neon/10 transition-colors">
               <Sparkles size={16} className="text-gray-400 group-hover:text-yellow-400 transition-colors" />
             </div>

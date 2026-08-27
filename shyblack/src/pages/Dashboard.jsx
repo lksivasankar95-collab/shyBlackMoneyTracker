@@ -22,6 +22,8 @@ import NotificationBanner from '../components/NotificationBanner'
 import DashboardEmiWidget from '../components/DashboardEmiWidget'
 import QuickActions from '../components/QuickActions'
 import { getTodaysTip } from '../utils/dailyTip'
+import { shouldShowReviewBanner } from '../utils/reminders'
+import { isMonthlyReviewBannerDismissed, dismissMonthlyReviewBanner } from '../utils/review'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
@@ -42,6 +44,10 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   } = useFinance()
 
   const [hideBalance, setHideBalance] = useState(security.hideBalance)
+  const [reviewBannerDismissed, setReviewBannerDismissed] = useState(() => {
+    const now = new Date()
+    return isMonthlyReviewBannerDismissed(now.getFullYear(), now.getMonth())
+  })
   const privacyOn = security.privacyMode === true
   const balanceHidden = hideBalance || privacyOn
 
@@ -54,6 +60,17 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     return getMonthlySummary(d.getFullYear(), d.getMonth())
   }, [getMonthlySummary])
   const balance = useMemo(() => getBalance(), [getBalance])
+
+  const showReviewBanner = useMemo(
+    () => !reviewBannerDismissed && transactions.length > 0 && shouldShowReviewBanner(transactions),
+    [reviewBannerDismissed, transactions]
+  )
+
+  const dismissReviewBanner = useCallback(() => {
+    const now = new Date()
+    dismissMonthlyReviewBanner(now.getFullYear(), now.getMonth())
+    setReviewBannerDismissed(true)
+  }, [])
 
   const totalCash = useMemo(() => transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0), [transactions])
   const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + (a.balance || 0), 0), [accounts])
@@ -177,6 +194,29 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
       )}
 
       <NotificationBanner notification={notification} onDismiss={dismissNotification} />
+
+      {/* ── Monthly Review banner ────────────────────── */}
+      {showReviewBanner && (
+        <div className="mb-4 p-4 rounded-2xl bg-gradient-to-r from-neon/10 to-blue-500/10 border border-neon/20 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center shrink-0">
+            <Calendar size={17} className="text-neon" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold text-gray-100">{t('monthlyReview.reviewBannerTitle')}</p>
+            <p className="text-[10px] text-gray-400 mt-0.5">{t('monthlyReview.reviewBannerDesc')}</p>
+          </div>
+          <button
+            onClick={() => onNavigate('monthly-review')}
+            className="text-[10px] font-semibold text-gray-900 bg-neon rounded-lg px-3 py-2 hover:bg-neon/80 transition-colors shrink-0"
+          >
+            {t('monthlyReview.reviewBannerCta')}
+          </button>
+          <button onClick={dismissReviewBanner} aria-label={t('monthlyReview.reviewBannerDismiss')}
+            className="text-gray-400 hover:text-gray-200 transition-colors shrink-0">
+            <span className="text-xs font-semibold">{t('monthlyReview.reviewBannerDismiss')}</span>
+          </button>
+        </div>
+      )}
 
       {/* ── 2. Cash Flow ────────────────────────────── */}
       <div className="flex gap-3 mb-4">

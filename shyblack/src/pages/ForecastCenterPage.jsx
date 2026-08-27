@@ -1,12 +1,12 @@
 import { useState, useMemo } from 'react'
-import { Target, CreditCard, BarChart3, Activity, Zap, Shield, AlertCircle } from 'lucide-react'
+import { Target, CreditCard, BarChart3, Activity, Zap, Shield, AlertCircle, Sparkles } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import {
   forecastCashflow, forecastGoal, getGoalHealthScore, getGoalRecommendations,
   forecastEmiPayoff, forecastWealth, getOverspendingDetection,
   calculateRetirement, getEmergencyFundFromTransactions,
-  generateForecastRecommendations, simulateScenario,
+  generateForecastRecommendations, simulateScenario, getBestScenarioLever,
 } from '../utils/forecastEngine'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -391,14 +391,20 @@ function ScenariosTab({ transactions, goals, emis, debts, budgets }) {
   const [salaryInc, setSalaryInc] = useState(0)
   const [emiRed, setEmiRed] = useState(0)
   const [savingsInc, setSavingsInc] = useState(0)
+  const [expenseCut, setExpenseCut] = useState(0)
+  const [lumpSum, setLumpSum] = useState(0)
 
   const scenario = useMemo(() => ({
     salaryIncrease: salaryInc,
     emiReduction: emiRed,
     savingsIncrease: savingsInc,
-  }), [salaryInc, emiRed, savingsInc])
+    expenseReduction: expenseCut,
+    lumpSum,
+  }), [salaryInc, emiRed, savingsInc, expenseCut, lumpSum])
 
   const result = useMemo(() => simulateScenario(transactions, scenario), [transactions, scenario])
+
+  const bestLever = useMemo(() => getBestScenarioLever(transactions), [transactions])
 
   const forecastRecs = useMemo(() => generateForecastRecommendations({ transactions, goals, emis, debts, budgets }), [transactions, goals, emis, debts, budgets])
 
@@ -419,6 +425,14 @@ function ScenariosTab({ transactions, goals, emis, debts, budgets }) {
             <label className="text-[10px] text-gray-500 block mb-1">Extra Savings/mo: ₹{savingsInc.toLocaleString()}</label>
             <input type="range" min={0} max={20000} step={500} value={savingsInc} onChange={(e) => setSavingsInc(parseInt(e.target.value))} className="w-full accent-neon" />
           </div>
+          <div>
+            <label className="text-[10px] text-gray-500 block mb-1">Expense Cut/mo: ₹{expenseCut.toLocaleString()}</label>
+            <input type="range" min={0} max={20000} step={500} value={expenseCut} onChange={(e) => setExpenseCut(parseInt(e.target.value))} className="w-full accent-neon" />
+          </div>
+          <div>
+            <label className="text-[10px] text-gray-500 block mb-1">One-time Lump Sum: ₹{lumpSum.toLocaleString()}</label>
+            <input type="range" min={0} max={1000000} step={10000} value={lumpSum} onChange={(e) => setLumpSum(parseInt(e.target.value))} className="w-full accent-neon" />
+          </div>
         </div>
       </GlassCard>
 
@@ -430,6 +444,15 @@ function ScenariosTab({ transactions, goals, emis, debts, budgets }) {
           <StatBox label="Annual Savings" value={formatCurrency(result.annualSavings)} color="text-neon" />
           <StatBox label="Current Balance" value={formatCurrency(result.currentBalance)} />
         </div>
+
+        {result.improvement !== 0 && (
+          <div className="p-2.5 rounded-lg bg-blue-500/5 border border-blue-500/10 text-[10px] mb-3">
+            <span className="text-gray-400">vs baseline (current surplus): </span>
+            <span className={`font-bold ${result.improvement > 0 ? 'text-neon' : 'text-red-400'}`}>
+              {result.improvement > 0 ? '+' : ''}{formatCurrency(result.improvement)}/mo
+            </span>
+          </div>
+        )}
 
         <h4 className="text-[10px] font-semibold text-gray-500 mb-2">Period Projections</h4>
         <div className="space-y-1.5">
@@ -443,6 +466,23 @@ function ScenariosTab({ transactions, goals, emis, debts, budgets }) {
           ))}
         </div>
       </GlassCard>
+
+      {bestLever && (
+        <GlassCard>
+          <h3 className="text-xs font-semibold text-gray-300 mb-3 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-amber-400" /> Best Single Action
+          </h3>
+          <div className="p-2.5 rounded-lg bg-white/[0.03] border border-white/5 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-semibold text-white">{bestLever.label}</p>
+              <p className="text-[10px] text-gray-500">
+                +{formatCurrency(bestLever.gain)}/yr vs current · monthly surplus {formatCurrency(bestLever.monthlySurplus)}
+              </p>
+            </div>
+            <span className="text-[10px] font-bold text-neon">Best</span>
+          </div>
+        </GlassCard>
+      )}
 
       {forecastRecs.length > 0 && (
         <GlassCard>

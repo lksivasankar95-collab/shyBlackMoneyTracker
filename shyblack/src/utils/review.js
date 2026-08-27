@@ -22,6 +22,19 @@ export function markReviewGenerated(year, month) {
   safeStorage.set(STORAGE_KEYS.REVIEW, data)
 }
 
+export function isMonthlyReviewBannerDismissed(year, month) {
+  const key = `banner_${getMonthKey(year, month)}`
+  const data = safeStorage.get(STORAGE_KEYS.REVIEW, {})
+  return !!data[key]
+}
+
+export function dismissMonthlyReviewBanner(year, month) {
+  const key = `banner_${getMonthKey(year, month)}`
+  const data = safeStorage.get(STORAGE_KEYS.REVIEW, {})
+  data[key] = { dismissedAt: Date.now() }
+  safeStorage.set(STORAGE_KEYS.REVIEW, data)
+}
+
 export function generateMonthlyReview(transactions, recurring) {
   const now = new Date()
   const year = now.getFullYear()

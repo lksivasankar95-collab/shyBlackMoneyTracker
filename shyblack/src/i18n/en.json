@@ -181,7 +181,16 @@
     "total": "Total: {{}}",
     "daily_spending": "Daily Spending",
     "peak": "Peak: {{}}",
-    "avg_day": "Avg: {{}}/day"
+    "avg_day": "Avg: {{}}/day",
+    "pulse": "Pulse",
+    "spending_pulse": "Spending Pulse",
+    "today": "Today",
+    "last_7d": "Last 7 days",
+    "last_30d": "Last 30 days",
+    "week_vs_prev": "vs prev week",
+    "anomalies": "Spending Anomalies",
+    "no_anomalies": "No unusual spending spikes detected",
+    "daily_avg": "Daily avg {{}}"
   },
 
   "onboarding": {
@@ -1331,7 +1340,8 @@
     "you_borrowed": "You borrowed",
     "received": "Received",
     "sent": "Sent",
-    "ledger": "Ledger: {{}}"
+    "ledger": "Ledger: {{}}",
+    "insights": "Relationship Insights"
   },
 
   "relationships": {
@@ -1388,7 +1398,11 @@
     "noDataDesc": "Add transactions this month to see your review",
     "highlights": "Highlights",
     "transactionCount": "{{}} transactions",
-    "financialScore": "Financial Score: {{}}"
+    "financialScore": "Financial Score: {{}}",
+    "reviewBannerTitle": "Your Monthly Review is ready",
+    "reviewBannerDesc": "See how last month went across spending, saving and score",
+    "reviewBannerCta": "Review last month",
+    "reviewBannerDismiss": "Dismiss"
   },
 
   "review": {

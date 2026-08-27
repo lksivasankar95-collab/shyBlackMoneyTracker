@@ -14,6 +14,7 @@ import {
   forecastFinancialHealth,
   generateForecastRecommendations,
   simulateScenario,
+  getBestScenarioLever,
 } from '../utils/forecastEngine'
 
 /* ── Sample data ── */
@@ -446,5 +447,53 @@ describe('forecastEngine edge cases', () => {
     })
     expect(result.monthlySurplus).toBeGreaterThan(0)
     expect(result.periods.length).toBe(5)
+  })
+
+  it('simulateScenario baseline surplus is stable with zero levers', () => {
+    const result = simulateScenario(sampleTxs, {})
+    const baseline = simulateScenario(sampleTxs, {})
+    expect(result.baselineSurplus).toBeDefined()
+    expect(result.improvement).toBe(0)
+    expect(Math.abs(result.annualSavings - result.baselineSurplus * 12)).toBeLessThanOrEqual(12)
+    expect(result.projectedBalance365d).toBeDefined()
+    expect(baseline.baselineSurplus).toBe(result.baselineSurplus)
+  })
+
+  it('simulateScenario handles expense reduction', () => {
+    const result = simulateScenario(sampleTxs, { expenseReduction: 3000 })
+    expect(result.improvement).toBe(3000)
+    expect(result.monthlySurplus).toBe(result.baselineSurplus + 3000)
+    expect(result.summary).toContain('Expense -₹')
+  })
+
+  it('simulateScenario adds lump sum to current balance', () => {
+    const base = simulateScenario(sampleTxs, {})
+    const result = simulateScenario(sampleTxs, { lumpSum: 50000 })
+    expect(result.currentBalance).toBe(base.currentBalance + 50000)
+    expect(result.monthlySurplus).toBe(base.monthlySurplus)
+    expect(result.summary).toContain('Lump sum')
+  })
+})
+
+describe('getBestScenarioLever', () => {
+  it('picks a lever with positive gain', () => {
+    const best = getBestScenarioLever(sampleTxs)
+    expect(best).not.toBeNull()
+    expect(best.key).toBeDefined()
+    expect(best.gain).toBeGreaterThan(0)
+    expect(best.annualSavings).toBeGreaterThan(0)
+  })
+
+  it('respects custom levers and returns the max gain one', () => {
+    const best = getBestScenarioLever(sampleTxs, [
+      { key: 'a', label: 'Lever A', scenario: { savingsIncrease: 1000 } },
+      { key: 'b', label: 'Lever B', scenario: { savingsIncrease: 5000 } },
+    ])
+    expect(best.key).toBe('b')
+    expect(best.gain).toBe(5000 * 12)
+  })
+
+  it('returns null for empty transactions and empty levers', () => {
+    expect(getBestScenarioLever([], [])).toBeNull()
   })
 })

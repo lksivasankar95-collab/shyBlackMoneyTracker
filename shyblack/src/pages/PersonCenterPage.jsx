@@ -2,13 +2,20 @@ import { useState, useMemo} from 'react'
 import {
   ChevronLeft, Users, TrendingUp, TrendingDown,
   ArrowDownLeft, ArrowUpRight, Search, Phone,
+  FileText, Link2, FileWarning, PieChart, HeartHandshake, Lightbulb,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
-import { getDocumentsForEntity } from '../utils/documents'
+import { generateRelationshipInsights } from '../utils/relationshipInsights'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
+
+const INSIGHT_ICONS = { FileText, Link: Link2, FileWarning, PieChart, HeartHandshake, Users }
+const INSIGHT_STYLES = {
+  info: { card: 'border-blue-400/20 bg-blue-400/5', iconBg: 'bg-blue-400/10 text-blue-400' },
+  warning: { card: 'border-amber-400/20 bg-amber-400/5', iconBg: 'bg-amber-400/10 text-amber-400' },
+}
 
 export default function PersonCenterPage({ onNavigate }) {
   const { t } = useTranslation()
@@ -55,6 +62,16 @@ export default function PersonCenterPage({ onNavigate }) {
     const q = searchQuery.toLowerCase()
     return people.filter((p) => p.name.toLowerCase().includes(q))
   }, [people, searchQuery])
+
+  const relationshipInsights = useMemo(() => {
+    void transactions.length
+    void debts.length
+    try {
+      return generateRelationshipInsights() || []
+    } catch {
+      return []
+    }
+  }, [transactions, debts])
 
   const [selectedPerson, setSelectedPerson] = useState(null)
 
@@ -161,6 +178,30 @@ export default function PersonCenterPage({ onNavigate }) {
           className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-matte-200 border border-glass-border text-sm text-white placeholder-gray-600 focus:outline-none focus:border-neon/30"
         />
       </div>
+
+      {relationshipInsights.length > 0 && (
+        <GlassCard className="mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <HeartHandshake size={15} className="text-neon" />
+            <h2 className="text-sm font-semibold">{t('people.insights')}</h2>
+            <span className="text-[10px] text-gray-600 ml-auto">{relationshipInsights.length}</span>
+          </div>
+          <div className="space-y-2">
+            {relationshipInsights.slice(0, 6).map((insight, i) => {
+              const Style = INSIGHT_STYLES[insight.type] || INSIGHT_STYLES.info
+              const Icon = INSIGHT_ICONS[insight.icon] || Lightbulb
+              return (
+                <div key={i} className={`flex items-start gap-2.5 p-2.5 rounded-xl border ${Style.card}`}>
+                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${Style.iconBg}`}>
+                    <Icon size={13} />
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-gray-300 pt-0.5">{insight.text}</p>
+                </div>
+              )
+            })}
+          </div>
+        </GlassCard>
+      )}
 
       {filtered.length === 0 ? (
         <EmptyState icon={Users} title={t('people.no_people')} description={t('people.no_people_desc')} />
