@@ -31,6 +31,7 @@
     "sip_calculator": "SIP Calc",
     "relationships": "Relationship Hub",
     "review_center": "Review Center",
+    "year_review": "Year in Review",
     "data_quality": "Data Quality",
     "diagnostics": "Diagnostics",
       "recurring_transactions": "Recurring Transactions",
@@ -173,7 +174,20 @@
       "trend6m": "6M",
       "trend1y": "1Y",
       "trendDelta": "{{amount}} this period",
-      "trendNoData": "Not enough history yet"
+      "trendNoData": "Not enough history yet",
+      "upcoming_payments": "Upcoming Payments",
+      "days_left": "{{count}}d left",
+      "due_today": "Due today",
+      "bill_overdue": "Overdue",
+      "receipt_match_title": "Receipt Match",
+      "receipt_match_subtitle": "Looks like an existing transaction",
+      "receipt_link": "Link",
+      "receipt_skip": "Skip",
+      "receipt_linked": "Receipt linked to transaction",
+      "milestone_title": "Milestone reached!",
+      "milestone_msg": "You crossed {{amount}} net worth",
+      "milestone_next": "Next: {{amount}}",
+      "milestone_close": "Close"
     },
 
   "analytics": {
@@ -634,6 +648,17 @@
     "amount_exceeds": "Amount exceeds remaining balance",
     "confirm_delete": "Delete this record? This cannot be undone.",
     "search_name": "Search by name...",
+    "payoff_plan": "Payoff Plan",
+    "payoff_desc": "Priority order to clear your debts & EMIs faster",
+    "payoff_avalanche": "Avalanche (highest rate first)",
+    "payoff_snowball": "Snowball (smallest balance first)",
+    "payoff_order": "Priority",
+    "payoff_monthly": "Monthly",
+    "payoff_months": "{{count}} months",
+    "payoff_interest": "Est. interest",
+    "payoff_total": "Total repay",
+    "payoff_payoff_by": "Clear by {{date}}",
+    "payoff_no_debt": "No active debts or EMIs to plan",
     "status_label": "Status",
     "receivable_short": "recv",
     "payable_short": "owed",
@@ -781,6 +806,13 @@
     "last_month_label": "Last month: {{amount}}",
     "remaining_label": "{{amount}} left",
     "daily_avg": "Daily avg",
+    "pace": "Pace",
+    "pace_unused": "No spending yet",
+    "pace_on_track": "On track",
+    "pace_ahead": "Ahead of pace",
+    "pace_behind": "Under pace",
+    "pace_breached": "Breached",
+    "pace_expected": "Expected: {{amount}}",
     "over_by": "Over budget by {{amount}}",
     "only_remaining": "Only {{amount}} remaining ({{percent}}% left)",
     "on_track": "On track — {{amount}} remaining",
@@ -2174,6 +2206,24 @@
     "clear_history_desc": "Removes the realised-trades list. Open lots are kept."
   },
 
+  "yearReview": {
+    "title": "Year in Review",
+    "subtitle": "Your {{year}} at a glance",
+    "income": "Total Income",
+    "expense": "Total Expense",
+    "savings": "Net Savings",
+    "savings_rate": "Savings Rate",
+    "best_month": "Best Month",
+    "worst_month": "Toughest Month",
+    "top_category": "Top Category",
+    "active_months": "Active months",
+    "avg_monthly": "Avg Monthly Spend",
+    "tx_count": "Transactions",
+    "monthly_chart": "Savings by Month",
+    "next": "Next",
+    "empty": "No transactions in {{year}} yet"
+  },
+
   "investments": {
     "title": "Investments",
     "subtitle": "Lots, dividends and unrealised P&L",
@@ -2213,7 +2263,15 @@
     "price_done": "Market price updated",
     "delete_asset": "Delete this asset?",
     "delete_desc": "Removes the asset with all its lots, sells and income records.",
-    "xirr": "XIRR (annualised return)"
+    "xirr": "XIRR (annualised return)",
+    "risk_check": "Risk Check",
+    "risk_score": "Risk Score",
+    "risk_good": "Healthy diversification",
+    "risk_ok": "Some concentration risk",
+    "risk_low": "High concentration risk",
+    "risk_alloc": "Allocation",
+    "risk_alerts": "Alerts",
+    "risk_untracked": "Add investments to see the risk check"
   },
 
   "statement_import": {

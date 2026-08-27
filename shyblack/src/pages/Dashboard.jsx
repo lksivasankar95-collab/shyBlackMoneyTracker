@@ -10,7 +10,11 @@ import { useToast } from '../components/Toast'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { getUpcomingRecurringTransactions } from '../utils/recurring'
-import { getBills, getUpcomingBills, getOverdueBills, getBillStats } from '../utils/bills'
+import { getBills, getOverdueBills, getBillStats } from '../utils/bills'
+import { getUpcomingPayments, getDaysUntil } from '../utils/upcomingPayments'
+import { getReceipts, updateReceipt as linkReceipt } from '../utils/receiptUtils'
+import { findReceiptMatchSuggestions } from '../utils/receiptMatcher'
+import { getLatestMilestone, getNextMilestone, getMilestoneProgress, getStoredLastMilestone, saveLastMilestoneValue } from '../utils/networthMilestones'
 import GlassCard from '../components/GlassCard'
 import StatCard from '../components/StatCard'
 import TransactionItem from '../components/TransactionItem'
@@ -122,6 +126,30 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const borrowedDebts = useMemo(() => debts.filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
   const netWorth = useMemo(() => totalCash + totalAccountBal + lentDebts - borrowedDebts, [totalCash, totalAccountBal, lentDebts, borrowedDebts])
 
+  const [milestoneCelebration, setMilestoneCelebration] = useState(null)
+  const [linkedReceiptIds, setLinkedReceiptIds] = useState(() => new Set())
+
+  useEffect(() => {
+    const last = getStoredLastMilestone()
+    const current = getLatestMilestone(netWorth)
+    if (typeof last === 'number' && current && current.value > last) {
+      setMilestoneCelebration(current)
+      saveLastMilestoneValue(current.value)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const receiptMatches = useMemo(
+    () => findReceiptMatchSuggestions(getReceipts(), transactions).filter((s) => !linkedReceiptIds.has(s.receipt.id)),
+    [transactions, linkedReceiptIds]
+  )
+
+  const handleLinkReceipt = (suggestion) => {
+    linkReceipt(suggestion.receipt.id, { transactionId: suggestion.match.id })
+    setLinkedReceiptIds((prev) => new Set(prev).add(suggestion.receipt.id))
+    addToast(t('dashboard.receipt_linked'), 'success')
+  }
+
   const recentTx = useMemo(() => transactions.slice(0, 3), [transactions])
 
   const toggleHide = useCallback(() => {
@@ -163,6 +191,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     { route: 'account-center', Icon: Wallet, color: 'text-cyan-400', labelKey: 'nav.account_center' },
     { route: 'trends', Icon: BarChart3, color: 'text-blue-400', labelKey: 'nav.trends' },
     { route: 'review', Icon: Sparkles, color: 'text-violet-400', labelKey: 'nav.review_center' },
+    { route: 'year-in-review', Icon: Sparkles, color: 'text-purple-400', labelKey: 'nav.year_review' },
     { route: 'data-quality', Icon: ShieldCheck, color: 'text-amber-400', labelKey: 'nav.data_quality' },
     { route: 'sip-calculator', Icon: Calculator, color: 'text-green-400', labelKey: 'nav.sip_calculator' },
   ]
@@ -484,46 +513,66 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
         )
       })()}
 
-      {/* ── Upcoming Bills ──────────────────────────── */}
+      {/* ── Upcoming Payments (bills + recurring) ───── */}
       {(() => {
         const allBills = getBills()
-        if (allBills.length === 0) return null
-        const billsDue = getUpcomingBills(allBills, 7)
+        if (allBills.length === 0 && recurring.length === 0) return null
         const overdue = getOverdueBills(allBills)
-        const combined = [...overdue, ...billsDue].slice(0, 5)
+        const upcoming = getUpcomingPayments(allBills, recurring, 7)
+        const combined = [
+          ...overdue.map((b) => ({
+            id: `bill-${b.id}`,
+            kind: 'bill',
+            name: b.name,
+            amount: b.amount || 0,
+            dueDate: b.dueDate,
+            daysLeft: getDaysUntil(b.dueDate),
+          })),
+          ...upcoming,
+        ].slice(0, 5)
         if (combined.length === 0) return null
         return (
           <div className="mb-4">
             <div className="flex items-center justify-between mb-2.5">
               <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                 <ReceiptIcon size={12} className="text-neon" />
-                Upcoming Bills
+                {t('dashboard.upcoming_payments')}
               </h2>
               <button onClick={() => onNavigate('bills')} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
-                Manage <ChevronRight size={12} className="inline" />
+                {t('dashboard.manage')} <ChevronRight size={12} className="inline" />
               </button>
             </div>
             <GlassCard>
               <div className="divide-y divide-glass-border">
                 {combined.map((bill) => {
-                  const dueDate = new Date(bill.dueDate)
-                  const now = new Date()
-                  now.setHours(0, 0, 0, 0)
-                  const isOverdue = dueDate < now
+                  const isOverdue = bill.daysLeft !== null && bill.daysLeft < 0
+                  const isToday = bill.daysLeft === 0
                   return (
                     <div key={bill.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-red-400' : 'bg-amber-400'} shrink-0`} />
+                        <div className={`w-2 h-2 rounded-full ${isOverdue ? 'bg-red-400' : isToday ? 'bg-neon' : 'bg-amber-400'} shrink-0`} />
                         <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{bill.name}</p>
+                          <p className="text-xs font-medium truncate">
+                            {bill.name}
+                            {bill.kind === 'recurring' && <span className="text-[9px] text-gray-600 ml-1 uppercase">· recurring</span>}
+                          </p>
                           <p className="text-[10px] text-gray-500">
-                            {isOverdue ? `Overdue · ${dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            {bill.dueDate ? formatDate(bill.dueDate) : '—'}
                           </p>
                         </div>
                       </div>
-                      <span className={`text-xs font-semibold tabular-nums shrink-0 ml-2 ${isOverdue ? 'text-red-400' : 'text-amber-400'}`}>
-                        {formatCurrency(bill.amount)}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0 ml-2">
+                        {isOverdue ? (
+                          <span className="text-[9px] font-medium text-red-400">{t('dashboard.bill_overdue')}</span>
+                        ) : isToday ? (
+                          <span className="text-[9px] font-medium text-neon">{t('dashboard.due_today')}</span>
+                        ) : (
+                          <span className="text-[9px] font-medium text-amber-400">{t('dashboard.days_left', { count: bill.daysLeft })}</span>
+                        )}
+                        <span className={`text-xs font-semibold tabular-nums ${isOverdue ? 'text-red-400' : 'text-amber-400'}`}>
+                          {formatCurrency(bill.amount)}
+                        </span>
+                      </div>
                     </div>
                   )
                 })}
@@ -532,6 +581,41 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           </div>
         )
       })()}
+
+      {/* ── Receipt Match Suggestions ─────────────── */}
+      {receiptMatches.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2.5">
+            <h2 className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+              <ReceiptIcon size={12} className="text-blue-400" />
+              {t('dashboard.receipt_match_title')}
+            </h2>
+            <button onClick={() => onNavigate('receipt-center')} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
+              {t('dashboard.manage')} <ChevronRight size={12} className="inline" />
+            </button>
+          </div>
+          <GlassCard>
+            <div className="divide-y divide-glass-border">
+              {receiptMatches.map((s) => (
+                <div key={s.receipt.id} className="flex items-center justify-between py-2 first:pt-0 last:pb-0">
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium truncate">{s.receipt.merchant || 'Receipt'}</p>
+                    <p className="text-[10px] text-gray-500">
+                      {formatCurrency(s.receipt.amount)} · {t('dashboard.receipt_match_subtitle')}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleLinkReceipt(s)}
+                    className="px-2.5 py-1 rounded-lg bg-blue-500/10 text-blue-400 text-[10px] border border-blue-500/20 hover:bg-blue-500/20 transition-colors shrink-0 ml-2"
+                  >
+                    {t('dashboard.receipt_link')}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </GlassCard>
+        </div>
+      )}
 
       {/* ── 4. Quick Actions ────────────────────────── */}
       <div className="mb-4">
@@ -771,6 +855,64 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
           </div>
         </div>
       </GlassCard>
+
+      {/* ── Net Worth Milestone Celebration ───────── */}
+      {milestoneCelebration && (() => {
+        const nextM = getNextMilestone(milestoneCelebration.value)
+        const { progress } = getMilestoneProgress(netWorth)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setMilestoneCelebration(null)} />
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <span
+                  key={i}
+                  className="absolute w-2 h-2 rounded-full"
+                  style={{
+                    left: `${(i * 7 + 3) % 100}%`,
+                    top: '18%',
+                    background: ['#39ff14', '#fbbf24', '#f472b6', '#38bdf8', '#a78bfa'][i % 5],
+                    animation: `ms-confetti 2.2s ease-in ${(i % 6) * 0.35}s infinite`,
+                  }}
+                />
+              ))}
+            </div>
+            <GlassCard brand className="relative z-10 w-72 text-center p-6 shadow-2xl">
+              <div style={{ animation: 'ms-pop .45s ease-out' }}>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-2xl bg-neon/10 flex items-center justify-center">
+                  <Sparkles size={22} className="text-neon" />
+                </div>
+                <p className="text-xs font-semibold text-neon mb-1">{t('dashboard.milestone_title')}</p>
+                <p className="text-3xl font-extrabold text-white tabular-nums">{formatCurrency(milestoneCelebration.value)}</p>
+                <p className="text-[11px] text-gray-500 mt-1">{t('dashboard.milestone_msg', { amount: formatCurrency(milestoneCelebration.value) })}</p>
+                {nextM && (
+                  <div className="mt-3 pt-3 border-t border-glass-border">
+                    <p className="text-[10px] text-gray-600">{t('dashboard.milestone_next', { amount: formatCurrency(nextM.value) })}</p>
+                    <div className="w-full h-1.5 bg-matte-200 rounded-full overflow-hidden mt-1.5">
+                      <div className="h-full bg-gradient-to-r from-neon to-green-400 rounded-full" style={{ width: `${progress}%` }} />
+                    </div>
+                  </div>
+                )}
+                <button onClick={() => setMilestoneCelebration(null)} className="mt-4 w-full btn-primary text-xs !py-2">
+                  {t('dashboard.milestone_close')}
+                </button>
+              </div>
+            </GlassCard>
+          </div>
+        )
+      })()}
+
+      <style>{`
+        @keyframes ms-pop {
+          0% { transform: scale(.6); opacity: 0; }
+          60% { transform: scale(1.05); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+        @keyframes ms-confetti {
+          0% { transform: translateY(-16px) rotate(0deg); opacity: 1; }
+          100% { transform: translateY(120px) rotate(360deg); opacity: 0; }
+        }
+      `}</style>
 
     </div>
   )

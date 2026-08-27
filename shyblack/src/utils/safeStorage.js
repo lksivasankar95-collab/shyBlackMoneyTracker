@@ -42,6 +42,7 @@ export const STORAGE_KEYS = {
   RULES: `${STORAGE_PREFIX}rules`,
   CAPITAL_GAINS: `${STORAGE_PREFIX}capital_gains`,
   INVESTMENTS: `${STORAGE_PREFIX}investments`,
+  NET_WORTH_MILESTONE: `${STORAGE_PREFIX}net_worth_milestone`,
 }
 
 const memoryCache = new Map()

@@ -10,6 +10,7 @@ import PageErrorBoundary from './components/PageErrorBoundary'
 import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
 import Onboarding from './pages/Onboarding'
 import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthlyRecap, checkDebtReminders } from './utils/reminders'
+import { scheduleWeeklyDigest } from './utils/weeklyDigest'
 import { registerNotificationListeners } from './utils/notifications'
 import { useFinance } from './hooks/useFinance'
 import * as privacy from './utils/privacy'
@@ -36,6 +37,7 @@ const InsightsPage = lazy(() => import('./pages/InsightsPage'))
 const BudgetsPage = lazy(() => import('./pages/BudgetsPage'))
 const ReportsPage = lazy(() => import('./pages/ReportsPage'))
 const MonthlyReviewPage = lazy(() => import('./pages/MonthlyReview'))
+const YearInReviewPage = lazy(() => import('./pages/YearInReviewPage'))
 const DebtsPage = lazy(() => import('./pages/DebtsPage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const DiagnosticsPage = lazy(() => import('./pages/DiagnosticsPage'))
@@ -90,6 +92,7 @@ const pages = {
   budgets: BudgetsPage,
   reports: ReportsPage,
   'monthly-review': MonthlyReviewPage,
+  'year-in-review': YearInReviewPage,
   debts: DebtsPage,
   timeline: TimelinePage,
   diagnostics: DiagnosticsPage,
@@ -154,11 +157,13 @@ function PageLoader() {
 }
 
 function ReminderInit() {
-  const { transactions, debts } = useFinance()
+  const { transactions, debts, budgets } = useFinance()
   const transactionsRef = useRef(transactions)
   const debtsRef = useRef(debts)
+  const budgetsRef = useRef(budgets)
   useEffect(() => { transactionsRef.current = transactions }, [transactions])
   useEffect(() => { debtsRef.current = debts }, [debts])
+  useEffect(() => { budgetsRef.current = budgets }, [budgets])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -169,6 +174,7 @@ function ReminderInit() {
       }
       checkAndScheduleMonthlyRecap(txs).catch(() => {})
       checkDebtReminders(dts).catch(() => {})
+      scheduleWeeklyDigest(txs, budgetsRef.current).catch(() => {})
     }, 2000)
     return () => clearTimeout(timer)
   }, [])
@@ -178,7 +184,7 @@ function ReminderInit() {
 
 function NotificationTapHandler({ onNavigate }) {
   useEffect(() => {
-    const cleanup = registerNotificationListeners((deepLink, extra) => {
+    const cleanup = registerNotificationListeners((deepLink, _extra) => {
       if (deepLink && pages[deepLink]) {
         onNavigate(deepLink)
       }

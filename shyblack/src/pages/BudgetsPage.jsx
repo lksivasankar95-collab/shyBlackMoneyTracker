@@ -5,6 +5,7 @@ import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
 import { getBudgetHealth, getAIBudgetSuggestions, rolloverBudgets } from '../utils/budgets'
+import { getBudgetPace } from '../utils/budgetPace'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import CategoryIcon from '../components/CategoryIcon'
@@ -82,6 +83,15 @@ export default function BudgetsPage() {
 
   const health = useMemo(() => getBudgetHealth(calculatedBudgets), [calculatedBudgets])
   const suggestions = useMemo(() => getAIBudgetSuggestions(transactions), [transactions])
+  const paceData = useMemo(() => getBudgetPace(calculatedBudgets, monthTxs), [calculatedBudgets, monthTxs])
+  const paceMap = useMemo(() => Object.fromEntries(paceData.pace.map((p) => [p.category, p])), [paceData])
+
+  const PACE_STYLE = {
+    on_track: 'text-neon bg-neon/10',
+    ahead: 'text-red-400 bg-red-500/10',
+    behind: 'text-blue-400 bg-blue-500/10',
+    breached: 'text-red-400 bg-red-500/10',
+  }
 
   const activeCategories = EXPENSE_CATEGORIES.filter((c) => calculatedBudgets[c.id])
   const inactiveCategories = EXPENSE_CATEGORIES.filter((c) => !calculatedBudgets[c.id])
@@ -450,6 +460,11 @@ export default function BudgetsPage() {
                       {t('budgets.last_month_label', { amount: formatCurrency(budget.lastSpent) })}
                     </span>
                   )}
+                  {paceMap[cat.id] && paceMap[cat.id].status !== 'unused' && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-medium ${PACE_STYLE[paceMap[cat.id].status]}`}>
+                      {t(`budgets.pace_${paceMap[cat.id].status}`)}
+                    </span>
+                  )}
                   {budget.remaining > 0 && budget.limit > 0 && !budget.isOver && (
                     <span className="text-[10px] text-gray-600">
                       {t('budgets.remaining_label', { amount: formatCurrency(budget.remaining) })}
@@ -465,6 +480,17 @@ export default function BudgetsPage() {
                         <span className="text-gray-500">{t('budgets.daily_avg')}</span>
                         <span className="font-medium tabular-nums">
                           {formatCurrency(Math.round(budget.spent / Math.max(1, new Date().getDate())))}
+                        </span>
+                      </div>
+                    )}
+                    {paceMap[cat.id] && (
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-500">{t('budgets.pace')}</span>
+                        <span className="font-medium tabular-nums">
+                          {t('budgets.pace_expected', { amount: formatCurrency(paceMap[cat.id].expected) })} ·{' '}
+                          <span className={PACE_STYLE[paceMap[cat.id].status] || 'text-gray-500'}>
+                            {t(`budgets.pace_${paceMap[cat.id].status}`)}
+                          </span>
                         </span>
                       </div>
                     )}

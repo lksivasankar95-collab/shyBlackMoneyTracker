@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { Plus, Trash2, ArrowLeft, TrendingUp, TrendingDown, Landmark, Wallet } from 'lucide-react'
+import { Plus, Trash2, ArrowLeft, TrendingUp, TrendingDown, Landmark, Wallet, ShieldCheck } from 'lucide-react'
 import { useToast } from '../components/Toast'
 import { useTranslation } from '../i18n'
 import GlassCard from '../components/GlassCard'
@@ -11,6 +11,7 @@ import {
 } from '../utils/investmentLots'
 import { formatInCurrency, getBaseCurrencyCode } from '../utils/multiCurrency'
 import { xirrForAsset, xirrForPortfolio } from '../utils/xirr'
+import { getPortfolioRiskCheck } from '../utils/portfolioRisk'
 
 const fmt = (v) => formatInCurrency(v || 0, getBaseCurrencyCode())
 const fmtPct = (v) => (v == null ? '—' : `${v >= 0 ? '+' : ''}${(v * 100).toFixed(2)}%`)
@@ -189,6 +190,52 @@ export default function InvestmentCenterPage({ onNavigate }) {
               </div>
               <Wallet size={18} className="text-gray-600" />
             </GlassCard>
+
+            {summary.holdings.length > 0 && (() => {
+              const risk = getPortfolioRiskCheck(summary)
+              const grade =
+                risk.score >= 75
+                  ? { key: 'investments.risk_good', color: 'text-neon', cls: 'bg-neon/10', bar: 'bg-neon' }
+                  : risk.score >= 45
+                    ? { key: 'investments.risk_ok', color: 'text-amber-400', cls: 'bg-amber-500/10', bar: 'bg-amber-400' }
+                    : { key: 'investments.risk_low', color: 'text-red-400', cls: 'bg-red-500/10', bar: 'bg-red-400' }
+              return (
+                <GlassCard className="p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold flex items-center gap-1.5">
+                      <ShieldCheck size={14} className="text-neon" /> {t('investments.risk_check')}
+                    </p>
+                    <span className={`${grade.cls} ${grade.color} px-2 py-0.5 rounded-md text-[10px] font-bold tabular-nums`}>
+                      {risk.score}
+                    </span>
+                  </div>
+                  <p className={`text-[11px] ${grade.color} mb-3`}>{t(grade.key)}</p>
+
+                  <div className="space-y-2">
+                    {risk.byKind.map((k) => (
+                      <div key={k.kind} className="flex items-center gap-2 text-[10px]">
+                        <span className="text-gray-400 w-24 capitalize truncate">{String(k.kind).replace(/_/g, ' ')}</span>
+                        <div className="flex-1 h-1.5 bg-matte-200 rounded-full overflow-hidden">
+                          <div className={`h-full ${grade.bar} rounded-full`} style={{ width: `${k.pct}%` }} />
+                        </div>
+                        <span className="text-gray-500 tabular-nums w-8 text-right">{k.pct}%</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {risk.concentrationAlerts.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-glass-border space-y-1.5">
+                      <p className="text-[10px] font-semibold text-amber-400">{t('investments.risk_alerts')}</p>
+                      {risk.concentrationAlerts.map((a) => (
+                        <div key={a.name} className="text-[11px] text-amber-400 bg-amber-500/10 rounded-lg px-2 py-1.5">
+                          {a.name} — {a.pct}%
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </GlassCard>
+              )
+            })()}
 
             {summary.holdings.length === 0 ? (
               <GlassCard className="p-8 text-center space-y-3">

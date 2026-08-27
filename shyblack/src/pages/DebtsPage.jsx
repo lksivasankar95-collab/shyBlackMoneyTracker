@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   ArrowUpRight, ArrowDownLeft, Handshake, Plus, 
-  Search, X, CheckCircle2,
+  Search, X, CheckCircle2, TrendingDown,
   User, FileText, RotateCcw, Pencil, Trash2,
   ArrowUpDown,
 } from 'lucide-react'
@@ -10,6 +10,7 @@ import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { getLedgerStatement, generateLedgerExportData, searchLedgers, filterLedgers, sortLedgers, SORT_OPTIONS } from '../utils/debts'
+import { getDebtPayoffPlan } from '../utils/debtPlanner'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import AddDebtModal from '../components/AddDebtModal'
@@ -73,6 +74,7 @@ export default function DebtsPage({ _onNavigate }) {
     debts, addDebt, deleteDebt, 
     addLedgerPayment, undoLedgerPayment, editLedgerPayment,
     deleteLedgerPayment, doSettleLedger, ledgerInsights, debtsSummary,
+    emis,
   } = useFinance()
   const { addToast } = useToast()
 
@@ -98,6 +100,9 @@ export default function DebtsPage({ _onNavigate }) {
     result = sortLedgers(result, sortKey)
     return result
   }, [debts, searchQuery, typeFilter, statusFilter, sortKey])
+
+  const payoffPlan = useMemo(() => getDebtPayoffPlan({ debts, emis }), [debts, emis])
+  const showPayoff = payoffPlan.structured.length > 0 || payoffPlan.borrowed.length > 0
 
   const handleSave = useCallback((data) => {
     addDebt(data)
@@ -232,6 +237,64 @@ export default function DebtsPage({ _onNavigate }) {
             </div>
           ))}
         </div>
+      )}
+
+      {/* Payoff Plan */}
+      {showPayoff && (
+        <GlassCard brand className="mb-4">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingDown size={14} className="text-neon" />
+            <h2 className="text-sm font-semibold">{t('debts.payoff_plan')}</h2>
+          </div>
+          <p className="text-[10px] text-gray-500 mb-3">{t('debts.payoff_desc')}</p>
+
+          <div className="space-y-3">
+            {[
+              { title: t('debts.payoff_avalanche'), list: payoffPlan.avalanche, accent: 'text-red-400' },
+              { title: t('debts.payoff_snowball'), list: payoffPlan.snowball, accent: 'text-blue-400' },
+            ].map((strat) => {
+              const order = strat.list
+              if (order.length === 0) return null
+              return (
+                <div key={strat.title} className="bg-white/[0.03] rounded-xl p-3">
+                  <p className={`text-[10px] font-semibold mb-2 ${strat.accent}`}>{strat.title}</p>
+                  <div className="space-y-1.5">
+                    {order.map((item, i) => (
+                      <div key={item.id} className="flex items-center gap-2 text-xs">
+                        <span className="w-5 h-5 rounded-lg bg-matte-200 text-gray-400 flex items-center justify-center text-[10px] font-bold shrink-0">{i + 1}</span>
+                        <span className="text-gray-300 truncate flex-1">{item.name}</span>
+                        {item.kind === 'emi' && item.monthsLeft ? (
+                          <span className="text-[10px] text-gray-500 tabular-nums">{t('debts.payoff_months', { count: item.monthsLeft })}</span>
+                        ) : (
+                          <span className="text-[10px] text-gray-500 tabular-nums">{formatCurrency(item.remaining)}</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {payoffPlan.structured.length > 0 && (
+            <div className="mt-3 pt-3 border-t border-glass-border grid grid-cols-3 gap-2 text-center">
+              <div>
+                <p className="text-[10px] text-gray-500">{t('debts.payoff_monthly')}</p>
+                <p className="text-sm font-bold text-white tabular-nums">
+                  {formatCurrency(payoffPlan.structured.reduce((s, i) => s + (i.monthlyMin || 0), 0))}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500">{t('debts.payoff_interest')}</p>
+                <p className="text-sm font-bold text-amber-400 tabular-nums">{formatCurrency(payoffPlan.totalInterestRemaining)}</p>
+              </div>
+              <div>
+                <p className="text-[10px] text-gray-500">{t('debts.payoff_total')}</p>
+                <p className="text-sm font-bold text-neon tabular-nums">{formatCurrency(payoffPlan.totalStructuredRemaining)}</p>
+              </div>
+            </div>
+          )}
+        </GlassCard>
       )}
 
       {/* Search + Filters */}
