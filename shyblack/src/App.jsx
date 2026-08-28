@@ -9,7 +9,8 @@ import ErrorBoundary from './components/ErrorBoundary'
 import PageErrorBoundary from './components/PageErrorBoundary'
 import { safeStorage, STORAGE_KEYS } from './utils/safeStorage'
 import Onboarding from './pages/Onboarding'
-import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthlyRecap, checkDebtReminders } from './utils/reminders'
+import { refreshReminderSchedule, getReminderPreference, checkAndScheduleMonthlyRecap, checkDebtReminders, checkBillReminders } from './utils/reminders'
+import { getBills } from './utils/bills'
 import { scheduleWeeklyDigest } from './utils/weeklyDigest'
 import { registerNotificationListeners } from './utils/notifications'
 import { useFinance } from './hooks/useFinance'
@@ -174,6 +175,7 @@ function ReminderInit() {
       }
       checkAndScheduleMonthlyRecap(txs).catch(() => {})
       checkDebtReminders(dts).catch(() => {})
+      checkBillReminders(getBills()).catch(() => {})
       scheduleWeeklyDigest(txs, budgetsRef.current).catch(() => {})
     }, 2000)
     return () => clearTimeout(timer)

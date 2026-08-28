@@ -9,6 +9,11 @@ import GlassCard from '../components/GlassCard'
 import { getReminderPreference } from '../utils/reminders'
 import { checkNotificationPermission } from '../utils/notifications'
 import { getNotificationDiagnostics as getUnifiedDiagnostics} from '../utils/notifications'
+import { runPerformanceAudit } from '../utils/performanceAudit'
+import { runStorageHealthCheck } from '../utils/storageHealth'
+import { runFullIntegrityCheck } from '../utils/integrityValidator'
+import { getTransfers } from '../utils/transfers'
+import { getBackupGenerations } from '../utils/backup'
 
 async function getNotifPlugin() {
   try {
@@ -21,7 +26,7 @@ async function getNotifPlugin() {
 
 async function getBatteryOptimizationStatus() {
   try {
-    const mod = await import('@capacitor/app')
+    await import('@capacitor/app')
     return 'check app info'
   } catch {
     return 'unknown'
@@ -62,7 +67,7 @@ const ANDROID_STRESS_SCENARIOS = [
 
 export default function DiagnosticsPage({ onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex, emis, documents, accounts, goals, dataQuality } = useFinance()
+  const { transactions, recurring, debts, budgets, tags, security, snapshotDiagnostics, storageCorruptionReport, transactionIndex, emis, documents, accounts, goals, dataQuality, wealthAssets, receipts, budgetsV2 } = useFinance()
 
   const storageInfo = useMemo(() => safeStorage.getStorageInfo(), [])
   const adapterType = getActiveAdapterType()
@@ -135,6 +140,32 @@ export default function DiagnosticsPage({ onNavigate }) {
     load()
     return () => { mounted = false }
   }, [])
+
+  const transferList = useMemo(() => getTransfers(), [])
+  const backupRecords = useMemo(() => getBackupGenerations(), [])
+  const [rerun, setRerun] = useState(0)
+
+  const deepCheck = useMemo(() => {
+    void rerun
+    const allData = {
+      transactions,
+      debts,
+      goals,
+      accounts,
+      emis,
+      transfers: transferList,
+      wealthAssets,
+      receipts,
+      recurring,
+      budgetsV2,
+      documents,
+      backups: backupRecords,
+    }
+    const health = runStorageHealthCheck(allData)
+    const integrity = runFullIntegrityCheck(allData)
+    const perf = runPerformanceAudit()
+    return { health, integrity, perf, runAt: new Date().toLocaleString() }
+  }, [transactions, debts, goals, accounts, emis, transferList, wealthAssets, receipts, recurring, budgetsV2, documents, backupRecords, rerun])
 
   return (
     <div className="p-4 max-w-lg mx-auto animate-fade-in pb-24">
@@ -226,6 +257,51 @@ export default function DiagnosticsPage({ onNavigate }) {
             <Row label={t('diagnostics.index_person_keys')} value={transactionIndex.byPerson.size} mono />
           </>
         )}
+      </GlassCard>
+
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <HardDrive size={13} className="text-emerald-400" />
+          <span className="text-xs font-semibold">{t('diagnostics.storage_health')}</span>
+          <button
+            onClick={() => setRerun((n) => n + 1)}
+            className="ml-auto p-1 rounded-md bg-white/[0.05] hover:bg-white/[0.1] text-[10px] text-neon transition-colors"
+          >
+            <RefreshCw size={12} />
+          </button>
+        </div>
+        <Row label={t('diagnostics.health_score')} value={deepCheck.health.healthScore} mono />
+        <Row label={t('diagnostics.health_grade')} value={`${deepCheck.health.healthGrade.grade} (${deepCheck.health.healthGrade.label})`} mono />
+        <Row label={t('diagnostics.records_total')} value={deepCheck.health.totalRecords} mono />
+        <Row label={t('diagnostics.corrupted_records')} value={deepCheck.health.corruptedRecords} mono />
+        <Row label={t('diagnostics.duplicate_ids')} value={deepCheck.health.duplicateRecords} mono />
+        <Row label={t('diagnostics.orphaned_refs')} value={deepCheck.health.orphanedRecords} mono />
+        <Row label={t('diagnostics.integrity_summary', deepCheck.integrity.summary)} value={deepCheck.integrity.hasIssues ? t('diagnostics.health_issue', { count: deepCheck.integrity.summary.totalErrors }) : t('diagnostics.integrity_ok')} mono />
+        {deepCheck.integrity.orphans && deepCheck.integrity.orphans.length > 0 && (
+          <Row label={t('diagnostics.integrity_orphans_detail')} value={deepCheck.integrity.orphans.map((o) => `${o.type}:${o.id}`).join(', ')} mono />
+        )}
+        {deepCheck.health.issues.length > 0 && (
+          <div className="mt-1 space-y-1">
+            {deepCheck.health.issues.map((issue, i) => (
+              <p key={i} className="text-[10px] font-mono text-red-400">{issue.detail}</p>
+            ))}
+          </div>
+        )}
+        <Row label={t('diagnostics.last_run')} value={deepCheck.runAt} />
+      </GlassCard>
+
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-2">
+          <Activity size={13} className="text-orange-400" />
+          <span className="text-xs font-semibold">{t('diagnostics.performance_audit')}</span>
+        </div>
+        <Row label={t('diagnostics.perf_startup')} value={deepCheck.perf.metrics.startupTime.loadComplete} mono />
+        <Row label={t('diagnostics.perf_dom_interactive')} value={deepCheck.perf.metrics.startupTime.domInteractive} mono />
+        <Row label={t('diagnostics.perf_storage_read')} value={deepCheck.perf.metrics.storageReadTime} mono />
+        <Row label={t('diagnostics.perf_storage_write')} value={deepCheck.perf.metrics.storageWriteTime} mono />
+        <Row label={t('diagnostics.perf_memory')} value={typeof deepCheck.perf.metrics.memoryEstimate.usedJSHeapSize === 'number' ? `${deepCheck.perf.metrics.memoryEstimate.usedJSHeapSize.toLocaleString()} KB` : 'N/A'} mono />
+        <Row label={t('diagnostics.perf_score')} value={deepCheck.perf.score} mono />
+        <Row label={t('diagnostics.perf_grade')} value={deepCheck.perf.grade} mono />
       </GlassCard>
 
       {snapshotDiagnostics && (

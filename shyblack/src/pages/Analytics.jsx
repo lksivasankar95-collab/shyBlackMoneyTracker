@@ -9,6 +9,7 @@ import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
 import { EXPENSE_CATEGORIES } from '../utils/constants'
 import { getMonthlyData, getCategoryTrends, getDailyExpenseHeatmap, getIncomeForecast, compareSpending, getMonthlyGrowth } from '../utils/analytics'
+import { getYearReview } from '../utils/yearReview'
 import { getPulseStats, detectSpendingAnomalies } from '../utils/spendingPulse'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -19,6 +20,11 @@ const PULSE_COLORS = {
   moderate: { label: 'text-blue-400', bg: 'bg-blue-500/10', bar: 'bg-blue-400' },
   elevated: { label: 'text-amber-400', bg: 'bg-amber-500/10', bar: 'bg-amber-400' },
   hot: { label: 'text-red-400', bg: 'bg-red-500/10', bar: 'bg-red-400' },
+}
+
+function deltaPct(cur, prev) {
+  if (!prev) return null
+  return Math.round(((cur - prev) / prev) * 100)
 }
 
 function PulseView({ transactions, t }) {
@@ -159,6 +165,11 @@ export default function Analytics() {
     return { income, expense, count: monthTxs.length }
   }, [normalTx, year, month])
 
+  const yearReview = useMemo(() => ({
+    current: getYearReview(normalTx, year),
+    previous: getYearReview(normalTx, year - 1),
+  }), [normalTx, year])
+
   const categoryData = useMemo(() => {
     const monthTxs = normalTx.filter((t) => {
       const d = new Date(t.date)
@@ -261,6 +272,49 @@ export default function Analytics() {
 
       {viewMode === 'overview' && (
         <>
+          {yearReview.previous.txCount > 0 && (
+            <GlassCard brand className="mb-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Activity size={15} className="text-neon" />
+                  <h2 className="text-sm font-semibold">{t('analytics.year_comparison')}</h2>
+                </div>
+                <div className="flex items-center gap-1.5 text-[10px]">
+                  <span className="px-2 py-0.5 rounded-md bg-white/[0.05] text-gray-300">{year - 1}</span>
+                  <span className="text-gray-600">→</span>
+                  <span className="px-2 py-0.5 rounded-md bg-neon/10 text-neon font-semibold">{year}</span>
+                </div>
+              </div>
+              {[['income', yearReview.current.income, yearReview.previous.income, 'text-neon'], ['expense', yearReview.current.expense, yearReview.previous.expense, 'text-red-400'], ['savings', yearReview.current.savings, yearReview.previous.savings, 'text-amber-400']].map(([key, cur, prev, color]) => {
+                const pct = deltaPct(cur, prev)
+                return (
+                  <div key={key} className="flex items-center justify-between py-2 border-b border-white/[0.04] last:border-0">
+                    <div className="min-w-0">
+                      <p className="text-[10px] text-gray-500 font-medium">{key === 'income' ? t('common.income') : key === 'expense' ? t('common.expense') : t('analytics.savings')}</p>
+                      <p className="text-sm font-bold tabular-nums">{formatCurrency(cur)}</p>
+                    </div>
+                    <div className="flex flex-col items-end shrink-0">
+                      <span className={`text-xs font-semibold tabular-nums ${pct === null ? 'text-gray-600' : pct >= 0 ? 'text-neon' : 'text-red-400'}`}>
+                        {pct === null ? '—' : `${pct > 0 ? '+' : ''}${pct}%`}
+                      </span>
+                      <span className={`text-[9px] ${color} opacity-70`}>{formatCurrency(prev)}</span>
+                    </div>
+                  </div>
+                )
+              })}
+              <div className="grid grid-cols-2 gap-2 mt-3">
+                <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                  <p className="text-[10px] text-gray-500 mb-0.5">{t('analytics.savings_rate')}</p>
+                  <p className="text-sm font-semibold tabular-nums text-amber-400">{yearReview.current.savingsRate}%</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white/[0.03]">
+                  <p className="text-[10px] text-gray-500 mb-0.5">{t('analytics.transactions_count', { count: yearReview.current.txCount })}</p>
+                  <p className="text-sm font-semibold tabular-nums text-gray-300">{yearReview.previous.txCount}</p>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+
           <GlassCard brand className="mb-4">
             <h2 className="text-sm font-semibold mb-4">{t('analytics.monthly_overview')}</h2>
             <div className="h-56 -mx-1">

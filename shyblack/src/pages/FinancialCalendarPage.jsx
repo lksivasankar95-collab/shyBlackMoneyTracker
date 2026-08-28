@@ -6,6 +6,7 @@ import {
   Receipt, Wallet, Activity, Sparkles,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
+import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { DEBT_TYPES, DEBT_STATUS } from '../utils/debts'
 import { EMI_STATUS } from '../utils/emi'
@@ -26,20 +27,21 @@ const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June', 'Ju
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
 const FILTER_DEFS = [
-  { key: 'income', label: 'Income', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
-  { key: 'expense', label: 'Expense', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
-  { key: 'trading', label: 'Trading', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
-  { key: 'emi', label: 'EMI', color: 'text-pink-400 border-pink-500/30 bg-pink-500/10' },
-  { key: 'bills', label: 'Bills', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
-  { key: 'recurring', label: 'Recurring', color: 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10' },
-  { key: 'borrow', label: 'Borrow', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
-  { key: 'lend', label: 'Lend', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
+  { key: 'income', labelKey: 'calendar.income', color: 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' },
+  { key: 'expense', labelKey: 'calendar.expense', color: 'text-red-400 border-red-500/30 bg-red-500/10' },
+  { key: 'trading', labelKey: 'calendar.trading', color: 'text-amber-400 border-amber-500/30 bg-amber-500/10' },
+  { key: 'emi', labelKey: 'calendar.emi', color: 'text-pink-400 border-pink-500/30 bg-pink-500/10' },
+  { key: 'bills', labelKey: 'calendar.bills', color: 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10' },
+  { key: 'recurring', labelKey: 'calendar.recurring', color: 'text-indigo-400 border-indigo-500/30 bg-indigo-500/10' },
+  { key: 'borrow', labelKey: 'calendar.borrow', color: 'text-purple-400 border-purple-500/30 bg-purple-500/10' },
+  { key: 'lend', labelKey: 'calendar.lend', color: 'text-blue-400 border-blue-500/30 bg-blue-500/10' },
 ]
 
 export default function FinancialCalendarPage({ onNavigate }) {
   const {
     transactions, debts, goals, emis, recurring,
   } = useFinance()
+  const { t } = useTranslation()
   const [viewDate, setViewDate] = useState(new Date())
   const [viewMode, setViewMode] = useState('month')
   const [selectedDay, setSelectedDay] = useState(null)
@@ -93,7 +95,9 @@ export default function FinancialCalendarPage({ onNavigate }) {
           date: d.dueDate,
           type: 'debt',
           debtType: d.type,
-          title: `${d.type === DEBT_TYPES.LENT ? 'Collect from' : 'Pay'} ${d.personName}`,
+          title: d.type === DEBT_TYPES.LENT
+            ? t('calendar.collect_event', { name: d.personName })
+            : t('calendar.pay_event', { name: d.personName }),
           amount: d.remainingAmount,
           icon: 'debt',
           priority: new Date(d.dueDate) < new Date() ? 'overdue' : 'upcoming',
@@ -109,7 +113,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           result.push({
             date: g.targetDate,
             type: 'goal',
-            title: `Goal: ${g.name}`,
+            title: t('calendar.goal_event', { name: g.name }),
             amount: g.target - g.saved,
             icon: 'goal',
             priority: new Date(g.targetDate) < new Date() ? 'overdue' : 'upcoming',
@@ -128,7 +132,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
         result.push({
           date: dateStr,
           type: 'emi',
-          title: `EMI: ${e.name}`,
+          title: t('calendar.emi_event', { name: e.name }),
           amount: e.emiAmount || e.amount,
           icon: 'emi',
           priority: 'upcoming',
@@ -142,7 +146,9 @@ export default function FinancialCalendarPage({ onNavigate }) {
         result.push({
           date: r.nextDate,
           type: 'recurring',
-          title: `${r.type === 'income' ? 'Income' : 'Bill'}: ${r.category}`,
+          title: r.type === 'income'
+            ? t('calendar.recurring_income_event', { name: r.category })
+            : t('calendar.recurring_bill_event', { name: r.category }),
           amount: r.amount,
           icon: 'recurring',
           priority: new Date(r.nextDate) < new Date() ? 'overdue' : 'upcoming',
@@ -156,7 +162,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
         result.push({
           date: b.dueDate,
           type: 'bill',
-          title: `Bill: ${b.name}`,
+          title: t('calendar.bill_event', { name: b.name }),
           amount: b.amount,
           icon: 'bill',
           priority: new Date(b.dueDate) < new Date() ? 'overdue' : 'upcoming',
@@ -172,7 +178,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             result.push({
               date: dateStr,
               type: 'bill',
-              title: `Bill: ${b.name}`,
+              title: t('calendar.bill_event', { name: b.name }),
               amount: b.amount,
               icon: 'bill',
               priority: nextDue < new Date() ? 'overdue' : 'upcoming',
@@ -183,7 +189,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
       })
 
     return result
-  }, [debts, goals, emis, recurring, bills])
+  }, [debts, goals, emis, recurring, bills, t])
 
   const monthEvents = useMemo(
     () => events.filter((e) => {
@@ -410,7 +416,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Calendar size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Financial Calendar</h1>
+          <h1 className="text-xl font-bold">{t('calendar.title')}</h1>
         </div>
         <div className="flex items-center gap-1.5">
           <button
@@ -420,7 +426,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                 ? 'bg-neon/10 text-neon'
                 : 'text-gray-500 hover:text-white hover:bg-white/[0.06]'
             }`}
-            aria-label="Toggle filters"
+            aria-label={t('calendar.toggle_filters')}
           >
             <Filter size={15} />
           </button>
@@ -428,7 +434,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             onClick={goToday}
             className="px-2.5 py-1.5 rounded-lg text-[10px] font-medium text-neon border border-neon/30 hover:bg-neon/10 transition-all"
           >
-            Today
+            {t('calendar.today')}
           </button>
         </div>
       </div>
@@ -441,9 +447,9 @@ export default function FinancialCalendarPage({ onNavigate }) {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search transactions, categories, amounts..."
+          placeholder={t('calendar.search_placeholder')}
           className="input-field !pl-9 !py-2 !text-xs"
-          aria-label="Search financial calendar"
+          aria-label={t('calendar.search_aria')}
         />
         {searchQuery && (
           <button
@@ -461,11 +467,11 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-medium text-gray-500 flex items-center gap-1">
               <Filter size={10} />
-              {filterCount > 0 ? `${filterCount} active` : 'Filters'}
+              {filterCount > 0 ? t('calendar.filters_active', { count: filterCount }) : t('calendar.filters')}
             </span>
             {filterCount > 0 && (
               <button onClick={clearFilters} className="text-[10px] text-neon/70 hover:text-neon transition-colors">
-                Clear all
+                {t('calendar.clear_all')}
               </button>
             )}
           </div>
@@ -482,7 +488,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                       : 'border-glass-border text-gray-500 hover:text-white hover:border-gray-500'
                   }`}
                 >
-                  {fd.label}
+                  {t(fd.labelKey)}
                 </button>
               )
             })}
@@ -496,7 +502,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <button
             onClick={goPrev}
             className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all"
-            aria-label="Previous month"
+            aria-label={t('calendar.prev_month')}
           >
             <ChevronLeft size={18} />
           </button>
@@ -511,7 +517,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <button
             onClick={goNext}
             className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/[0.06] transition-all"
-            aria-label="Next month"
+            aria-label={t('calendar.next_month')}
           >
             <ChevronRight size={18} />
           </button>
@@ -523,7 +529,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             value={month}
             onChange={(e) => jumpToMonth(parseInt(e.target.value))}
             className="flex-1 input-field !py-1.5 !text-xs"
-            aria-label="Select month"
+            aria-label={t('calendar.select_month')}
           >
             {MONTHS_FULL.map((name, i) => (
               <option key={name} value={i}>{name}</option>
@@ -533,7 +539,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             value={year}
             onChange={(e) => jumpToYear(parseInt(e.target.value))}
             className="w-24 input-field !py-1.5 !text-xs"
-            aria-label="Select year"
+            aria-label={t('calendar.select_year')}
           >
             {Array.from({ length: 11 }, (_, i) => year - 5 + i).map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -587,23 +593,23 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="flex items-center justify-center gap-2.5 mt-3 pt-3 border-t border-glass-border">
             <span className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span className="text-[9px] text-gray-600">Income</span>
+              <span className="text-[9px] text-gray-600">{t('calendar.income')}</span>
             </span>
             <span className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-red-400" />
-              <span className="text-[9px] text-gray-600">Expense</span>
+              <span className="text-[9px] text-gray-600">{t('calendar.expense')}</span>
             </span>
             <span className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-              <span className="text-[9px] text-gray-600">Trading</span>
+              <span className="text-[9px] text-gray-600">{t('calendar.trading')}</span>
             </span>
             <span className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-pink-400" />
-              <span className="text-[9px] text-gray-600">EMI</span>
+              <span className="text-[9px] text-gray-600">{t('calendar.emi')}</span>
             </span>
             <span className="flex items-center gap-1">
               <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
-              <span className="text-[9px] text-gray-600">Bill</span>
+              <span className="text-[9px] text-gray-600">{t('calendar.bill')}</span>
             </span>
           </div>
         )}
@@ -622,7 +628,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             <button
               onClick={() => setSelectedDay(null)}
               className="text-gray-500 hover:text-white transition-colors p-1"
-              aria-label="Close day details"
+              aria-label={t('calendar.close_day')}
             >
               <X size={14} />
             </button>
@@ -631,25 +637,25 @@ export default function FinancialCalendarPage({ onNavigate }) {
           {/* Quick Summary Cards */}
           <div className="grid grid-cols-2 gap-2 mb-3">
             <div className="rounded-xl bg-emerald-500/10 p-2.5 text-center">
-              <p className="text-[9px] text-emerald-400/70 font-medium uppercase tracking-wider">Income</p>
+              <p className="text-[9px] text-emerald-400/70 font-medium uppercase tracking-wider">{t('calendar.income')}</p>
               <p className="text-sm font-bold text-emerald-400 tabular-nums mt-0.5">
                 {formatCurrency(selectedDayData.summary.income)}
               </p>
             </div>
             <div className="rounded-xl bg-red-500/10 p-2.5 text-center">
-              <p className="text-[9px] text-red-400/70 font-medium uppercase tracking-wider">Expense</p>
+              <p className="text-[9px] text-red-400/70 font-medium uppercase tracking-wider">{t('calendar.expense')}</p>
               <p className="text-sm font-bold text-red-400 tabular-nums mt-0.5">
                 {formatCurrency(selectedDayData.summary.expense)}
               </p>
             </div>
             <div className="rounded-xl bg-amber-500/10 p-2.5 text-center">
-              <p className="text-[9px] text-amber-400/70 font-medium uppercase tracking-wider">Trading</p>
+              <p className="text-[9px] text-amber-400/70 font-medium uppercase tracking-wider">{t('calendar.trading')}</p>
               <p className="text-sm font-bold text-amber-400 tabular-nums mt-0.5">
                 {formatCurrency(selectedDayData.summary.tradingDeposit + selectedDayData.summary.tradingWithdrawal)}
               </p>
             </div>
             <div className="rounded-xl bg-blue-500/10 p-2.5 text-center">
-              <p className="text-[9px] text-blue-400/70 font-medium uppercase tracking-wider">Net Cash Flow</p>
+              <p className="text-[9px] text-blue-400/70 font-medium uppercase tracking-wider">{t('calendar.net_cash_flow')}</p>
               <p className={`text-sm font-bold tabular-nums mt-0.5 ${selectedDayData.netCashFlow >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {selectedDayData.netCashFlow >= 0 ? '+' : ''}{formatCurrency(selectedDayData.netCashFlow)}
               </p>
@@ -660,7 +666,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="flex items-center gap-3 mb-3">
             <div className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
               <Sparkles size={12} className="text-neon shrink-0" />
-              <span className="text-[10px] text-gray-500">Savings</span>
+              <span className="text-[10px] text-gray-500">{t('calendar.savings')}</span>
               <span className={`text-[11px] font-semibold tabular-nums ml-auto ${(selectedDayData.summary.income - selectedDayData.summary.expense) >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                 {formatCurrency(selectedDayData.summary.income - selectedDayData.summary.expense)}
               </span>
@@ -668,7 +674,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             {selectedDayData.outstandingDebt > 0 && (
               <div className="flex-1 flex items-center gap-2 p-2 rounded-lg bg-white/[0.03]">
                 <AlertCircle size={12} className="text-red-400 shrink-0" />
-                <span className="text-[10px] text-gray-500">Outstanding</span>
+                <span className="text-[10px] text-gray-500">{t('calendar.outstanding')}</span>
                 <span className="text-[11px] font-semibold tabular-nums text-red-400 ml-auto">
                   {formatCurrency(selectedDayData.outstandingDebt)}
                 </span>
@@ -680,7 +686,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="flex items-center justify-between p-2 rounded-lg bg-neon/5 border border-neon/10 mb-3">
             <span className="text-[10px] font-medium text-gray-500 flex items-center gap-1.5">
               <Wallet size={12} className="text-neon" />
-              Running Balance
+              {t('calendar.running_balance')}
             </span>
             <span className={`text-xs font-bold tabular-nums ${selectedDayData.balance >= 0 ? 'text-neon' : 'text-red-400'}`}>
               {formatCurrency(selectedDayData.balance)}
@@ -690,7 +696,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           {/* Transaction count */}
           {selectedDayData.summary.count > 0 && (
             <p className="text-[10px] text-gray-600 mb-2">
-              {selectedDayData.summary.count} transaction{selectedDayData.summary.count !== 1 ? 's' : ''}
+              {t('calendar.txn_count', { count: selectedDayData.summary.count })}
             </p>
           )}
 
@@ -699,7 +705,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             {selectedDayData.dayTxs.length === 0 && selectedDayData.dayEvents.length === 0 && selectedDayData.dayBills.length === 0 ? (
               <div className="text-center py-4">
                 <Calendar size={20} className="text-gray-700 mx-auto mb-1" />
-                <p className="text-[10px] text-gray-600">No financial activity this day</p>
+                <p className="text-[10px] text-gray-600">{t('calendar.no_activity')}</p>
               </div>
             ) : (
               <>
@@ -753,7 +759,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                       <Receipt size={11} className="text-yellow-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-medium truncate">Bill: {bill.name}</p>
+                      <p className="text-[11px] font-medium truncate">{t('calendar.bill_event', { name: bill.name })}</p>
                     </div>
                     <span className="text-[11px] font-semibold tabular-nums text-yellow-400 shrink-0">
                       {formatCurrency(bill.amount)}
@@ -771,12 +777,12 @@ export default function FinancialCalendarPage({ onNavigate }) {
         <GlassCard className="mb-4 !p-3">
           <div className="flex items-center gap-1.5 mb-2.5">
             <Sparkles size={12} className="text-amber-400" />
-            <h2 className="text-[11px] font-semibold text-gray-300">Financial Highlights</h2>
+            <h2 className="text-[11px] font-semibold text-gray-300">{t('calendar.highlights')}</h2>
           </div>
           <div className="grid grid-cols-2 gap-2">
             {highlights.highestExpense.amount > 0 && (
               <div className="p-2 rounded-lg bg-red-500/5 border border-red-500/10">
-                <p className="text-[9px] text-red-400/70 font-medium uppercase tracking-wider">Highest Expense</p>
+                <p className="text-[9px] text-red-400/70 font-medium uppercase tracking-wider">{t('calendar.highest_expense')}</p>
                 <p className="text-xs font-bold text-red-400 tabular-nums mt-0.5">
                   {formatCurrency(highlights.highestExpense.amount)}
                 </p>
@@ -787,7 +793,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
             )}
             {highlights.highestIncome.amount > 0 && (
               <div className="p-2 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
-                <p className="text-[9px] text-emerald-400/70 font-medium uppercase tracking-wider">Highest Income</p>
+                <p className="text-[9px] text-emerald-400/70 font-medium uppercase tracking-wider">{t('calendar.highest_income')}</p>
                 <p className="text-xs font-bold text-emerald-400 tabular-nums mt-0.5">
                   {formatCurrency(highlights.highestIncome.amount)}
                 </p>
@@ -797,19 +803,19 @@ export default function FinancialCalendarPage({ onNavigate }) {
               </div>
             )}
             <div className="p-2 rounded-lg bg-blue-500/5 border border-blue-500/10">
-              <p className="text-[9px] text-blue-400/70 font-medium uppercase tracking-wider">No-Spend Days</p>
+              <p className="text-[9px] text-blue-400/70 font-medium uppercase tracking-wider">{t('calendar.no_spend_days')}</p>
               <p className="text-xs font-bold text-blue-400 tabular-nums mt-0.5">{highlights.noSpendDays}</p>
             </div>
             <div className="p-2 rounded-lg bg-amber-500/5 border border-amber-500/10">
-              <p className="text-[9px] text-amber-400/70 font-medium uppercase tracking-wider">Savings Days</p>
+              <p className="text-[9px] text-amber-400/70 font-medium uppercase tracking-wider">{t('calendar.savings_days')}</p>
               <p className="text-xs font-bold text-amber-400 tabular-nums mt-0.5">{highlights.savingsDays}</p>
             </div>
             <div className="p-2 rounded-lg bg-orange-500/5 border border-orange-500/10">
-              <p className="text-[9px] text-orange-400/70 font-medium uppercase tracking-wider">Neg. Cash Flow</p>
+              <p className="text-[9px] text-orange-400/70 font-medium uppercase tracking-wider">{t('calendar.neg_cash_flow')}</p>
               <p className="text-xs font-bold text-orange-400 tabular-nums mt-0.5">{highlights.negativeCashFlowDays}</p>
             </div>
             <div className="p-2 rounded-lg bg-purple-500/5 border border-purple-500/10">
-              <p className="text-[9px] text-purple-400/70 font-medium uppercase tracking-wider">Days w/ Expense</p>
+              <p className="text-[9px] text-purple-400/70 font-medium uppercase tracking-wider">{t('calendar.days_with_expense')}</p>
               <p className="text-xs font-bold text-purple-400 tabular-nums mt-0.5">{highlights.daysWithExpense}</p>
             </div>
           </div>
@@ -821,12 +827,12 @@ export default function FinancialCalendarPage({ onNavigate }) {
         <GlassCard className="mb-4 !p-3">
           <div className="flex items-center gap-1.5 mb-3">
             <Activity size={12} className="text-cyan-400" />
-            <h2 className="text-[11px] font-semibold text-gray-300">Monthly Insights</h2>
+            <h2 className="text-[11px] font-semibold text-gray-300">{t('calendar.insights')}</h2>
           </div>
 
           {/* Monthly Trend Bars */}
           <div className="mb-3">
-            <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">Income vs Expense Trend</p>
+            <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">{t('calendar.trend_title')}</p>
             <div className="space-y-1.5">
               {trends.map((t) => {
                 const maxVal = Math.max(t.incomePct, t.expensePct, 5)
@@ -866,7 +872,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           {/* Expense Heatmap */}
           {expenseHeatmap.length > 0 && (
             <div className="mb-3">
-              <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">Expense Heatmap</p>
+              <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">{t('calendar.expense_heatmap')}</p>
               <div className="grid grid-cols-7 gap-[2px]">
                 {expenseHeatmap.map((cell) => (
                     <div
@@ -876,7 +882,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                         backgroundColor: cell.intensity > 0 ? `rgba(248, 113, 113, ${cell.intensity})` : 'rgba(255,255,255,0.03)',
                         color: cell.intensity > 0.5 ? '#fff' : 'rgba(255,255,255,0.3)',
                       }}
-                      title={`Day ${cell.day}: ${formatCurrency(cell.value)}`}
+                      title={t('calendar.day_title', { day: cell.day, amount: formatCurrency(cell.value) })}
                     >
                       {cell.day}
                     </div>
@@ -888,7 +894,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
           {/* Income Heatmap */}
           {incomeHeatmap.length > 0 && (
             <div className="mb-3">
-              <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">Income Heatmap</p>
+              <p className="text-[9px] text-gray-600 font-medium uppercase tracking-wider mb-2">{t('calendar.income_heatmap')}</p>
               <div className="grid grid-cols-7 gap-[2px]">
                 {incomeHeatmap.map((cell) => (
                   <div
@@ -898,7 +904,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                       backgroundColor: cell.intensity > 0 ? `rgba(52, 211, 153, ${cell.intensity})` : 'rgba(255,255,255,0.03)',
                       color: cell.intensity > 0.5 ? '#000' : 'rgba(255,255,255,0.3)',
                     }}
-                    title={`Day ${cell.day}: ${formatCurrency(cell.value)}`}
+                    title={t('calendar.day_title', { day: cell.day, amount: formatCurrency(cell.value) })}
                   >
                     {cell.day}
                   </div>
@@ -911,15 +917,15 @@ export default function FinancialCalendarPage({ onNavigate }) {
           <div className="flex items-center gap-4">
             <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.03]">
               <p className="text-lg font-bold text-white tabular-nums">{frequency.total}</p>
-              <p className="text-[9px] text-gray-600">Total Txns</p>
+              <p className="text-[9px] text-gray-600">{t('calendar.total_txns')}</p>
             </div>
             <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.03]">
               <p className="text-lg font-bold text-white tabular-nums">{frequency.avgPerDay}</p>
-              <p className="text-[9px] text-gray-600">Avg/Day</p>
+              <p className="text-[9px] text-gray-600">{t('calendar.avg_day')}</p>
             </div>
             <div className="flex-1 text-center p-2 rounded-lg bg-white/[0.03]">
               <p className="text-lg font-bold text-white tabular-nums">{frequency.avgPerWeek}</p>
-              <p className="text-[9px] text-gray-600">Avg/Week</p>
+              <p className="text-[9px] text-gray-600">{t('calendar.avg_week')}</p>
             </div>
           </div>
         </GlassCard>
@@ -928,25 +934,25 @@ export default function FinancialCalendarPage({ onNavigate }) {
       {/* This Month Summary */}
       <GlassCard brand className="mb-4">
         <div className="text-center">
-          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">This Month</p>
+          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">{t('calendar.this_month')}</p>
           <p className="text-lg font-extrabold text-gradient-brand mt-1">
-            {monthEvents.length} event{monthEvents.length !== 1 ? 's' : ''}
+            {t('calendar.event_count', { count: monthEvents.length })}
           </p>
           <div className="flex items-center justify-center gap-3 mt-1.5 text-[10px]">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-red-400" /> Debt
+              <span className="w-2 h-2 rounded-full bg-red-400" /> {t('calendar.debt')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-purple-400" /> Goal
+              <span className="w-2 h-2 rounded-full bg-purple-400" /> {t('calendar.goal')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-pink-400" /> EMI
+              <span className="w-2 h-2 rounded-full bg-pink-400" /> {t('calendar.emi')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-indigo-400" /> Recurring
+              <span className="w-2 h-2 rounded-full bg-indigo-400" /> {t('calendar.recurring')}
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-yellow-400" /> Bill
+              <span className="w-2 h-2 rounded-full bg-yellow-400" /> {t('calendar.bill')}
             </span>
           </div>
         </div>
@@ -962,7 +968,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
               viewMode === v ? 'bg-neon text-black' : 'text-gray-500 hover:text-white'
             }`}
           >
-            {v === 'upcoming' ? 'Upcoming' : v === 'week' ? 'This Week' : 'Overdue'}
+            {v === 'upcoming' ? t('calendar.tab_upcoming') : v === 'week' ? t('calendar.tab_week') : t('calendar.tab_overdue')}
           </button>
         ))}
       </div>
@@ -974,13 +980,13 @@ export default function FinancialCalendarPage({ onNavigate }) {
             <GlassCard>
               <EmptyState
                 icon={Calendar}
-                title="No upcoming events"
-                description="Add debts, goals, or EMIs to see them here"
+                title={t('calendar.no_upcoming')}
+                description={t('calendar.no_upcoming_desc')}
               />
             </GlassCard>
           ) : (
             <div className="space-y-2">
-              <h2 className="text-xs font-semibold text-gray-400 mb-2">Next 10 Events</h2>
+              <h2 className="text-xs font-semibold text-gray-400 mb-2">{t('calendar.next_events')}</h2>
               {upcomingEvents.map((e, i) => {
                 const colors = eventColors[e.type] || eventColors.debt
                 const Icon = eventIcons[e.type] || AlertCircle
@@ -1025,14 +1031,14 @@ export default function FinancialCalendarPage({ onNavigate }) {
             <GlassCard>
               <EmptyState
                 icon={Calendar}
-                title="Nothing this week"
-                description="No financial events scheduled for this week"
+                title={t('calendar.nothing_week')}
+                description={t('calendar.nothing_week_desc')}
               />
             </GlassCard>
           ) : (
             <div className="space-y-2">
               <h2 className="text-xs font-semibold text-gray-400 mb-2">
-                This Week ({thisWeekEvents.length} event{thisWeekEvents.length !== 1 ? 's' : ''})
+                {t('calendar.week_count', { count: thisWeekEvents.length })}
               </h2>
               {thisWeekEvents.map((e, i) => {
                 const colors = eventColors[e.type] || eventColors.debt
@@ -1071,15 +1077,15 @@ export default function FinancialCalendarPage({ onNavigate }) {
             <GlassCard>
               <EmptyState
                 icon={CheckCircle2}
-                title="Nothing overdue"
-                description="All your financial obligations are on track"
+                title={t('calendar.nothing_overdue')}
+                description={t('calendar.nothing_overdue_desc')}
               />
             </GlassCard>
           ) : (
             <div className="space-y-2">
               <h2 className="text-xs font-semibold text-red-400 mb-2 flex items-center gap-1.5">
                 <AlertCircle size={12} />
-                {overdueItems.length} Overdue
+                {t('calendar.overdue_count', { count: overdueItems.length })}
               </h2>
               {overdueItems.map((e, i) => {
                 const colors = eventColors[e.type] || eventColors.debt
@@ -1099,7 +1105,7 @@ export default function FinancialCalendarPage({ onNavigate }) {
                           <p className="text-xs font-medium truncate">{e.title}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                             <span className="text-[10px] text-red-400">
-                              Due {formatDate(e.date)}
+                              {t('calendar.due', { date: formatDate(e.date) })}
                             </span>
                             {e.amount > 0 && (
                               <span className="text-[10px] font-semibold tabular-nums text-red-400">

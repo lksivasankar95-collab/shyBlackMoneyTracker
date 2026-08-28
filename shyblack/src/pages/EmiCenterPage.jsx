@@ -7,7 +7,7 @@ import {
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
-import { EMI_STATUS, FREQUENCY_OPTIONS, FREQUENCIES, getFrequencyLabel, LOAN_TYPES, getLoanTypeLabel, calculateEMI, getEmiDueDate, getEmiStatsForDashboard, getEmiInsights } from '../utils/emi'
+import { EMI_STATUS, FREQUENCY_OPTIONS, FREQUENCIES, LOAN_TYPES, calculateEMI, getEmiDueDate, getEmiStatsForDashboard, getEmiInsights } from '../utils/emi'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import Modal from '../components/Modal'
@@ -62,7 +62,7 @@ const emptyForm = {
 
 export default function EmiCenterPage({ _onNavigate }) {
   const { t } = useTranslation()
-  const { emis, addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, markEmiPaid, undoEmiPayment, emiSummary } = useFinance()
+  const { emis, addEmi, updateEmi, deleteEmi, closeEmi, reopenEmi, markEmiPaid, undoEmiPayment } = useFinance()
   const { addToast } = useToast()
   const [showForm, setShowForm] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
@@ -122,10 +122,10 @@ export default function EmiCenterPage({ _onNavigate }) {
     const tenure = parseFloat(form.tenureMonths)
     const rate = parseFloat(form.interestRate) || 0
 
-    if (!form.loanName.trim()) { addToast('Loan name is required', 'error'); return }
-    if (!principal || principal <= 0) { addToast('Principal must be greater than 0', 'error'); return }
-    if (!emiAmt || emiAmt <= 0) { addToast('EMI amount must be greater than 0', 'error'); return }
-    if (!tenure || tenure <= 0) { addToast('Tenure must be greater than 0', 'error'); return }
+    if (!form.loanName.trim()) { addToast(t('emis.loan_name_required'), 'error'); return }
+    if (!principal || principal <= 0) { addToast(t('emis.principal_required'), 'error'); return }
+    if (!emiAmt || emiAmt <= 0) { addToast(t('emis.emi_amount_required'), 'error'); return }
+    if (!tenure || tenure <= 0) { addToast(t('emis.tenure_required'), 'error'); return }
 
     const data = {
       loanName: form.loanName.trim(),
@@ -142,35 +142,35 @@ export default function EmiCenterPage({ _onNavigate }) {
 
     if (editTarget) {
       updateEmi(editTarget.id, data)
-      addToast('EMI updated', 'success')
+      addToast(t('emis.updated_toast'), 'success')
     } else {
       addEmi(data)
-      addToast('EMI added', 'success')
+      addToast(t('emis.added_toast'), 'success')
     }
 
     setShowForm(false)
     setEditTarget(null)
-  }, [form, editTarget, addToast, updateEmi, addEmi])
+  }, [form, editTarget, addToast, updateEmi, addEmi, t])
 
   const handlePay = useCallback((emiId) => {
     markEmiPaid(emiId)
-    addToast('EMI payment recorded', 'success')
-  }, [markEmiPaid, addToast])
+    addToast(t('emis.payment_recorded_toast'), 'success')
+  }, [markEmiPaid, addToast, t])
 
   const handleUndo = useCallback((emiId) => {
     undoEmiPayment(emiId)
-    addToast('Last payment undone', 'info')
-  }, [undoEmiPayment, addToast])
+    addToast(t('emis.payment_undone_toast'), 'info')
+  }, [undoEmiPayment, addToast, t])
 
   const handleClose = useCallback((emiId) => {
     closeEmi(emiId)
-    addToast('EMI closed', 'info')
-  }, [closeEmi, addToast])
+    addToast(t('emis.closed_toast'), 'info')
+  }, [closeEmi, addToast, t])
 
   const handleReopen = useCallback((emiId) => {
     reopenEmi(emiId)
-    addToast('EMI reopened', 'success')
-  }, [reopenEmi, addToast])
+    addToast(t('emis.reopened_toast'), 'success')
+  }, [reopenEmi, addToast, t])
 
   const filtered = useMemo(() => {
     const withDue = emis.map((emi) => {
@@ -275,7 +275,7 @@ export default function EmiCenterPage({ _onNavigate }) {
                     key={lt.id} type="button"
                     onClick={() => setForm((f) => ({ ...f, loanType: lt.id }))}
                     className={`px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${form.loanType === lt.id ? 'border-purple-500/50 bg-purple-500/10 text-purple-400' : 'border-glass-border text-gray-500 hover:text-white'}`}
-                  >{lt.label}</button>
+                  >{t(`emis.loan_type_${lt.id}`)}</button>
                 ))}
               </div>
             </div>
@@ -325,7 +325,7 @@ export default function EmiCenterPage({ _onNavigate }) {
               <div>
                 <label className="text-xs text-gray-500 font-medium mb-1 block">{t('emis.frequency')}</label>
                 <select value={form.frequency} onChange={(e) => setForm((f) => ({ ...f, frequency: e.target.value }))} className="input-field text-sm">
-                  {FREQUENCY_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
+                  {FREQUENCY_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{t(`emis.frequency_${f.value}`)}</option>))}
                 </select>
               </div>
             </div>
@@ -347,16 +347,16 @@ export default function EmiCenterPage({ _onNavigate }) {
       <div className="flex items-center gap-2 mb-3">
         <div className="flex-1 relative">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search loans..." className="input-field !pl-9 text-xs" />
+          <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t('emis.search_placeholder')} className="input-field !pl-9 text-xs" />
         </div>
       </div>
 
       <div className="flex gap-1.5 mb-3 overflow-x-auto">
         {[
-          { key: 'active', label: 'Active', count: stats.totalActiveLoans },
-          { key: 'overdue', label: 'Overdue', count: overdueCount },
-          { key: 'due-this-month', label: 'Due Soon' },
-          { key: 'closed', label: 'Closed' },
+          { key: 'active', label: t('emis.filter_active'), count: stats.totalActiveLoans },
+          { key: 'overdue', label: t('emis.filter_overdue'), count: overdueCount },
+          { key: 'due-this-month', label: t('emis.filter_due_soon') },
+          { key: 'closed', label: t('emis.filter_closed') },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -372,9 +372,9 @@ export default function EmiCenterPage({ _onNavigate }) {
       {filtered.length === 0 && (
         <EmptyState
           icon={Landmark}
-          title={emis.length === 0 ? 'No EMIs yet' : 'No matching EMIs'}
-          description={emis.length === 0 ? 'Add your first EMI to start tracking' : 'Try a different search or filter'}
-          action={emis.length === 0 ? <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">Add First EMI</button> : undefined}
+          title={emis.length === 0 ? t('emis.no_emis_yet') : t('emis.no_matching_emis')}
+          description={emis.length === 0 ? t('emis.add_first_emi_desc') : t('emis.try_different_search')}
+          action={emis.length === 0 ? <button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">{t('emis.add_first_emi_button')}</button> : undefined}
         />
       )}
 
@@ -388,56 +388,56 @@ export default function EmiCenterPage({ _onNavigate }) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <p className="text-xs font-medium truncate">{emi.loanName || emi.name || 'Untitled'}</p>
+                    <p className="text-xs font-medium truncate">{emi.loanName || emi.name || t('emis.untitled')}</p>
                     <DueBadge emi={emi} />
                     {(emi.status === EMI_STATUS.CLOSED || emi.status === EMI_STATUS.COMPLETED) && (
-                      <span className="text-[10px] text-emerald-400 font-medium">Closed</span>
+                      <span className="text-[10px] text-emerald-400 font-medium">{t('emis.closed_badge')}</span>
                     )}
                   </div>
                   <p className="text-[10px] text-gray-500">
-                    {emi.lenderName || emi.lender || getLoanTypeLabel(emi.loanType)} · {getFrequencyLabel(emi.frequency)} · {formatCurrency(emi.emiAmount || emi.amount || 0)}
+                    {emi.lenderName || emi.lender || (emi.loanType ? t(`emis.loan_type_${emi.loanType}`) : t('emis.loan_type_other'))} · {emi.frequency ? t(`emis.frequency_${emi.frequency}`) : ''} · {formatCurrency(emi.emiAmount || emi.amount || 0)}
                   </p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-semibold tabular-nums">{formatCurrency(emi.remainingBalance)}</p>
-                  <p className="text-[10px] text-gray-600">{emi.remainingInstallments || 0} left</p>
+                  <p className="text-[10px] text-gray-600">{t('emis.installments_left', { count: emi.remainingInstallments || 0 })}</p>
                 </div>
               </div>
               <div className="w-full h-1.5 rounded-full bg-matte-200 overflow-hidden">
                 <div className={`h-full rounded-full transition-all ${emi.isOverdue ? 'bg-gradient-to-r from-red-500 to-orange-400' : 'bg-gradient-to-r from-purple-500 to-orange-400'}`} style={{ width: `${Math.min(emi.completionPercentage || 0, 100)}%` }} />
               </div>
               <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-gray-600">{Math.round(emi.completionPercentage || 0)}% paid</span>
-                <span className="text-[10px] text-gray-600">{emi.totalPaidCount || 0}/{emi.tenureMonths || emi.totalMonths || 0} payments</span>
+                <span className="text-[10px] text-gray-600">{t('emis.percent_paid', { pct: Math.round(emi.completionPercentage || 0) })}</span>
+                <span className="text-[10px] text-gray-600">{t('emis.payments_count', { count: emi.totalPaidCount || 0, total: emi.tenureMonths || emi.totalMonths || 0 })}</span>
               </div>
             </button>
 
             {detailEmi?.id === emi.id && (
               <div className="mt-3 pt-3 border-t border-white/[0.06] space-y-3">
                 <div className="grid grid-cols-2 gap-1.5 text-[10px]">
-                  <span className="text-gray-600">Principal</span>
+                  <span className="text-gray-600">{t('emis.detail_principal')}</span>
                   <span className="font-semibold text-right">{formatCurrency(emi.principalAmount || 0)}</span>
-                  <span className="text-gray-600">Interest Rate</span>
+                  <span className="text-gray-600">{t('emis.detail_interest_rate')}</span>
                   <span className="font-semibold text-right">{emi.interestRate || 0}%</span>
-                  <span className="text-gray-600">Total Paid</span>
+                  <span className="text-gray-600">{t('emis.detail_total_paid')}</span>
                   <span className="font-semibold text-right text-emerald-400">{formatCurrency(emi.totalPaid || 0)}</span>
-                  <span className="text-gray-600">Interest Paid</span>
+                  <span className="text-gray-600">{t('emis.detail_interest_paid')}</span>
                   <span className="font-semibold text-right text-amber-400">{formatCurrency(emi.totalInterestPaid || 0)}</span>
-                  <span className="text-gray-600">Remaining</span>
+                  <span className="text-gray-600">{t('emis.detail_remaining')}</span>
                   <span className="font-semibold text-right">{formatCurrency(emi.remainingBalance)}</span>
-                  <span className="text-gray-600">Next Due</span>
+                  <span className="text-gray-600">{t('emis.detail_next_due')}</span>
                   <span className={`font-semibold text-right ${emi.isOverdue ? 'text-red-400' : ''}`}>{emi.nextDueDate ? formatDate(emi.nextDueDate) : '-'}</span>
-                  <span className="text-gray-600">Start Date</span>
+                  <span className="text-gray-600">{t('emis.detail_start_date')}</span>
                   <span className="font-semibold text-right">{formatDate(emi.startDate)}</span>
-                  <span className="text-gray-600">Tenure</span>
-                  <span className="font-semibold text-right">{emi.tenureMonths || emi.totalMonths || 0} months</span>
-                  <span className="text-gray-600">Status</span>
+                  <span className="text-gray-600">{t('emis.detail_tenure')}</span>
+                  <span className="font-semibold text-right">{emi.tenureMonths || emi.totalMonths || 0} {t('emis.detail_months')}</span>
+                  <span className="text-gray-600">{t('emis.detail_status')}</span>
                   <span className={`font-semibold text-right ${emi.status === EMI_STATUS.ACTIVE ? 'text-neon' : 'text-gray-500'}`}>{emi.status}</span>
                 </div>
 
                 {(emi.payments || []).length > 0 && (
                   <div>
-                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">Payment History ({emi.payments.length})</p>
+                    <p className="text-[10px] font-semibold text-gray-500 mb-1.5">{t('emis.payment_history_title', { count: emi.payments.length })}</p>
                     <div className="space-y-1 max-h-32 overflow-y-auto">
                       {[...(emi.payments || [])].reverse().map((p) => (
                         <div key={p.id || p.paymentId} className="flex items-center justify-between text-[10px] bg-matte-200 rounded-lg px-2.5 py-1.5">
@@ -452,28 +452,28 @@ export default function EmiCenterPage({ _onNavigate }) {
                 <div className="flex gap-2 flex-wrap">
                   {emi.status === EMI_STATUS.ACTIVE && (
                     <button onClick={() => handlePay(emi.id)} className="flex-1 bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold py-2 rounded-lg transition-all flex items-center justify-center gap-1.5">
-                      <CheckCircle2 size={13} /> Pay EMI
+                      <CheckCircle2 size={13} /> {t('emis.pay_emi_button')}
                     </button>
                   )}
                   {(emi.payments || []).length > 0 && (
                     <button onClick={() => handleUndo(emi.id)} className="bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-gray-200 text-xs font-semibold py-2 px-3 rounded-lg transition-all flex items-center gap-1.5">
-                      <RotateCcw size={13} /> Undo
+                      <RotateCcw size={13} /> {t('emis.undo_button')}
                     </button>
                   )}
                   <button onClick={() => openEdit(emi)} className="bg-white/[0.05] hover:bg-white/[0.1] text-gray-400 hover:text-gray-200 text-xs font-semibold py-2 px-3 rounded-lg transition-all flex items-center gap-1.5">
-                    <Edit3 size={13} /> Edit
+                    <Edit3 size={13} /> {t('emis.edit_button')}
                   </button>
                   {emi.status === EMI_STATUS.ACTIVE ? (
                     <button onClick={() => handleClose(emi.id)} className="bg-white/[0.05] hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-xs font-semibold py-2 px-3 rounded-lg transition-all flex items-center gap-1.5">
-                      <Lock size={13} /> Close
+                      <Lock size={13} /> {t('emis.close_button')}
                     </button>
                   ) : (
                     <button onClick={() => handleReopen(emi.id)} className="bg-white/[0.05] hover:bg-neon/10 text-gray-400 hover:text-neon text-xs font-semibold py-2 px-3 rounded-lg transition-all flex items-center gap-1.5">
-                      <Unlock size={13} /> Reopen
+                      <Unlock size={13} /> {t('emis.reopen_button')}
                     </button>
                   )}
                   <button onClick={() => setDeleteTarget(emi.id)} className="bg-white/[0.05] hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-xs font-semibold py-2 px-3 rounded-lg transition-all flex items-center gap-1.5">
-                    <Trash2 size={13} /> Delete
+                    <Trash2 size={13} /> {t('emis.delete_button')}
                   </button>
                 </div>
               </div>
@@ -485,62 +485,62 @@ export default function EmiCenterPage({ _onNavigate }) {
       {insights.totalActiveLoans > 0 && (
         <GlassCard className="mb-4">
           <h3 className="text-xs font-semibold text-gray-300 mb-2 flex items-center gap-1.5">
-            <BarChart3 size={12} className="text-purple-400" /> EMI Insights
+            <BarChart3 size={12} className="text-purple-400" /> {t('emis.emi_insights')}
           </h3>
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Total Outstanding</span>
+              <span className="text-gray-500">{t('emis.total_outstanding')}</span>
               <span className="font-semibold">{formatCurrency(insights.totalOutstanding)}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Total Interest Paid</span>
+              <span className="text-gray-500">{t('emis.total_interest_paid')}</span>
               <span className="font-semibold text-amber-400">{formatCurrency(insights.totalInterestPaidAll)}</span>
             </div>
             <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-500">Debt Reduction</span>
+              <span className="text-gray-500">{t('emis.debt_reduction')}</span>
               <span className="font-semibold text-neon">{insights.debtReductionProgress}%</span>
             </div>
             {insights.closureForecasts.slice(0, 3).map((f) => (
               <div key={f.loanName} className="flex items-center justify-between text-[10px] bg-white/[0.03] rounded-lg px-2.5 py-1.5">
                 <span className="text-gray-500 truncate">{f.loanName}</span>
-                <span className="text-gray-400">Closes ~{formatDate(f.estimatedClosureDate)}</span>
+                <span className="text-gray-400">{t('emis.closes_estimate', { date: formatDate(f.estimatedClosureDate) })}</span>
               </div>
             ))}
           </div>
         </GlassCard>
       )}
 
-      <Modal open={showCalculator} onClose={() => { setShowCalculator(false); setCalcResult(null) }} title="EMI Calculator">
+      <Modal open={showCalculator} onClose={() => { setShowCalculator(false); setCalcResult(null) }} title={t('emis.emi_calculator')}>
         <div className="space-y-3.5">
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Principal Amount</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('emis.principal_amount_label')}</label>
             <input type="number" value={calcForm.principal} onChange={(e) => setCalcForm((f) => ({ ...f, principal: e.target.value }))} placeholder="1,00,000" className="input-field" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Annual Interest Rate (%)</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('emis.annual_interest_rate_label')}</label>
             <input type="number" step="0.1" value={calcForm.rate} onChange={(e) => setCalcForm((f) => ({ ...f, rate: e.target.value }))} placeholder="10.5" className="input-field" />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Tenure (months)</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('emis.calc_tenure_label')}</label>
             <input type="number" value={calcForm.tenure} onChange={(e) => setCalcForm((f) => ({ ...f, tenure: e.target.value }))} placeholder="12" className="input-field" />
           </div>
-          <button onClick={handleCalc} disabled={!calcForm.principal || !calcForm.tenure} className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-all disabled:opacity-40">Calculate</button>
+          <button onClick={handleCalc} disabled={!calcForm.principal || !calcForm.tenure} className="w-full bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold py-2.5 rounded-lg transition-all disabled:opacity-40">{t('emis.calculate_button')}</button>
 
           {calcResult && (
             <div className="p-3 rounded-xl bg-white/[0.03] space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Monthly EMI</span>
+                <span className="text-xs text-gray-500">{t('emis.monthly_emi_label')}</span>
                 <span className="text-lg font-extrabold text-neon">{formatCurrency(calcResult.emi)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Total Interest</span>
+                <span className="text-xs text-gray-500">{t('emis.total_interest_label')}</span>
                 <span className="text-xs font-semibold text-amber-400">{formatCurrency(calcResult.totalInterest)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-500">Total Payment</span>
+                <span className="text-xs text-gray-500">{t('emis.total_payment_label')}</span>
                 <span className="text-xs font-semibold">{formatCurrency(calcResult.totalPayment)}</span>
               </div>
-              <button onClick={applyCalcResult} className="w-full bg-neon/10 text-neon text-xs font-semibold py-2 rounded-lg border border-neon/20 hover:bg-neon/20 transition-all mt-1">Use This EMI Amount</button>
+              <button onClick={applyCalcResult} className="w-full bg-neon/10 text-neon text-xs font-semibold py-2 rounded-lg border border-neon/20 hover:bg-neon/20 transition-all mt-1">{t('emis.use_this_emi')}</button>
             </div>
           )}
         </div>
@@ -549,11 +549,11 @@ export default function EmiCenterPage({ _onNavigate }) {
       <ConfirmationModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => { deleteEmi(deleteTarget); addToast('EMI deleted', 'info'); setDeleteTarget(null) }}
-        title="Delete EMI"
-        description="This will permanently delete this EMI and all its payment history."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        onConfirm={() => { deleteEmi(deleteTarget); addToast(t('emis.deleted_toast'), 'info'); setDeleteTarget(null) }}
+        title={t('emis.delete_title')}
+        description={t('emis.delete_description')}
+        confirmLabel={t('emis.delete_confirm_label')}
+        cancelLabel={t('emis.cancel_button')}
         danger
       />
     </div>

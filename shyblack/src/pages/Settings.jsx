@@ -5,6 +5,7 @@ import {
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
   Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users, Wand2, Calculator, Store, Link as LinkIcon,
+  Tag, Plus,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -28,6 +29,7 @@ import { getTheme, setTheme, THEMES } from '../utils/theme'
 import { getCurrencySettings, setCurrencyRate, setBaseCurrency, setMultiCurrencyEnabled, CURRENCIES } from '../utils/multiCurrency'
 import { getAutoBackupSettings, saveAutoBackupSettings, AUTO_BACKUP_FREQUENCIES, runAutoBackupIfDue } from '../utils/autoBackup'
 import { formatDate } from '../utils/helpers'
+import { getCustomCategories, addCustomCategory, removeCustomCategory } from '../utils/customCategories'
 
 const LANGUAGES = [
   { code: 'en', label: 'English', nativeLabel: 'English' },
@@ -74,6 +76,9 @@ export default function Settings({ onNavigate }) {
   const [currencyState, setCurrencyState] = useState(() => getCurrencySettings())
   const [autoBackup, setAutoBackup] = useState(() => getAutoBackupSettings())
   const [runningBackup, setRunningBackup] = useState(false)
+  const [customCats, setCustomCats] = useState(() => getCustomCategories())
+  const [addingCat, setAddingCat] = useState(false)
+  const [catForm, setCatForm] = useState({ label: '', type: 'expense', color: '#10b981' })
 
   useEffect(() => {
     setTarget(String(savingsGoal.target || ''))
@@ -85,6 +90,24 @@ export default function Settings({ onNavigate }) {
       setBiometricState((prev) => ({ ...prev, available: result.available, type: result.type, checking: false }))
     })
   }, [])
+
+  const refreshCustomCategories = useCallback(() => setCustomCats(getCustomCategories()), [])
+
+  const handleSaveCategory = useCallback(() => {
+    const entry = addCustomCategory(catForm)
+    if (entry) {
+      refreshCustomCategories()
+      addToast(t('settings.custom_category_added'), 'success')
+      setCatForm({ label: '', type: 'expense', color: '#10b981' })
+      setAddingCat(false)
+    }
+  }, [catForm, refreshCustomCategories, addToast, t])
+
+  const handleDeleteCategory = useCallback((id) => {
+    removeCustomCategory(id)
+    refreshCustomCategories()
+    addToast(t('settings.custom_category_deleted'), 'info')
+  }, [refreshCustomCategories, addToast, t])
 
   const handleCheckNotifications = useCallback(async () => {
     const perm = await checkNotificationPermission()
@@ -1163,6 +1186,77 @@ export default function Settings({ onNavigate }) {
           <input ref={encFileInputRef} type="file" accept=".json" onChange={handleEncImportFile} className="hidden" />
           <p className="text-[10px] text-gray-600 text-center px-2">{t('settings.enc_backup_tip')}</p>
         </div>
+      </GlassCard>
+
+      {/* Custom Categories */}
+      <GlassCard className="mb-3">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-8 h-8 rounded-lg bg-yellow-500/10 flex items-center justify-center">
+            <Tag size={16} className="text-yellow-400" />
+          </div>
+          <h2 className="text-sm font-semibold">{t('settings.custom_categories')}</h2>
+        </div>
+        <div className="space-y-2 mb-3">
+          {customCats.length === 0 && <p className="text-[10px] text-gray-600 text-center py-1">{t('settings.custom_categories_empty')}</p>}
+          {customCats.map((c) => (
+            <div key={c.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/[0.03]">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: c.color }} />
+              <Tag size={12} className="text-yellow-400 shrink-0" />
+              <span className="text-xs text-gray-200 flex-1 truncate">{c.label}</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded-md bg-white/[0.06] text-gray-400 shrink-0">
+                {t(c.type === 'income' ? 'settings.custom_type_income' : 'settings.custom_type_expense')}
+              </span>
+              <button
+                onClick={() => handleDeleteCategory(c.id)}
+                className="p-1.5 rounded-lg hover:bg-white/[0.06] text-gray-500 hover:text-red-400 transition-colors"
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+        {addingCat ? (
+          <div className="space-y-2">
+            <input
+              value={catForm.label}
+              onChange={(e) => setCatForm((f) => ({ ...f, label: e.target.value }))}
+              placeholder={t('settings.custom_category_placeholder')}
+              className="input-field text-sm"
+            />
+            <div className="flex gap-2">
+              <select
+                value={catForm.type}
+                onChange={(e) => setCatForm((f) => ({ ...f, type: e.target.value }))}
+                className="input-field text-sm flex-1"
+              >
+                <option value="expense">{t('settings.custom_type_expense')}</option>
+                <option value="income">{t('settings.custom_type_income')}</option>
+              </select>
+              <input
+                type="color"
+                value={catForm.color}
+                onChange={(e) => setCatForm((f) => ({ ...f, color: e.target.value }))}
+                className="h-10 w-12 rounded-lg bg-transparent border border-glass-border"
+                aria-label={t('settings.custom_category_color')}
+              />
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleSaveCategory}
+                disabled={!catForm.label.trim()}
+                className="btn-primary flex-1 text-sm disabled:opacity-40"
+              >
+                {t('settings.custom_category_save')}
+              </button>
+              <button onClick={() => setAddingCat(false)} className="btn-secondary text-sm px-4">{t('common.cancel')}</button>
+            </div>
+          </div>
+        ) : (
+          <button onClick={() => setAddingCat(true)} className="btn-secondary w-full text-sm flex items-center justify-center gap-2">
+            <Plus size={15} />
+            {t('settings.custom_category_add')}
+          </button>
+        )}
       </GlassCard>
 
       {/* Danger Zone */}

@@ -19,11 +19,6 @@ function getBillIcon(typeId) {
   return BILL_ICONS[iconName] || Receipt
 }
 
-function getBillLabel(typeId) {
-  const bt = BILL_TYPES.find((t) => t.id === typeId)
-  return bt?.label || 'Custom Bill'
-}
-
 function getNextUnpaidDueDate(bill) {
   if (!bill.paidDates || bill.paidDates.length === 0) return bill.dueDate
   const paid = new Set(bill.paidDates)
@@ -124,9 +119,9 @@ export default function BillsPage({ _onNavigate }) {
   const handleSave = useCallback(() => {
     const name = form.name.trim()
     const amount = parseFloat(form.amount)
-    if (!name) { addToast('Bill name is required', 'error'); return }
-    if (!amount || amount <= 0) { addToast('Valid amount is required', 'error'); return }
-    if (!form.dueDate) { addToast('Due date is required', 'error'); return }
+    if (!name) { addToast(t('bills.toast_name_required'), 'error'); return }
+    if (!amount || amount <= 0) { addToast(t('bills.toast_amount_required'), 'error'); return }
+    if (!form.dueDate) { addToast(t('bills.toast_date_required'), 'error'); return }
 
     addBill({
       type: form.type,
@@ -137,38 +132,38 @@ export default function BillsPage({ _onNavigate }) {
       reminderDays: form.reminderDays,
       notes: form.notes,
     })
-    addToast('Bill added successfully', 'success')
+    addToast(t('bills.toast_added'), 'success')
     setShowAddModal(false)
     refresh()
-  }, [form, addToast, refresh])
+  }, [form, addToast, refresh, t])
 
   const handleMarkPaid = useCallback((id) => {
     markBillPaid(id)
-    addToast('Bill marked as paid', 'success')
+    addToast(t('bills.toast_marked_paid'), 'success')
     refresh()
-  }, [addToast, refresh])
+  }, [addToast, refresh, t])
 
   const handleDelete = useCallback(() => {
     if (deleteTarget) {
       deleteBill(deleteTarget)
-      addToast('Bill deleted', 'info')
+      addToast(t('bills.toast_deleted'), 'info')
       setDeleteTarget(null)
       refresh()
     }
-  }, [deleteTarget, addToast, refresh])
+  }, [deleteTarget, addToast, refresh, t])
 
   const handleToggleActive = useCallback((id, currentActive) => {
     updateBill(id, { active: !currentActive })
-    addToast(currentActive ? 'Bill paused' : 'Bill activated', 'info')
+    addToast(t(currentActive ? 'bills.toast_paused' : 'bills.toast_activated'), 'info')
     refresh()
-  }, [addToast, refresh])
+  }, [addToast, refresh, t])
 
   const FILTERS = [
-    { id: 'all', label: 'All' },
-    { id: 'upcoming', label: 'Upcoming' },
-    { id: 'due_today', label: 'Due Today' },
-    { id: 'overdue', label: 'Overdue' },
-    { id: 'paid', label: 'Paid' },
+    { id: 'all', label: t('bills.filter_all') },
+    { id: 'upcoming', label: t('bills.filter_upcoming') },
+    { id: 'due_today', label: t('bills.filter_due_today') },
+    { id: 'overdue', label: t('bills.filter_overdue') },
+    { id: 'paid', label: t('bills.filter_paid') },
   ]
 
   return (
@@ -178,11 +173,11 @@ export default function BillsPage({ _onNavigate }) {
           <div className="w-9 h-9 rounded-xl bg-neon/10 flex items-center justify-center">
             <Receipt size={18} className="text-neon" />
           </div>
-          <h1 className="text-xl font-bold">Bills</h1>
+          <h1 className="text-xl font-bold">{t('bills.title')}</h1>
         </div>
         <button onClick={openAdd} className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neon/10 text-neon text-xs font-medium hover:bg-neon/20 transition-all">
           <Plus size={14} />
-          Add Bill
+          {t('bills.add')}
         </button>
       </div>
 
@@ -190,19 +185,19 @@ export default function BillsPage({ _onNavigate }) {
       {bills.length > 0 && (
         <div className="grid grid-cols-2 gap-2.5 mb-4">
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Total Bills</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('bills.total')}</p>
             <p className="text-lg font-extrabold tabular-nums">{stats.total}</p>
           </GlassCard>
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Paid This Month</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('bills.paid_this_month')}</p>
             <p className="text-lg font-extrabold text-neon tabular-nums">{stats.paid}</p>
           </GlassCard>
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Overdue</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('bills.overdue')}</p>
             <p className={`text-lg font-extrabold tabular-nums ${stats.overdue > 0 ? 'text-red-400' : 'text-gray-400'}`}>{stats.overdue}</p>
           </GlassCard>
           <GlassCard className="!p-3">
-            <p className="text-[10px] text-gray-500 mb-1 font-medium">Upcoming Amount</p>
+            <p className="text-[10px] text-gray-500 mb-1 font-medium">{t('bills.upcoming_amount')}</p>
             <p className="text-lg font-extrabold text-amber-400 tabular-nums">{formatCurrency(stats.upcomingAmount)}</p>
           </GlassCard>
         </div>
@@ -233,9 +228,9 @@ export default function BillsPage({ _onNavigate }) {
       {bills.length === 0 && (
         <EmptyState
           icon={Receipt}
-          title="No bills yet"
-          description="Add your recurring bills like electricity, internet, insurance to never miss a payment"
-          action={<button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">Add First Bill</button>}
+          title={t('bills.empty_title')}
+          description={t('bills.empty_desc')}
+          action={<button onClick={openAdd} className="btn-primary text-xs !px-4 !py-2">{t('bills.add_first')}</button>}
         />
       )}
 
@@ -273,17 +268,17 @@ export default function BillsPage({ _onNavigate }) {
                         status === 'inactive' ? 'bg-gray-500/10 text-gray-500' :
                         'bg-blue-500/10 text-blue-400'
                       }`}>
-                        {status === 'paid' ? 'Paid' :
-                         status === 'overdue' ? 'Overdue' :
-                         status === 'due_today' ? 'Due Today' :
-                         status === 'inactive' ? 'Paused' :
-                         diffDays === 0 ? 'Due Today' :
-                         diffDays === 1 ? 'Due Tomorrow' :
-                         `In ${diffDays} days`}
+                        {status === 'paid' ? t('bills.status_paid') :
+                         status === 'overdue' ? t('bills.status_overdue') :
+                         status === 'due_today' ? t('bills.status_due_today') :
+                         status === 'inactive' ? t('bills.status_paused') :
+                         diffDays === 0 ? t('bills.status_due_today') :
+                         diffDays === 1 ? t('bills.due_tomorrow') :
+                         t('bills.in_days', { count: diffDays })}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-xs text-gray-500">{getBillLabel(bill.type)}</span>
+                      <span className="text-xs text-gray-500">{t(`bills.type_${bill.type}`)}</span>
                       <span className="text-gray-700">·</span>
                       <span className="text-xs text-gray-500">{formatCurrency(bill.amount)}</span>
                     </div>
@@ -291,7 +286,7 @@ export default function BillsPage({ _onNavigate }) {
                       <Calendar size={10} className="text-gray-600" />
                       <span className="text-[10px] text-gray-600">
                         {dueDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
-                        {bill.recurring && ' (Recurring)'}
+                        {bill.recurring && ` (${t('bills.recurring_tag')})`}
                       </span>
                     </div>
                   </div>
@@ -300,7 +295,7 @@ export default function BillsPage({ _onNavigate }) {
                       <button
                         onClick={() => handleMarkPaid(bill.id)}
                         className="p-1.5 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all"
-                        title="Mark as paid"
+                        title={t('bills.mark_paid')}
                       >
                         <CheckCircle2 size={14} />
                       </button>
@@ -308,14 +303,14 @@ export default function BillsPage({ _onNavigate }) {
                     <button
                       onClick={() => handleToggleActive(bill.id, bill.active)}
                       className="p-1.5 rounded-lg text-gray-500 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all"
-                      title={bill.active ? 'Pause' : 'Activate'}
+                      title={bill.active ? t('bills.pause') : t('bills.activate')}
                     >
                       {bill.active ? <BellOff size={14} /> : <Bell size={14} />}
                     </button>
                     <button
                       onClick={() => setDeleteTarget(bill.id)}
                       className="p-1.5 rounded-lg text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      title="Delete"
+                      title={t('bills.delete')}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -328,34 +323,34 @@ export default function BillsPage({ _onNavigate }) {
       )}
 
       {/* Add Bill Modal */}
-      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title="Add Bill">
+      <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title={t('bills.modal_title')}>
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Bill Type</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.bill_type')}</label>
             <select
               value={form.type}
               onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}
               className="input-field text-sm"
             >
               {BILL_TYPES.map((bt) => (
-                <option key={bt.id} value={bt.id}>{bt.label}</option>
+                <option key={bt.id} value={bt.id}>{t(`bills.type_${bt.id}`)}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Bill Name</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.bill_name')}</label>
             <input
               type="text"
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              placeholder="e.g. Airtel Broadband"
+              placeholder={t('bills.name_placeholder')}
               className="input-field"
               maxLength={50}
               autoFocus
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Amount (₹)</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.amount')}</label>
             <input
               type="text"
               inputMode="numeric"
@@ -366,7 +361,7 @@ export default function BillsPage({ _onNavigate }) {
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Due Date</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.due_date')}</label>
             <input
               type="date"
               value={form.dueDate}
@@ -383,36 +378,36 @@ export default function BillsPage({ _onNavigate }) {
               <Calendar size={16} />
             </button>
             <div className="flex-1">
-              <p className="text-xs font-medium">Recurring Bill</p>
-              <p className="text-[11px] text-gray-500">Automatically repeats each month</p>
+              <p className="text-xs font-medium">{t('bills.recurring_bill')}</p>
+              <p className="text-[11px] text-gray-500">{t('bills.recurring_desc')}</p>
             </div>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Reminder (days before due)</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.reminder_label')}</label>
             <select
               value={form.reminderDays}
               onChange={(e) => setForm((f) => ({ ...f, reminderDays: Number(e.target.value) }))}
               className="input-field text-sm"
             >
               {[0, 1, 2, 3, 5, 7, 14].map((d) => (
-                <option key={d} value={d}>{d === 0 ? 'On due date' : `${d} day${d > 1 ? 's' : ''} before`}</option>
+                <option key={d} value={d}>{d === 0 ? t('bills.reminder_on_due') : t('bills.reminder_days_before', { count: d })}</option>
               ))}
             </select>
           </div>
           <div>
-            <label className="text-xs text-gray-500 font-medium mb-1.5 block">Notes (optional)</label>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.notes')}</label>
             <input
               type="text"
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              placeholder="Any additional info"
+              placeholder={t('bills.notes_placeholder')}
               className="input-field"
               maxLength={100}
             />
           </div>
           <div className="flex gap-2">
-            <button onClick={handleSave} disabled={!form.name.trim() || !form.amount} className="flex-1 btn-primary text-sm">Add Bill</button>
-            <button onClick={() => setShowAddModal(false)} className="flex-1 btn-secondary text-sm">Cancel</button>
+            <button onClick={handleSave} disabled={!form.name.trim() || !form.amount} className="flex-1 btn-primary text-sm">{t('bills.add')}</button>
+            <button onClick={() => setShowAddModal(false)} className="flex-1 btn-secondary text-sm">{t('bills.cancel')}</button>
           </div>
         </div>
       </Modal>
@@ -421,10 +416,10 @@ export default function BillsPage({ _onNavigate }) {
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
-        title="Delete Bill"
-        description="Are you sure you want to delete this bill? This action cannot be undone."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        title={t('bills.delete_title')}
+        description={t('bills.delete_desc')}
+        confirmLabel={t('bills.delete')}
+        cancelLabel={t('bills.cancel')}
         danger
       />
     </div>

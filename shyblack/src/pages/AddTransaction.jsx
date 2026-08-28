@@ -2,7 +2,8 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react'
 import { ArrowUpCircle, ArrowDownCircle, Check, Repeat2, Tag, X, User, Smartphone, Zap, ChevronDown, ChevronUp, Banknote, Building2, CreditCard, Pencil, Loader2, Mic, SplitSquareHorizontal, Plus } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { formatCurrency } from '../utils/helpers'
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
+import { TRANSACTION_TYPES, PAYMENT_METHODS } from '../utils/constants'
+import { getCategoriesForType } from '../utils/customCategories'
 import { getSmartCategoryPrediction } from '../utils/insights'
 import { getSuggestedTags } from '../utils/tags'
 import { parseVoiceCommand, recognizeVoiceSpeech } from '../utils/voiceEntry'
@@ -102,7 +103,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
   }, [personName, recentPeople])
 
   const transactionType = purpose
-  const categories = transactionType === TRANSACTION_TYPES.INCOME ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+  const categories = getCategoriesForType(transactionType)
   const suggestedTags = useMemo(() => getSuggestedTags(), [])
   const multiCurrencySettings = useMemo(() => getCurrencySettings(), [])
   const baseCurrencyCode = useMemo(() => getBaseCurrencyCode(), [])
@@ -405,7 +406,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
                   setSource(tmpl.source || '')
                   setCurrency(tmpl.currency || '')
                   setSelectedTags(tmpl.tags || [])
-                  const tmplCat = tmpl.type === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES
+                  const tmplCat = getCategoriesForType(tmpl.type)
                   if (tmplCat.find((c) => c.id === tmpl.category)) {
                     lastCategoryByType.current[tmpl.type] = tmpl.category
                   }

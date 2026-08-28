@@ -8,7 +8,7 @@ import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
-import { EXPENSE_CATEGORIES } from '../utils/constants'
+import { getCategoriesForType } from '../utils/customCategories'
 import { BUDGET_PERIODS } from '../utils/budgetUtils'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -29,6 +29,7 @@ export default function BudgetCenterPage() {
   const { t } = useTranslation()
   const { budgetsV2, addBudgetV2, updateBudgetV2, deleteBudgetV2, archiveBudgetV2, reactivateBudgetV2, budgetDashboardStats, budgetHealthV2, budgetAlerts, overspentCategories } = useFinance()
   const { addToast } = useToast()
+  const budgetCategories = getCategoriesForType('expense')
   const [showForm, setShowForm] = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
@@ -194,14 +195,14 @@ export default function BudgetCenterPage() {
             <div>
               <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('budgets.category')}</label>
               <div className="flex flex-wrap gap-1.5">
-                {EXPENSE_CATEGORIES.map((cat) => (
+                {budgetCategories.map((cat) => (
                   <button
                     key={cat.id} type="button"
                     onClick={() => setForm((f) => ({ ...f, category: cat.id }))}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-medium border transition-all ${form.category === cat.id ? 'border-teal-500/50 bg-teal-500/10 text-teal-400' : 'border-glass-border text-gray-500 hover:text-white'}`}
                   >
                     <CategoryIcon icon={cat.icon} size={12} />
-                    {cat.label}
+                    {cat.label && cat.id.startsWith('custom_') ? cat.label : t(`budgets.category_${cat.id}`)}
                   </button>
                 ))}
               </div>
@@ -245,7 +246,7 @@ export default function BudgetCenterPage() {
           </h3>
           <div className="space-y-1.5">
             {overspentCategories.slice(0, 5).map((b) => {
-              const cat = EXPENSE_CATEGORIES.find((c) => c.id === b.category)
+              const cat = budgetCategories.find((c) => c.id === b.category)
               return (
                 <div key={b.id} className="flex items-center justify-between text-[10px] bg-red-500/5 rounded-lg px-2.5 py-1.5">
                   <div className="flex items-center gap-1.5 min-w-0">
@@ -272,7 +273,7 @@ export default function BudgetCenterPage() {
       <div className="space-y-2 mb-6">
         {filtered.map((b) => {
           const pct = b.amount > 0 ? Math.min((b.spent / b.amount) * 100, 100) : 0
-          const cat = EXPENSE_CATEGORIES.find((c) => c.id === b.category)
+          const cat = budgetCategories.find((c) => c.id === b.category)
           const isExceeded = b.amount > 0 && b.spent > b.amount
           const isWarning = b.amount > 0 && b.spent >= b.amount * 0.8 && b.spent <= b.amount
           return (
@@ -288,7 +289,7 @@ export default function BudgetCenterPage() {
                     {isWarning && <span className="text-[10px] text-amber-400 font-medium">{t('budgets.status_warning')}</span>}
                     {!b.active && <span className="text-[10px] text-gray-500">{t('budgets.status_archived')}</span>}
                   </div>
-                  <p className="text-[10px] text-gray-500 capitalize">{cat?.label || b.category} · {b.period}</p>
+                  <p className="text-[10px] text-gray-500 capitalize">{cat ? (cat.label && cat.id.startsWith('custom_') ? cat.label : t(`budgets.category_${cat.id}`)) : b.category} · {b.period ? t(`budgets.${b.period}`) : ''}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-semibold tabular-nums">{formatCurrency(b.spent)}</p>
@@ -312,12 +313,12 @@ export default function BudgetCenterPage() {
                     <Archive size={11} /> {t('budgets.archive')}
                   </button>
                 ) : (
-                  <button onClick={() => { reactivateBudgetV2(b.id); addToast('Budget reactivated', 'success') }} className="flex-1 bg-white/[0.05] hover:bg-teal-500/10 text-gray-400 hover:text-teal-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
-                    <RotateCcw size={11} /> Reactivate
+                  <button onClick={() => { reactivateBudgetV2(b.id); addToast(t('budgets.reactivated_toast'), 'success') }} className="flex-1 bg-white/[0.05] hover:bg-teal-500/10 text-gray-400 hover:text-teal-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
+                    <RotateCcw size={11} /> {t('budgets.reactivate_button')}
                   </button>
                 )}
                 <button onClick={() => setDeleteTarget(b)} className="flex-1 bg-white/[0.05] hover:bg-red-500/10 text-gray-400 hover:text-red-400 text-[10px] font-semibold py-1.5 rounded-lg transition-all flex items-center justify-center gap-1">
-                  <Trash2 size={11} /> Delete
+                  <Trash2 size={11} /> {t('budgets.delete_button')}
                 </button>
               </div>
             </GlassCard>
@@ -328,22 +329,22 @@ export default function BudgetCenterPage() {
       <ConfirmationModal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => { deleteBudgetV2(deleteTarget.id); addToast('Budget deleted', 'info'); setDeleteTarget(null) }}
-        title="Delete Budget"
-        description="This will permanently delete this budget."
-        confirmLabel="Delete"
-        cancelLabel="Cancel"
+        onConfirm={() => { deleteBudgetV2(deleteTarget.id); addToast(t('budgets.deleted_toast'), 'info'); setDeleteTarget(null) }}
+        title={t('budgets.delete_title')}
+        description={t('budgets.delete_desc')}
+        confirmLabel={t('budgets.delete_button')}
+        cancelLabel={t('common.cancel')}
         danger
       />
 
       <ConfirmationModal
         open={!!archiveTarget}
         onClose={() => setArchiveTarget(null)}
-        onConfirm={() => { archiveBudgetV2(archiveTarget.id); addToast('Budget archived', 'info'); setArchiveTarget(null) }}
-        title="Archive Budget"
-        description="Archived budgets are hidden from active view but data is preserved."
-        confirmLabel="Archive"
-        cancelLabel="Cancel"
+        onConfirm={() => { archiveBudgetV2(archiveTarget.id); addToast(t('budgets.archived_toast'), 'info'); setArchiveTarget(null) }}
+        title={t('budgets.archive_title')}
+        description={t('budgets.archive_desc')}
+        confirmLabel={t('budgets.archive')}
+        cancelLabel={t('common.cancel')}
       />
     </div>
   )

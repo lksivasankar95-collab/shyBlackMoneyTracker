@@ -2,6 +2,7 @@ import { useState, useMemo, useRef, useCallback, useEffect } from 'react'
 import {
   Search, Filter, X, ArrowUpDown, Tag,
   TrendingUp, TrendingDown, FolderOpen, Wallet,
+  Receipt, Repeat, Target, Landmark,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
@@ -13,6 +14,7 @@ import { getEmis } from '../utils/emi'
 import { getDocuments } from '../utils/documents'
 import { getAccounts } from '../utils/networth'
 import { getTags } from '../utils/tags'
+import { buildFullSearchIndex, searchFullIndex } from '../utils/fullSearchIndex'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
@@ -22,6 +24,10 @@ const SEARCH_TABS = [
   { id: 'debts', label: 'search.tabDebts' },
   { id: 'goals', label: 'search.tabGoals' },
   { id: 'emis', label: 'search.tabEmis' },
+  { id: 'budgets', label: 'search.tabBudgets' },
+  { id: 'wealth', label: 'search.tabWealth' },
+  { id: 'receipts', label: 'search.tabReceipts' },
+  { id: 'recurring', label: 'search.tabRecurring' },
   { id: 'transfers', label: 'search.tabTransfers' },
   { id: 'documents', label: 'search.tabDocuments' },
   { id: 'accounts', label: 'search.tabAccounts' },
@@ -38,7 +44,7 @@ function useDebounce(value, delay) {
 
 export default function SearchPage({ _onNavigate }) {
   const { t } = useTranslation()
-  const { transactions, debts, goals } = useFinance()
+  const { transactions, debts, goals, budgetsV2, recurring, receipts, wealthAssets } = useFinance()
   const [query, setQuery] = useState('')
   const [activeTab, setActiveTab] = useState('all')
   const [filters, setFilters] = useState({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '', person: '', account: '', tags: [], sortBy: 'date-desc' })
@@ -53,7 +59,12 @@ export default function SearchPage({ _onNavigate }) {
     const emis = getEmis()
     const transfers = getTransfers()
     const q = debouncedQuery.toLowerCase().trim()
-    const results = { transactions: [], debts: [], goals: [], emis: [], transfers: [], documents: [], accounts: [], total: 0 }
+    const results = { transactions: [], debts: [], goals: [], emis: [], budgets: [], wealth: [], receipts: [], recurring: [], transfers: [], documents: [], accounts: [], total: 0 }
+
+    const searchIndex = buildFullSearchIndex({ transactions, budgetsV2, emis, goals, wealthAssets, receipts, recurring, debts })
+    const matches = q ? searchFullIndex(searchIndex, q) : []
+    const matchedIds = (entity) => new Set(matches.filter((m) => m.entity === entity).map((m) => m.id))
+    const inSet = (set, id) => set.size === 0 || set.has(id)
 
     const matchText = (text) => !q || (text && text.toLowerCase().includes(q))
     const matchAmount = (amt) => {
@@ -163,9 +174,41 @@ export default function SearchPage({ _onNavigate }) {
       }).slice(0, 50)
     }
 
-    results.total = results.transactions.length + results.debts.length + results.goals.length + results.emis.length + results.transfers.length + results.documents.length + results.accounts.length
+    if (activeTab === 'all' || activeTab === 'budgets') {
+      const set = matchedIds('budgets')
+      results.budgets = budgetsV2.filter((b) =>
+        inSet(set, b.id) &&
+        (!q || matchText(b.name) || matchText(b.category) || matchText(b.period))
+      ).filter((b) => matchAmount(b.amount)).slice(0, 50)
+    }
+
+    if (activeTab === 'all' || activeTab === 'wealth') {
+      const set = matchedIds('wealthAssets')
+      results.wealth = wealthAssets.filter((a) =>
+        inSet(set, a.id) &&
+        (!q || matchText(a.assetName) || matchText(a.assetType))
+      ).filter((a) => matchAmount(a.currentValue)).slice(0, 50)
+    }
+
+    if (activeTab === 'all' || activeTab === 'receipts') {
+      const set = matchedIds('receipts')
+      results.receipts = receipts.filter((r) =>
+        inSet(set, r.id) &&
+        (!q || matchText(r.merchant) || matchText(r.category) || matchText(r.notes))
+      ).filter((r) => matchAmount(r.amount)).filter((r) => matchDate(r.date)).slice(0, 50)
+    }
+
+    if (activeTab === 'all' || activeTab === 'recurring') {
+      const set = matchedIds('recurring')
+      results.recurring = recurring.filter((r) =>
+        inSet(set, r.id) &&
+        (!q || matchText(r.note) || matchText(r.category) || matchText(r.frequency))
+      ).filter((r) => matchAmount(r.amount)).slice(0, 50)
+    }
+
+    results.total = results.transactions.length + results.debts.length + results.goals.length + results.emis.length + results.budgets.length + results.wealth.length + results.receipts.length + results.recurring.length + results.transfers.length + results.documents.length + results.accounts.length
     return results
-  }, [debouncedQuery, transactions, debts, goals, activeTab, filters])
+  }, [debouncedQuery, transactions, debts, goals, budgetsV2, recurring, receipts, wealthAssets, activeTab, filters])
 
   const clearFilters = useCallback(() => {
     setFilters({ dateFrom: '', dateTo: '', type: '', category: '', minAmount: '', maxAmount: '', person: '', account: '', tags: [], sortBy: 'date-desc' })
@@ -425,6 +468,89 @@ export default function SearchPage({ _onNavigate }) {
                       <p className="text-[10px] text-gray-500">{e.lender || t('search.defaultEmi')} · {t('search.monthsLeft', { count: e.remainingMonths || 0 })}</p>
                     </div>
                     <p className="text-xs font-semibold tabular-nums">{formatCurrency(e.amount)}{t('search.perMonth')}</p>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'budgets') && searchResults.budgets.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionBudgets')}</p>}
+              {searchResults.budgets.map((b) => (
+                <GlassCard key={b.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-teal-500/10 flex items-center justify-center shrink-0">
+                      <Target size={14} className="text-teal-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{b.name}</p>
+                      <p className="text-[10px] text-gray-500">{b.category}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs font-semibold tabular-nums">{formatCurrency(b.spent)}</p>
+                      <p className="text-[10px] text-gray-600">{t('search.of', { amount: formatCurrency(b.amount) })}</p>
+                    </div>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'wealth') && searchResults.wealth.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionWealth')}</p>}
+              {searchResults.wealth.map((a) => (
+                <GlassCard key={a.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center shrink-0">
+                      <Landmark size={14} className="text-cyan-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{a.assetName}</p>
+                      <p className="text-[10px] text-gray-500">{a.assetType}</p>
+                    </div>
+                    <p className="text-xs font-semibold tabular-nums text-cyan-400">{formatCurrency(a.currentValue || 0)}</p>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'receipts') && searchResults.receipts.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionReceipts')}</p>}
+              {searchResults.receipts.map((r) => (
+                <GlassCard key={r.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-neon/10 flex items-center justify-center shrink-0">
+                      <Receipt size={14} className="text-neon" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{r.merchant || r.title}</p>
+                      <p className="text-[10px] text-gray-500">{r.category}{r.date ? ` · ${formatDate(r.date)}` : ''}</p>
+                    </div>
+                    <p className="text-xs font-semibold tabular-nums">{formatCurrency(r.amount || 0)}</p>
+                  </div>
+                </GlassCard>
+              ))}
+            </>
+          )}
+
+          {(activeTab === 'all' || activeTab === 'recurring') && searchResults.recurring.length > 0 && (
+            <>
+              {activeTab === 'all' && <p className="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mt-2">{t('search.sectionRecurring')}</p>}
+              {searchResults.recurring.map((r) => (
+                <GlassCard key={r.id}>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center shrink-0">
+                      <Repeat size={14} className="text-indigo-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-medium truncate">{r.note || r.category}</p>
+                      <p className="text-[10px] text-gray-500">{r.category} · {r.frequency || ''}</p>
+                    </div>
+                    <p className="text-xs font-semibold tabular-nums">{formatCurrency(r.amount || 0)}</p>
                   </div>
                 </GlassCard>
               ))}
