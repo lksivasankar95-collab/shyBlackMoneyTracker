@@ -47,7 +47,7 @@ i18n.use(initReactI18next).init({
 const LanguageContext = createContext({
   lang: DEFAULT_LANG,
   setLang: () => {},
-  t: (key, params) => key || '',
+  t: (key) => key || '',
   translations: {},
   isLoaded: true,
   supportedLanguages: SUPPORTED_LANGS,
@@ -55,7 +55,7 @@ const LanguageContext = createContext({
 
 export function I18nProvider({ children }) {
   const [lang, setLangState] = useState(getSavedLanguage)
-  const [isLoaded, setIsLoaded] = useState(true)
+  const [isLoaded] = useState(true)
 
   useEffect(() => {
     i18n.changeLanguage(lang)

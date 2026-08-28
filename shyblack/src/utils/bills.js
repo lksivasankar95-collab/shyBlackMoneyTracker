@@ -1,4 +1,4 @@
-import { safeStorage, STORAGE_KEYS } from './safeStorage'
+import { safeStorage } from './safeStorage'
 
 export const BILL_TYPES = [
   { id: 'electricity', label: 'Electricity', icon: 'Zap' },

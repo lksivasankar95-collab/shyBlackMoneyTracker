@@ -70,7 +70,7 @@ export default function Onboarding({ onComplete }) {
 
   const handleBack = useCallback(() => {
     if (step > 0) setStep((s) => s - 1)
-  }, [step, STEPS.length])
+  }, [step])
 
   const handleComplete = useCallback(() => {
     if (!agreePrivacy || !agreeTerms) return

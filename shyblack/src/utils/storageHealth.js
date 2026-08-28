@@ -55,7 +55,6 @@ export function checkOrphanedRecords(allData) {
   const accountIds = new Set((allData.accounts || []).map((a) => a.id))
   const transactionIds = new Set((allData.transactions || []).map((t) => t.id))
   const goalIds = new Set((allData.goals || []).map((g) => g.id))
-  const emiIds = new Set((allData.emis || []).map((e) => e.id))
 
   for (const wa of allData.wealthAssets || []) {
     if (wa.goalId && !goalIds.has(wa.goalId)) {

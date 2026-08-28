@@ -9,7 +9,7 @@ export default class PageErrorBoundary extends Component {
     return { hasError: true, errorMessage: error?.message || 'Unknown error' }
   }
 
-  componentDidCatch(error, errorInfo) {
+  componentDidCatch(error, _errorInfo) {
     try {
       const log = JSON.parse(sessionStorage.getItem('finora_crash_log') || '[]')
       log.push({

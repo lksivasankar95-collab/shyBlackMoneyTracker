@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {
-  DEBT_TYPES, DEBT_STATUS, LEDGER_STATUS,
+  DEBT_TYPES, LEDGER_STATUS,
   createDebt, applyRepayment,
   getDebts, saveDebts, createLedger, addPayment,
   undoLastPayment, editPayment, deletePayment,

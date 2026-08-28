@@ -1,4 +1,4 @@
-import { safeStorage, STORAGE_KEYS } from './safeStorage'
+import { safeStorage } from './safeStorage'
 
 const BIOMETRIC_KEY = 'finora_biometric'
 

@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { runPerformanceAudit, measureStartupTime, measureStorageReadTime, measureStorageWriteTime, calculatePerformanceGrade } from '../utils/performanceAudit'
+import { describe, it, expect } from 'vitest'
+import { runPerformanceAudit, measureStartupTime, calculatePerformanceGrade } from '../utils/performanceAudit'
 import { runStorageHealthCheck, checkDuplicateIds, checkCorruptedRecords, checkOrphanedRecords, autoRepairRecords, generateHealthGrade } from '../utils/storageHealth'
 import { validateWealthAssets, validateReceipts, validateRecurring, validateBudgetsV2, validateBackups, runFullIntegrityCheck, validateImportFile } from '../utils/integrityValidator'
 import { buildFullSearchIndex, searchFullIndex, getEntityCounts } from '../utils/fullSearchIndex'

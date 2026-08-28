@@ -11,7 +11,6 @@ const MERCHANT_MAP = [
   { keywords: ['bigbasket', 'grofers', 'blinkit', 'zepto', 'instamart', 'dmart', 'reliance fresh', 'more grocery'], category: 'food' },
 ]
 
-const CURRENCY_PATTERN = /(?:Rs\.?\s*|₹\s*|INR\s*|INR\.?\s*)?(\d+(?:,\d{3})*(?:\.\d{1,2})?|\d+\.\d{2})/gi
 const DATE_PATTERN_SRC = '(\\d{1,2}[/-]\\d{1,2}[/-]\\d{2,4})|(\\d{4}[/-]\\d{1,2}[/-]\\d{1,2})'
 const EMAIL_PATTERN = /[\w.+-]+@[\w-]+\.[\w.]+/gi
 const PHONE_PATTERN = /(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g

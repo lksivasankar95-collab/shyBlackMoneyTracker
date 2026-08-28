@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { TrendingUp, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, BarChart3, PieChart, DollarSign, Activity, Hash } from 'lucide-react'
+import { TrendingUp, AlertTriangle, CheckCircle, ChevronDown, ChevronUp, BarChart3, DollarSign, Activity, Hash } from 'lucide-react'
 import GlassCard from './GlassCard'
 import { useTranslation } from '../i18n'
 

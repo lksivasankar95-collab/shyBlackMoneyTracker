@@ -201,10 +201,6 @@ export default function GoalsPage() {
               }
             }
 
-            const _dailyRate = g.monthlyContribution > 0
-              ? Math.round(g.monthlyContribution / 30)
-              : 0
-
             return (
               <GlassCard
                 key={g.id}

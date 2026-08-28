@@ -342,10 +342,6 @@ export function generateLedgerExportData(ledger) {
   }
 }
 
-function isLegacyDebt(debt) {
-  return debt && debt.originalAmount === undefined
-}
-
 export function isLedger(debt) {
   if (!debt) return false
   return debt.originalAmount !== undefined

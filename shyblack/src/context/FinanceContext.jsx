@@ -8,16 +8,16 @@ import { getBudgets, saveBudgets } from '../utils/budgets'
 import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTransactions, advanceNextDate, autoExecuteDueRecurring, normalizeRecurringItem, detectDuplicateGeneration } from '../utils/recurring'
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
-import { getDebts, saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS, addPayment, undoLastPayment, editPayment, deletePayment, settleLedger, getLedgerSummary, getLedgerStatement, getLedgerInsights } from '../utils/debts'
+import { saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS, addPayment, undoLastPayment, editPayment, deletePayment, settleLedger, getLedgerSummary, getLedgerInsights } from '../utils/debts'
 import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
-import { getTemplates, saveTemplates, createTemplate, deleteTemplate, getRecentTemplates } from '../utils/templates'
-import { getEmis, saveEmis, createEmi, updateEmi, deleteEmi, closeEmi as closeEmiUtil, reopenEmi as reopenEmiUtil, EMI_STATUS, getEmiSummary, getEnhancedEmiSummary, undoPayment, getEmiStatsForDashboard, getEmiInsights, getEmiPaymentHistory } from '../utils/emi'
+import { getTemplates, saveTemplates, createTemplate, deleteTemplate } from '../utils/templates'
+import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary, getEnhancedEmiSummary, undoPayment } from '../utils/emi'
 import { getAccounts, saveAccounts, saveNetWorthSnapshot } from '../utils/networth'
 import {
   getDocuments, saveDocuments, createDocument, updateDocument, deleteDocument,
-  getDocumentStats, getDocumentById, getDocumentFileData,
+  getDocumentStats,
 } from '../utils/documents'
-import { archiveOldTransactions, getArchiveStats } from '../utils/archiveEngine'
+import { archiveOldTransactions } from '../utils/archiveEngine'
 import { runIntegrityCheck, applyRepairs } from '../utils/dataIntegrity'
 import {
   calculateFinancialScore, detectOverspending, getSavingsRecommendations,
@@ -40,8 +40,8 @@ import { generateReviewSummary } from '../utils/reviewCenter'
 import { getBudgetsV2, saveBudgetsV2, recalculateBudgetSpending, getBudgetDashboardStats, getBudgetHealthV2, getBudgetAlerts, getOverspentCategories, createBudget as createBudgetV2Util, updateBudget as updateBudgetV2Util, deleteBudget as deleteBudgetV2Util, archiveBudget, reactivateBudget } from '../utils/budgetUtils'
 import { generateSmartRecommendations, generateSpendingInsights, calculateSavingsRate, generateEmiInsights, generateDebtInsights, generateRecurringInsights, calculateFinancialScore as calcFinancialScore } from '../utils/insightsEngine'
 import { getReceipts, saveReceipts, createReceipt as createReceiptUtil, updateReceipt as updateReceiptUtil, deleteReceipt as deleteReceiptUtil, getReceiptStats } from '../utils/receiptUtils'
-import { getWealthAssets, saveWealthAssets, createWealthAsset as createWealthAssetUtil, updateWealthAsset as updateWealthAssetUtil, deleteWealthAsset as deleteWealthAssetUtil, calculateNetWorth, getNetWorthHistory, getAssetAllocation, getPortfolioSummary, calculateWealthScore, getWealthDashboardStats, linkAssetToGoal as linkAssetToGoalUtil, unlinkAssetFromGoal as unlinkAssetFromGoalUtil, getAssetsByGoal as getAssetsByGoalUtil } from '../utils/wealthUtils'
-import { snapshotBeforeClearAll, snapshotBeforeBulkDelete, getBackupDashboardStats, createManualBackup, getAutoSnapshots, deleteAutoSnapshot, restoreAutoSnapshot } from '../utils/backupManager'
+import { getWealthAssets, saveWealthAssets, createWealthAsset as createWealthAssetUtil, updateWealthAsset as updateWealthAssetUtil, deleteWealthAsset as deleteWealthAssetUtil, calculateNetWorth, getNetWorthHistory, getAssetAllocation, getPortfolioSummary, calculateWealthScore, getWealthDashboardStats } from '../utils/wealthUtils'
+import { snapshotBeforeClearAll, getBackupDashboardStats, createManualBackup } from '../utils/backupManager'
 import { applyCurrencyToTransaction } from '../utils/multiCurrency'
 import { runAutoBackupIfDue, getAutoBackupSettings } from '../utils/autoBackup'
 import { getSplits, saveSplits, createSplit, updateSplit, deleteSplit, markParticipantPaid } from '../utils/splits'
@@ -155,7 +155,7 @@ export function FinanceProvider({ children }) {
   const { transactions, savingsGoal, budgets, budgetsV2, receipts, wealthAssets, recurring, tags, security, debts, goals, templates, emis, accounts, documents, splits, _recoverySnapshot } = state
   const [notification, setNotification] = useState(null)
   const [recoverySnapshot, setRecoverySnapshot] = useState(_recoverySnapshot)
-  const [backupVersion, setBackupVersion] = useState(0)
+  const [, setBackupVersion] = useState(0)
   const overspendTimer = useRef(null)
   const txPersistTimer = useRef(null)
   const undoStackRef = useRef(createUndoStack())

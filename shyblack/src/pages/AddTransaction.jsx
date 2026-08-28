@@ -280,7 +280,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
     }
 
     setIsSubmitting(false)
-  }, [addTransaction, updateTransaction, undoLastAction, addRecurring, isRecurring, isEditing, editTx, date, frequency, addTemplate, addToast, t, onNavigate])
+  }, [addTransaction, updateTransaction, undoLastAction, addRecurring, isRecurring, isEditing, editTx, date, frequency, addTemplate, addToast, t, onNavigate, navParams])
 
   const handleSubmit = (e) => {
     e.preventDefault()

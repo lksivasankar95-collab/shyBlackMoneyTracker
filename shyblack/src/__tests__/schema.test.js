@@ -48,7 +48,7 @@ describe('runMigrations', () => {
   })
 
   it('is idempotent — running twice produces same schema version', () => {
-    const first = runMigrations()
+    runMigrations()
     const second = runMigrations()
     expect(getSchemaVersion()).toBe(APP_SCHEMA_VERSION)
     expect(second.migrated).toBe(false)

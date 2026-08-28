@@ -64,7 +64,6 @@ export function getCategoryDetail(transactions, categoryId) {
 
   // Weekly trend (current month)
   const weeklyTrend = []
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const weekBuckets = {}
   for (const t of currentMonthTx) {
     const d = new Date(t.date)

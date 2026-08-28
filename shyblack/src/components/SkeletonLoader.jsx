@@ -1,13 +1,5 @@
 import { memo } from 'react'
 
-const variantStyles = {
-  card: 'skeleton-card',
-  list: 'flex items-center gap-3 p-3',
-  stat: 'flex flex-col gap-2 p-4',
-  chart: 'h-48 w-full rounded-xl',
-  custom: '',
-}
-
 function SkeletonCard() {
   return (
     <div className="skeleton-card">

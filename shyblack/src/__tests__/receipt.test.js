@@ -81,9 +81,7 @@ describe('receiptUtils', () => {
 describe('receiptParser - merchant detection', () => {
   it('detects Swiggy as food', async () => {
     const parser = await import('../utils/receiptParser')
-    const result = parser.detectMerchantFromText ??
-      { merchant: 'Swiggy', category: 'food' }
-    expect(true).toBe(true)
+    expect(parser.detectCategory('Swiggy', 'Swiggy order #1234 total 299')).toBe('food')
   })
 })
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import fs from 'fs'
 import path from 'path'
 
@@ -777,7 +777,6 @@ describe('BUG #8 - RecurringTransactionsPage: No translation usage', () => {
       path.resolve(__dirname, '../pages/RecurringTransactionsPage.jsx'),
       'utf-8'
     )
-    const exportDefault = source.match(/export default function \w+/)
     const hasProps = source.includes('props') || source.includes('({')
     if (hasProps) {
       console.log('[BUG#8 ALTERNATIVE] Component accepts props: yes')

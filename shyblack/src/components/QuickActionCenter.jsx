@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   Plus, X, TrendingUp, Landmark, Users, Target, FolderOpen, ArrowLeftRight,
-  FileText, Calculator,
+  Calculator,
 } from 'lucide-react'
 import { useTranslation } from '../i18n'
 

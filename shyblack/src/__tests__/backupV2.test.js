@@ -117,7 +117,7 @@ describe('backup system - generations', () => {
 
   it('deletes a backup', async () => {
     const r1 = await backup.createBackupRecord(backup.BACKUP_TYPES.MANUAL, ['transactions'])
-    const r2 = await backup.createBackupRecord(backup.BACKUP_TYPES.MANUAL, ['transactions'])
+    await backup.createBackupRecord(backup.BACKUP_TYPES.MANUAL, ['transactions'])
     expect(backup.getBackupGenerations()).toHaveLength(2)
     backup.deleteBackup(r1.id)
     expect(backup.getBackupGenerations()).toHaveLength(1)

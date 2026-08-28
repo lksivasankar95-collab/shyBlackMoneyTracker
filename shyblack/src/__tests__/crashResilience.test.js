@@ -29,7 +29,7 @@ describe('Crash Resilience - Schema Migration', () => {
     let caught
     try {
       safeStorage.remove(STORAGE_KEYS.SCHEMA_VERSION)
-      const result = runMigrations()
+      runMigrations()
       caught = null
     } catch (e) {
       caught = e

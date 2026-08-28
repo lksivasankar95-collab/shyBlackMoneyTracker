@@ -9,9 +9,9 @@ import { getAccounts, saveAccounts } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
-export default function TransferPage({ onNavigate }) {
+export default function TransferPage({ onNavigate: _onNavigate }) {
   const { t } = useTranslation()
-  const [refreshKey, setRefreshKey] = useState(0)
+  const [, setRefreshKey] = useState(0)
   const accounts = useMemo(() => getAccounts(), [])
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')

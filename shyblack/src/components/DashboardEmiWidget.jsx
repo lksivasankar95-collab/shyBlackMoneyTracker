@@ -8,8 +8,6 @@ const DashboardEmiWidget = memo(function DashboardEmiWidget({ emiSummary, onNavi
   const { t } = useTranslation()
   const overdue = emiSummary?.overdue || []
   const dueToday = emiSummary?.dueToday || []
-  const dueTomorrow = emiSummary?.dueTomorrow || []
-  const upcoming = emiSummary?.upcoming || []
   const dueWithin7 = emiSummary?.dueWithin7 || []
 
   const nextDueItems = useMemo(() => {

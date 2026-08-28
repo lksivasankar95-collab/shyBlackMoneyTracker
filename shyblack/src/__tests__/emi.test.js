@@ -392,7 +392,7 @@ describe('getEnhancedEmiSummary', () => {
   })
 
   it('detects overdue EMIs', () => {
-    const emi = createEmi({
+    createEmi({
       name: 'Old EMI',
       amount: 5000,
       totalMonths: 6,

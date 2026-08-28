@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react'
 import { CheckCircle, XCircle, AlertCircle, AlertTriangle, RotateCcw, X } from 'lucide-react'
-import { useTranslation } from '../i18n'
 
 const ToastContext = createContext()
 
@@ -82,7 +81,6 @@ function ToastItem({ toast, onRemove, onUndo }) {
 }
 
 export function ToastProvider({ children }) {
-  const { t } = useTranslation()
   const [toasts, setToasts] = useState([])
   const timersRef = useRef({})
 

@@ -5,12 +5,12 @@ import {
   Umbrella, TrendingUp as ChartUp, ArrowLeft, AlertTriangle,
   DollarSign, Clock, RefreshCw, Award, TrendingUp,
 } from 'lucide-react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
-  calculateHealthScore, getHealthHistory, getScoreVelocity,
+  getHealthHistory, getScoreVelocity,
 } from '../utils/financialHealth'
 import {
   calculateScore2, detectRisks, generateRecommendations2,

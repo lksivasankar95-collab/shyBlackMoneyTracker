@@ -1,4 +1,4 @@
-import { Shield, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { Shield, ChevronLeft, ExternalLink } from 'lucide-react'
 import GlassCard from '../components/GlassCard'
 import { PRIVACY_POLICY_URL } from '../utils/constants'
 

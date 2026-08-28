@@ -39,7 +39,7 @@ export function getReceiptMatchScore(receipt, tx) {
   return Math.max(0, Math.round(score))
 }
 
-export function findReceiptMatchSuggestions(receipts = [], transactions = [], maxPerReceipt = 1) {
+export function findReceiptMatchSuggestions(receipts = [], transactions = [], _maxPerReceipt = 1) {
   const unlinked = (receipts || []).filter((r) => !r.transactionId)
   const suggestions = []
 

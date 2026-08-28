@@ -40,7 +40,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function NetWorthPage() {
   const { t } = useTranslation()
-  const { transactions, debts, accounts: contextAccounts, updateAccounts } = useFinance()
+  const { transactions, debts, accounts: contextAccounts } = useFinance()
   const { addToast } = useToast()
   const [accounts, setAccounts] = useState(() => contextAccounts || getAccounts())
   const [showAddModal, setShowAddModal] = useState(false)

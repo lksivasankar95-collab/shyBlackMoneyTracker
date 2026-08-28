@@ -1,15 +1,10 @@
 import { Contacts } from '@capacitor-community/contacts'
 
-let contactsAvailable = false
-
 export async function checkContactsAvailability() {
-  try {
-    contactsAvailable = true
-    return { available: true }
-  } catch {
-    contactsAvailable = false
-    return { available: false, error: 'Contacts plugin not available' }
-  }
+  const available = typeof Contacts === 'object' && typeof Contacts.checkPermissions === 'function'
+  return available
+    ? { available: true }
+    : { available: false, error: 'Contacts plugin not available' }
 }
 
 export async function checkContactsPermission() {

@@ -214,7 +214,6 @@ export async function checkBillReminders(bills) {
   if (!perm.granted) return
 
   const now = new Date()
-  const todayStr = now.toISOString().split('T')[0]
 
   const overdue = getOverdueBills(bills)
   const dueToday = getBillsDueToday(bills)

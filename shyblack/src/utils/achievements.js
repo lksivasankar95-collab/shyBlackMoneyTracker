@@ -238,7 +238,7 @@ export function checkAndUnlockAchievements(state) {
   return { unlocked, newlyUnlocked }
 }
 
-export function getAchievementsWithStatus(state) {
+export function getAchievementsWithStatus(_state) {
   const unlocked = getUnlockedAchievements()
   const unlockedIds = new Set(unlocked.map((a) => a.id))
 

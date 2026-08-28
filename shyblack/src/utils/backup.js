@@ -451,15 +451,6 @@ function utf8ToBase64(str) {
   return btoa(binary)
 }
 
-function base64ToUtf8(base64) {
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) {
-    bytes[i] = binary.charCodeAt(i)
-  }
-  return new TextDecoder().decode(bytes)
-}
-
 /* ── Share Helper ── */
 
 async function shareExportedFile(blob, filename) {

@@ -11,7 +11,8 @@ const SCHEMA_MIGRATIONS = {
       if (!tx || typeof tx !== 'object') return tx
       const purpose = tx.transactionPurpose
       if (purpose === 'trading_profit' || purpose === 'trading_loss' || purpose === 'investment_transfer') {
-        const { transactionPurpose, ...rest } = tx
+        const rest = { ...tx }
+        delete rest.transactionPurpose
         return rest
       }
       return tx

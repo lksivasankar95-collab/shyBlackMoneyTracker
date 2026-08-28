@@ -71,7 +71,7 @@ export function checkOrphanedDocuments(documents, transactions, debts, emis) {
   return orphaned
 }
 
-export function checkInactiveAccounts(accounts, transactions, transferCount) {
+export function checkInactiveAccounts(accounts, transactions, _transferCount) {
   const inactive = []
   const now = new Date()
   const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1)

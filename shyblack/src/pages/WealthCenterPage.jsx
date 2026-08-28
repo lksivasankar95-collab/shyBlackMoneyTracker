@@ -8,7 +8,7 @@ import {
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
-import { ASSET_TYPES, CRYPTO_COINS } from '../utils/constants'
+import { ASSET_TYPES } from '../utils/constants'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'

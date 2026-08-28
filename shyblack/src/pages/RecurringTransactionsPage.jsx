@@ -7,7 +7,7 @@ import {
 import { useTranslation } from '../i18n'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
-import { formatCurrency, formatDate, generateId } from '../utils/helpers'
+import { formatCurrency, formatDate } from '../utils/helpers'
 import { INCOME_CATEGORIES, EXPENSE_CATEGORIES, ALL_CATEGORIES } from '../utils/constants'
 import { getRecurringStats, getRecurringCalendarData, detectDuplicateGeneration } from '../utils/recurring'
 import GlassCard from '../components/GlassCard'

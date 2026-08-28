@@ -1,4 +1,4 @@
-import { getMonthlyData, getCategoryBreakdown } from './analytics'
+import { getMonthlyData } from './analytics'
 
 function getMonthlyDataForYearMonth(transactions, year, month) {
   const allData = getMonthlyData(transactions, 24)

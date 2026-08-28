@@ -1,4 +1,4 @@
-import { getStorageAdapter, ADAPTER_TYPES } from './storageAdapter'
+import { getStorageAdapter } from './storageAdapter'
 
 export const STORAGE_PREFIX = 'shyblack_'
 
