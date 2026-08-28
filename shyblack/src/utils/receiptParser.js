@@ -1,4 +1,5 @@
 import { createWorker } from 'tesseract.js'
+import { isOnline } from './connectivity'
 
 const MERCHANT_MAP = [
   { keywords: ['swiggy', 'zomato', 'ubereats', 'pizza hut', 'domino', 'kfc', 'mcdonald', 'dineout', 'eatclub', 'faasos', 'box8'], category: 'food' },
@@ -173,6 +174,11 @@ export async function scanReceipt(file, onProgress) {
   )
 
   const scanPromise = (async () => {
+    if (!isOnline()) {
+      const err = new Error('OCR requires internet to load language files')
+      err.code = 'OCR_OFFLINE'
+      throw err
+    }
     if (onProgress) onProgress(0.05, 'compressing')
     const compressed = await compressImage(file)
 

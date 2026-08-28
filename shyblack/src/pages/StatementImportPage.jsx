@@ -53,10 +53,14 @@ export default function StatementImportPage({ onNavigate }) {
       setOcrProgress(null)
       try {
         const buf = await file.arrayBuffer()
-        const { text: pdfText, ocrUsed: usedOcr } = await extractPdfSmart(buf, (p, label) => {
+        const { text: pdfText, ocrUsed: usedOcr, offline } = await extractPdfSmart(buf, (p, label) => {
           setOcrProgress(label ? `OCR ${Math.round(p * 100)}% — ${label}` : `OCR ${Math.round(p * 100)}%`)
         })
         setOcrUsed(usedOcr)
+        if (offline) {
+          addToast(t('statement_import.ocr_offline'), 'warning')
+          return
+        }
         if (!pdfText.trim()) {
           addToast(t('statement_import.no_text_pdf'), 'warning')
           return

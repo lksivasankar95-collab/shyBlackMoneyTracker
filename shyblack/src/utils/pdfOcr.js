@@ -4,6 +4,8 @@
  * Both libraries are lazy-loaded so the main bundle stays lean.
  */
 
+import { isOnline } from './connectivity'
+
 const MIN_TEXT_LENGTH = 120
 
 /**
@@ -93,6 +95,7 @@ export async function extractPdfWithOcrFallback(extractTextFn, arrayBuffer, onPr
     text = ''
   }
   if (!shouldOcrPdf(text)) return { text, ocrUsed: false }
+  if (!isOnline()) return { text, ocrUsed: false, offline: true }
   if (onProgress) onProgress(0.02, 'starting OCR')
   const ocrText = await ocrPdfPages(arrayBuffer, { onProgress })
   return { text: ocrText || text, ocrUsed: true }

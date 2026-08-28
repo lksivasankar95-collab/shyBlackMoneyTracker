@@ -91,6 +91,11 @@ export default function ReceiptCenterPage({ _onNavigate }) {
       setScanning(false)
     } catch (err) {
       if (!mountedRef.current) return
+      if (err?.code === 'OCR_OFFLINE') {
+        addToast(t('receipts.ocr_offline'), 'warning')
+        reset()
+        return
+      }
       addToast(t('receipts.ocr_failed', { error: err.message || 'Unknown error' }), 'error')
       reset()
     }

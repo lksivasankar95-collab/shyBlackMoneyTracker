@@ -2217,6 +2217,7 @@
     "expense_created": "Expense created: {{}}",
     "receipt_deleted": "Receipt deleted",
     "ocr_failed": "OCR failed: {{}}",
+    "ocr_offline": "Receipt scanning needs an internet connection to load OCR language files. Connect and try again.",
     "merchant_required": "Merchant and amount are required",
     "receipt_imported": "Receipt imported: {{}}",
     "image_too_large": "Image must be under 10MB",
@@ -2504,6 +2505,7 @@
     "import_success": "Imported {{count}} transactions",
     "import_failed": "Import failed",
     "no_text_pdf": "Nothing could be read from this PDF",
+    "ocr_offline": "This PDF has no text layer and OCR needs an internet connection to load language files. Connect and retry.",
     "pdf_error": "Could not read the PDF",
     "ocr_badge": "Scanned with OCR — parsed from page images",
     "base_note": "Imports are stored in your base currency {{code}}"
