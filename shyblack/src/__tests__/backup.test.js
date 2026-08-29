@@ -11,10 +11,14 @@ global.localStorage = {
   key: (i) => Object.keys(store)[i] ?? null,
 }
 
-const { validateBackupData, parseAndValidateBackup, BACKUP_SCHEMA_VERSION } =
+const { validateBackupData, parseAndValidateBackup, collectBackupData, restoreFromBackup, BACKUP_SCHEMA_VERSION } =
   await import('../utils/backup.js')
+const { safeStorage, STORAGE_KEYS } = await import('../utils/safeStorage.js')
 
-beforeEach(() => { Object.keys(store).forEach((k) => delete store[k]) })
+beforeEach(() => {
+  Object.keys(store).forEach((k) => delete store[k])
+  safeStorage.invalidateCache()
+})
 
 const validBackup = () => ({
   app: 'shyblack-finance',
@@ -71,6 +75,38 @@ describe('validateBackupData', () => {
     good.data.tags = [{ id: '1', name: 'food' }]
     good.data.budgets = { food: { limit: 5000 } }
     expect(validateBackupData(good).valid).toBe(true)
+  })
+
+  it('accepts the extended finance modules', () => {
+    const good = validBackup()
+    good.data.bills = [{ id: 'b1' }]
+    good.data.investments = { assets: [], dividends: [], realized: [] }
+    good.data.capitalGains = { lots: [], realized: [] }
+    expect(validateBackupData(good).valid).toBe(true)
+  })
+})
+
+describe('complete backup coverage', () => {
+  it('collects and restores bills, investments, tax lots, and settings', () => {
+    safeStorage.set(STORAGE_KEYS.BILLS, [{ id: 'b1', name: 'Internet' }])
+    safeStorage.set(STORAGE_KEYS.INVESTMENTS, { assets: [{ id: 'i1' }], dividends: [], realized: [] })
+    safeStorage.set(STORAGE_KEYS.CAPITAL_GAINS, { lots: [{ id: 'l1' }], realized: [] })
+    safeStorage.set(STORAGE_KEYS.CUSTOM_CATEGORIES, [{ id: 'c1' }])
+
+    const backup = collectBackupData()
+    expect(backup.data.bills).toHaveLength(1)
+    expect(backup.data.investments.assets).toHaveLength(1)
+    expect(backup.data.capitalGains.lots).toHaveLength(1)
+    expect(backup.data.customCategories).toHaveLength(1)
+
+    restoreFromBackup({
+      bills: [{ id: 'b2' }],
+      investments: { assets: [], dividends: [], realized: [] },
+      capitalGains: { lots: [], realized: [] },
+    })
+    expect(safeStorage.get(STORAGE_KEYS.BILLS, [])).toEqual([{ id: 'b2' }])
+    expect(safeStorage.get(STORAGE_KEYS.INVESTMENTS, {}).assets).toEqual([])
+    expect(safeStorage.get(STORAGE_KEYS.CAPITAL_GAINS, {}).lots).toEqual([])
   })
 })
 

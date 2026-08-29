@@ -4,9 +4,10 @@ import { formatCurrency, formatDate } from '../utils/helpers'
 import { ALL_CATEGORIES, PAYMENT_METHODS } from '../utils/constants'
 import CategoryIcon from './CategoryIcon'
 import { useTranslation } from '../i18n'
+import { useFinance } from '../hooks/useFinance'
 import { getOriginalAmount, formatInCurrency, getBaseCurrencyCode } from '../utils/multiCurrency'
 
-function getSubtitle(tx, t) {
+function getSubtitle(tx, t, accountName) {
   const parts = []
   if (tx.person?.name) {
     parts.push(tx.type === 'income'
@@ -18,15 +19,18 @@ function getSubtitle(tx, t) {
     parts.push(`${t('transactions.via_label')} ${method?.label || tx.paymentMethod}`)
   }
   if (tx.note) parts.push(tx.note)
+  if (accountName) parts.push(`${t('transactions.in_account')} ${accountName}`)
   parts.push(formatDate(tx.date))
   return parts.join(' · ')
 }
 
 const TransactionItem = memo(function TransactionItem({ transaction, onDelete, onEdit, compact, selectable, selected, onToggleSelect }) {
   const { t } = useTranslation()
+  const { accounts } = useFinance()
   const cat = ALL_CATEGORIES.find((c) => c.id === transaction.category)
   const isIncome = transaction.type === 'income'
-  const subtitle = useMemo(() => getSubtitle(transaction, t), [transaction, t])
+  const accountName = accounts.find((account) => account.id === transaction.accountId)?.name
+  const subtitle = useMemo(() => getSubtitle(transaction, t, accountName), [transaction, t, accountName])
 
   return (
     <div className={`flex items-center gap-3 py-3 group hover:bg-white/[0.02] -mx-4 px-4 transition-colors duration-150 first:-mt-2 first:pt-2 ${selected ? 'bg-neon/[0.04]' : ''}`}

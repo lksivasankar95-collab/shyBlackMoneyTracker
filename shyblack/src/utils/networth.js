@@ -18,6 +18,27 @@ export function saveAccounts(accounts) {
   safeStorage.set(STORAGE_KEYS.NET_WORTH_ACCOUNTS, accounts)
 }
 
+/**
+ * Return an account's live ledger balance without changing the stored account
+ * balance. The stored value remains the opening/adjustment balance for legacy
+ * accounts, while linked transactions provide the ongoing movement.
+ */
+export function getAccountBalance(account, transactions = []) {
+  if (!account) return 0
+  const openingBalance = Number(account.balance) || 0
+  const movement = (transactions || [])
+    .filter((tx) => tx.accountId === account.id && (tx.type === 'income' || tx.type === 'expense'))
+    .reduce((total, tx) => total + (tx.type === 'income' ? Number(tx.amount) || 0 : -(Number(tx.amount) || 0)), 0)
+  return openingBalance + movement
+}
+
+export function getAccountBalances(accounts = [], transactions = []) {
+  return (accounts || []).map((account) => ({
+    ...account,
+    calculatedBalance: getAccountBalance(account, transactions),
+  }))
+}
+
 export function createAccount({ name, type, balance }) {
   const accounts = getAccounts()
   const account = {
@@ -49,11 +70,12 @@ export function deleteAccount(id) {
 export function calculateNetWorth(transactions, debts, accounts) {
   const accountByType = { cash: 0, bank: 0, trading: 0 }
   ;(accounts || []).forEach((a) => {
-    accountByType[a.type] = (accountByType[a.type] || 0) + a.balance
+    const type = a.type === 'wallet' ? 'cash' : a.type
+    accountByType[type] = (accountByType[type] || 0) + getAccountBalance(a, transactions)
   })
 
   const hasAccounts = (accounts || []).length > 0
-  const hasCashAccounts = accountByType.cash > 0 || accountByType.bank > 0
+  const hasCashAccounts = (accounts || []).some((a) => ['cash', 'bank', 'wallet'].includes(a.type))
 
   let cashAndBank = 0
   if (hasCashAccounts) {

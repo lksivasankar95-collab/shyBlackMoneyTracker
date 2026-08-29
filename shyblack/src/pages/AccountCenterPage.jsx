@@ -4,7 +4,7 @@ import {
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate, generateId } from '../utils/helpers'
-import { saveAccounts } from '../utils/networth'
+import { saveAccounts, getAccountBalance } from '../utils/networth'
 import { getEmis } from '../utils/emi'
 import { getTransfers } from '../utils/transfers'
 import GlassCard from '../components/GlassCard'
@@ -21,30 +21,36 @@ export default function AccountCenterPage({ onNavigate }) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState({ name: '', type: 'bank', balance: '' })
 
+  const accountBalances = useMemo(
+    () => accounts.map((account) => ({ ...account, calculatedBalance: getAccountBalance(account, transactions) })),
+    [accounts, transactions],
+  )
+
   const filteredAccounts = useMemo(() => {
-    if (!searchQuery.trim()) return accounts
+    if (!searchQuery.trim()) return accountBalances
     const q = searchQuery.toLowerCase()
-    return accounts.filter((a) => a.name?.toLowerCase().includes(q) || a.type?.toLowerCase().includes(q))
-  }, [accounts, searchQuery])
+    return accountBalances.filter((a) => a.name?.toLowerCase().includes(q) || a.type?.toLowerCase().includes(q))
+  }, [accountBalances, searchQuery])
 
   const accountDetail = useMemo(() => {
     if (!selectedAccount) return null
+    const account = accounts.find((item) => item.id === selectedAccount.id) || selectedAccount
     const acctTx = transactions.filter(
-      (t) => t.source === selectedAccount.name || t.account === selectedAccount.name
+      (t) => t.accountId === account.id || t.source === account.name || t.account === account.name
     ).sort((a, b) => b.date.localeCompare(a.date))
 
     const acctTransfers = getTransfers().filter(
-      (t) => t.fromName === selectedAccount.name || t.toName === selectedAccount.name
+      (t) => t.fromName === account.name || t.toName === account.name
     )
 
     const linkedEmis = emis.filter((e) => {
       const lender = (e.lender || '').toLowerCase()
-      const name = (selectedAccount.name || '').toLowerCase()
+      const name = (account.name || '').toLowerCase()
       return lender.includes(name) || name.includes(lender)
     })
 
-    return { transactions: acctTx, transfers: acctTransfers, emis: linkedEmis }
-  }, [selectedAccount, transactions, emis])
+    return { account, balance: getAccountBalance(account, transactions), transactions: acctTx, transfers: acctTransfers, emis: linkedEmis }
+  }, [selectedAccount, accounts, transactions, emis])
 
   const handleAddAccount = () => {
     if (!formData.name.trim()) return
@@ -72,10 +78,10 @@ export default function AccountCenterPage({ onNavigate }) {
             <ChevronLeft size={20} className="text-gray-400" />
           </button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold text-white truncate">{selectedAccount.name}</h1>
-            <p className="text-xs text-gray-500">{selectedAccount.type}</p>
+            <h1 className="text-lg font-bold text-white truncate">{accountDetail.account.name}</h1>
+            <p className="text-xs text-gray-500">{accountDetail.account.type}</p>
           </div>
-          <p className="text-lg font-bold text-neon">{formatCurrency(selectedAccount.balance || 0)}</p>
+          <p className="text-lg font-bold text-neon">{formatCurrency(accountDetail.balance)}</p>
         </div>
 
         <div className="space-y-3">
@@ -244,7 +250,7 @@ export default function AccountCenterPage({ onNavigate }) {
                   <p className="text-sm font-semibold text-white group-hover:text-neon transition-colors">{acct.name}</p>
                   <p className="text-[10px] text-gray-600 capitalize">{acct.type}</p>
                 </div>
-                <p className="text-lg font-bold text-neon tabular-nums">{formatCurrency(acct.balance || 0)}</p>
+                <p className="text-lg font-bold text-neon tabular-nums">{formatCurrency(acct.calculatedBalance)}</p>
               </div>
             </button>
           ))}

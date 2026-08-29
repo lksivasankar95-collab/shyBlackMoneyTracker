@@ -56,7 +56,7 @@ function formatAmountShort(amount, symbol) {
 
 export default function AddTransaction({ onNavigate, navParams }) {
   const { t } = useTranslation()
-  const { addTransaction, updateTransaction, undoLastAction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions } = useFinance()
+  const { addTransaction, updateTransaction, undoLastAction, addRecurring, tags, addTag, recentPeople, recentTemplates, addTemplate, transactions, accounts } = useFinance()
   const { addToast } = useToast()
   const amountInputRef = useRef(null)
   const lastCategoryByType = useRef({ income: '', expense: '' })
@@ -89,6 +89,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
   const [pendingSubmit, setPendingSubmit] = useState(null)
   const [personName, setPersonName] = useState(() => editTx?.person?.name || '')
   const [paymentMethod, setPaymentMethod] = useState(() => editTx?.paymentMethod || '')
+  const [accountId, setAccountId] = useState(() => editTx?.accountId || '')
   const [showPersonSuggestions, setShowPersonSuggestions] = useState(false)
   const [showMore, setShowMore] = useState(!!editTx)
   const [splitMode, setSplitMode] = useState(() => hasSplits(editTx))
@@ -264,6 +265,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
         setSource('')
         setPersonName('')
         setPaymentMethod('')
+        setAccountId('')
         setCurrency('')
         setShowMore(false)
         setSplitMode(false)
@@ -324,6 +326,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
       source: source.trim() || undefined,
       person: personName.trim() ? { name: personName.trim() } : undefined,
       paymentMethod: paymentMethod || undefined,
+      accountId: accountId || undefined,
     }
 
     const finalData = splitMode ? attachSplits(transactionData, splitLines) : transactionData
@@ -403,6 +406,7 @@ export default function AddTransaction({ onNavigate, navParams }) {
                   setNote(tmpl.note || '')
                   setPersonName(tmpl.person?.name || '')
                   setPaymentMethod(tmpl.paymentMethod || '')
+                  setAccountId(tmpl.accountId || '')
                   setSource(tmpl.source || '')
                   setCurrency(tmpl.currency || '')
                   setSelectedTags(tmpl.tags || [])
@@ -609,6 +613,22 @@ export default function AddTransaction({ onNavigate, navParams }) {
             max={new Date().toISOString().split('T')[0]}
           />
         </div>
+
+        {accounts.length > 0 && (
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-2 block">{t('transactions.account')}</label>
+            <select
+              value={accountId}
+              onChange={(e) => setAccountId(e.target.value)}
+              className="input-field"
+            >
+              <option value="">{t('transactions.no_account')}</option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>{account.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* More Options Toggle */}
         <button

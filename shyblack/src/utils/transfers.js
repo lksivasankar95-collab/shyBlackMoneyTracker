@@ -47,7 +47,7 @@ export function createTransfer({ fromAccountId, toAccountId, amount, note }) {
   return transfer
 }
 
-export function executeTransfer(fromAccountId, toAccountId, amount, accounts) {
+export function executeTransfer(fromAccountId, toAccountId, amount, accounts, availableAccounts = accounts) {
   if (fromAccountId === toAccountId) {
     return { success: false, error: 'Cannot transfer to the same account' }
   }
@@ -61,7 +61,7 @@ export function executeTransfer(fromAccountId, toAccountId, amount, accounts) {
   if (fromIdx === -1) return { success: false, error: 'Source account not found' }
   if (toIdx === -1) return { success: false, error: 'Destination account not found' }
 
-  if (accounts[fromIdx].balance < amount) {
+  if (availableAccounts[fromIdx].balance < amount) {
     return { success: false, error: 'Insufficient balance in source account' }
   }
 

@@ -35,7 +35,17 @@ const MODULES = [
   { id: 'budgetsV2', label: 'Budgets V2' },
   { id: 'receipts', label: 'Receipts' },
   { id: 'wealthAssets', label: 'Wealth' },
+  { id: 'bills', label: 'Bills' },
+  { id: 'investments', label: 'Investments' },
+  { id: 'capitalGains', label: 'Capital Gains' },
+  { id: 'customCategories', label: 'Custom Categories' },
+  { id: 'rules', label: 'Rules' },
+  { id: 'currencySettings', label: 'Currency Settings' },
+  { id: 'forecastConfig', label: 'Forecast Settings' },
+  { id: 'autoBackup', label: 'Auto Backup Settings' },
+  { id: 'wallets', label: 'Wallet Profiles' },
   { id: 'documents', label: 'Documents' },
+  { id: 'security', label: 'Security Settings' },
 ]
 
 export default function RecoveryCenterPage({ onNavigate }) {

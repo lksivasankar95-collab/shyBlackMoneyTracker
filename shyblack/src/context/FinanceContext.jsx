@@ -9,7 +9,7 @@ import { getRecurringTransactions, saveRecurringTransactions, getDueRecurringTra
 import { getTags, saveTags } from '../utils/tags'
 import { getSecuritySettings, saveSecuritySettings } from '../utils/security'
 import { saveDebts, createDebt, applyRepayment, DEBT_TYPES, DEBT_STATUS, addPayment, undoLastPayment, editPayment, deletePayment, settleLedger, getLedgerSummary, getLedgerInsights } from '../utils/debts'
-import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal } from '../utils/goals'
+import { getGoals, saveGoals, createGoal, updateGoal, deleteGoal, getGoalProjection, migrateLegacySavingsGoal, getGoalTransactionDelta } from '../utils/goals'
 import { getTemplates, saveTemplates, createTemplate, deleteTemplate } from '../utils/templates'
 import { getEmis, saveEmis, createEmi, EMI_STATUS, getEmiSummary, getEnhancedEmiSummary, undoPayment } from '../utils/emi'
 import { getAccounts, saveAccounts, saveNetWorthSnapshot } from '../utils/networth'
@@ -49,6 +49,7 @@ import { applyRulesToTransaction, recordRuleUsage, getRules } from '../utils/rul
 import { shouldAlertLargeExpense } from '../utils/spendingPulse'
 import { createUndoStack, applyUndoEntry, applyRedoEntry } from '../utils/undoManager'
 import { mergeDuplicateTransactions } from '../utils/duplicateMerge'
+import { ensureWalletStorage } from '../utils/wallets'
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const FinanceContext = createContext()
@@ -82,8 +83,37 @@ function sanitizeSavingsGoal(raw) {
   }
 }
 
+function reconcileGoalBalances(goals, beforeTransactions, afterTransactions) {
+  const before = new Map((beforeTransactions || []).map((transaction) => [transaction.id, transaction]))
+  const after = new Map((afterTransactions || []).map((transaction) => [transaction.id, transaction]))
+  const changes = new Map()
+  const ids = new Set([...before.keys(), ...after.keys()])
+
+  for (const id of ids) {
+    const oldTransaction = before.get(id)
+    const newTransaction = after.get(id)
+    const goalId = newTransaction?.goalId || oldTransaction?.goalId
+    const change = getGoalTransactionDelta(newTransaction) - getGoalTransactionDelta(oldTransaction)
+    if (goalId && change !== 0) changes.set(goalId, (changes.get(goalId) || 0) + change)
+  }
+
+  if (changes.size === 0) return goals
+  return (goals || []).map((goal) => {
+    const change = changes.get(goal.id) || 0
+    if (change === 0) return goal
+    const saved = Math.max(0, (Number(goal.saved) || 0) + change)
+    return {
+      ...goal,
+      saved,
+      updatedAt: Date.now(),
+      achievedAt: saved >= goal.target ? (goal.achievedAt || Date.now()) : null,
+    }
+  })
+}
+
 function loadInitialState() {
   try {
+    ensureWalletStorage()
     const migrationResult = runMigrations()
     let transactions = sanitizeTransactions(safeStorage.get(STORAGE_KEYS.TRANSACTIONS, []))
     let recoverySnapshot = null
@@ -326,6 +356,7 @@ export function FinanceProvider({ children }) {
             date: today,
             tags: item.tags || [],
             source: item.source || 'recurring',
+            accountId: item.accountId,
             id: generateId(),
             createdAt: Date.now(),
           }
@@ -482,7 +513,14 @@ export function FinanceProvider({ children }) {
       }
     })
     const allTx = [...prepared, ...transactionsRef.current]
-    setState((prev) => ({ ...prev, transactions: [...prepared, ...prev.transactions] }))
+    setState((prev) => {
+      const nextTransactions = [...prepared, ...prev.transactions]
+      return {
+        ...prev,
+        transactions: nextTransactions,
+        goals: reconcileGoalBalances(prev.goals, prev.transactions, nextTransactions),
+      }
+    })
     if (prepared.length > 0) {
       undoStackRef.current.push({ kind: 'addMany', txs: prepared, expense: prepared.some((t) => t.type === 'expense') })
       setUndoVersion((v) => v + 1)
@@ -508,13 +546,14 @@ export function FinanceProvider({ children }) {
     }
     setState((prev) => {
       const remaining = prev.transactions.filter((t) => t.id !== id)
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, remaining)
       if (deleted && deleted.type === 'expense') {
         try {
           const updated = recalculateBudgetSpending(remaining)
-          return { ...prev, transactions: remaining, budgetsV2: updated }
+          return { ...prev, transactions: remaining, goals: nextGoals, budgetsV2: updated }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions: remaining }
+      return { ...prev, transactions: remaining, goals: nextGoals }
     })
   }, [])
 
@@ -545,14 +584,15 @@ export function FinanceProvider({ children }) {
     }
     setState((prev) => {
       const updated = prev.transactions.map((t) => (t.id === id ? { ...t, ...nextUpdates } : t))
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, updated)
       if ((oldTx?.type === 'expense' || updates?.type === 'expense') &&
           (updates?.amount !== undefined || updates?.category !== undefined)) {
         try {
           const recalc = recalculateBudgetSpending(updated)
-          return { ...prev, transactions: updated, budgetsV2: recalc }
+          return { ...prev, transactions: updated, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions: updated }
+      return { ...prev, transactions: updated, goals: nextGoals }
     })
   }, [])
 
@@ -572,13 +612,14 @@ export function FinanceProvider({ children }) {
     setUndoVersion((v) => v + 1)
     setState((prev) => {
       const remaining = prev.transactions.filter((t) => !idSet.has(t.id))
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, remaining)
       if (deleted.some((t) => t.type === 'expense')) {
         try {
           const recalc = recalculateBudgetSpending(remaining)
-          return { ...prev, transactions: remaining, budgetsV2: recalc }
+          return { ...prev, transactions: remaining, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions: remaining }
+      return { ...prev, transactions: remaining, goals: nextGoals }
     })
     return deleted.length
   }, [])
@@ -616,13 +657,14 @@ export function FinanceProvider({ children }) {
     setState((prev) => {
       const map = new Map(changes.map((c) => [c.id, c.after]))
       const updated = prev.transactions.map((t) => (map.has(t.id) ? map.get(t.id) : t))
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, updated)
       if (changes.some((c) => c.before.type === 'expense' || c.after.type === 'expense')) {
         try {
           const recalc = recalculateBudgetSpending(updated)
-          return { ...prev, transactions: updated, budgetsV2: recalc }
+          return { ...prev, transactions: updated, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions: updated }
+      return { ...prev, transactions: updated, goals: nextGoals }
     })
     return changes.length
   }, [])
@@ -643,13 +685,14 @@ export function FinanceProvider({ children }) {
       const next = prev.transactions
         .filter((t) => t.id !== removeId)
         .map((t) => (t.id === keepId ? merged : t))
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, next)
       if (keep.type === 'expense' || dup.type === 'expense') {
         try {
           const recalc = recalculateBudgetSpending(next)
-          return { ...prev, transactions: next, budgetsV2: recalc }
+          return { ...prev, transactions: next, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions: next }
+      return { ...prev, transactions: next, goals: nextGoals }
     })
     return true
   }, [])
@@ -660,13 +703,14 @@ export function FinanceProvider({ children }) {
     undoStackRef.current.pushRedo(entry)
     setState((prev) => {
       const transactions = applyUndoEntry(entry, prev.transactions)
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, transactions)
       if (entry.expense) {
         try {
           const recalc = recalculateBudgetSpending(transactions)
-          return { ...prev, transactions, budgetsV2: recalc }
+          return { ...prev, transactions, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions }
+      return { ...prev, transactions, goals: nextGoals }
     })
     setUndoVersion((v) => v + 1)
     return true
@@ -678,13 +722,14 @@ export function FinanceProvider({ children }) {
     undoStackRef.current.push(entry)
     setState((prev) => {
       const transactions = applyRedoEntry(entry, prev.transactions)
+      const nextGoals = reconcileGoalBalances(prev.goals, prev.transactions, transactions)
       if (entry.expense) {
         try {
           const recalc = recalculateBudgetSpending(transactions)
-          return { ...prev, transactions, budgetsV2: recalc }
+          return { ...prev, transactions, goals: nextGoals, budgetsV2: recalc }
         } catch { /* silent */ }
       }
-      return { ...prev, transactions }
+      return { ...prev, transactions, goals: nextGoals }
     })
     setUndoVersion((v) => v + 1)
     return true
@@ -782,9 +827,10 @@ export function FinanceProvider({ children }) {
         category: item.category,
         note: item.note || '',
         date: new Date().toISOString().split('T')[0],
-        tags: item.tags || [],
-        source: item.source,
-        id: generateId(),
+         tags: item.tags || [],
+         source: item.source,
+         accountId: item.accountId,
+         id: generateId(),
         createdAt: Date.now(),
       }
       return {
@@ -1273,6 +1319,56 @@ export function FinanceProvider({ children }) {
     setState((prev) => ({ ...prev, goals }))
   }, [])
 
+  const recordGoalMovement = useCallback((goalId, amount, action, details = {}) => {
+    const goal = goals.find((item) => item.id === goalId)
+    const value = Number(amount)
+    if (!goal || !Number.isFinite(value) || value <= 0) return null
+    if (action === 'withdrawal' && value > (Number(goal.saved) || 0)) return null
+
+    const transaction = {
+      id: generateId(),
+      type: action === 'contribution' ? 'expense' : 'income',
+      amount: value,
+      category: action === 'contribution' ? 'other_expense' : 'other_income',
+      note: `${action === 'contribution' ? 'Goal contribution' : 'Goal withdrawal'}: ${goal.name}`,
+      date: details.date || new Date().toISOString().split('T')[0],
+      source: 'goal',
+      goalId,
+      goalAction: action,
+      accountId: details.accountId || undefined,
+      createdAt: Date.now(),
+    }
+
+    setState((prev) => {
+      const nextTransactions = [transaction, ...prev.transactions]
+      const nextGoals = prev.goals.map((item) => {
+        if (item.id !== goalId) return item
+        const saved = Math.max(0, (Number(item.saved) || 0) + (action === 'contribution' ? value : -value))
+        return {
+          ...item,
+          saved,
+          updatedAt: Date.now(),
+          achievedAt: saved >= item.target ? (item.achievedAt || Date.now()) : null,
+        }
+      })
+      const next = { ...prev, transactions: nextTransactions, goals: nextGoals }
+      if (action === 'contribution') {
+        try { next.budgetsV2 = recalculateBudgetSpending(nextTransactions) } catch { /* best effort */ }
+      }
+      return next
+    })
+    hapticLight()
+    return transaction
+  }, [goals])
+
+  const addGoalContribution = useCallback((goalId, amount, details) => (
+    recordGoalMovement(goalId, amount, 'contribution', details)
+  ), [recordGoalMovement])
+
+  const withdrawFromGoal = useCallback((goalId, amount, details) => (
+    recordGoalMovement(goalId, amount, 'withdrawal', details)
+  ), [recordGoalMovement])
+
   const addTemplate = useCallback((tx) => {
     createTemplate(tx)
     setState((prev) => ({ ...prev, templates: getTemplates() }))
@@ -1716,7 +1812,9 @@ export function FinanceProvider({ children }) {
   }), [addDebt, updateDebt, deleteDebt, recordRepayment,
     addLedgerPayment, undoLedgerPayment, editLedgerPayment, deleteLedgerPayment, doSettleLedger])
 
-  const goalActions = useMemo(() => ({ addGoal, editGoal, removeGoal }), [addGoal, editGoal, removeGoal])
+  const goalActions = useMemo(() => ({
+    addGoal, editGoal, removeGoal, addGoalContribution, withdrawFromGoal,
+  }), [addGoal, editGoal, removeGoal, addGoalContribution, withdrawFromGoal])
 
   const templateActions = useMemo(() => ({ addTemplate, removeTemplate }), [addTemplate, removeTemplate])
 

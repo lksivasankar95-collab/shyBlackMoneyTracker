@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback} from 'react'
 import { Receipt, Plus, Trash2, CheckCircle2, Calendar, Bell, BellOff, CreditCard, Wifi, Smartphone, Droplets, Flame, Shield, Banknote, Zap } from 'lucide-react'
+import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
@@ -78,10 +79,13 @@ function getBillStatus(bill) {
 
 export default function BillsPage({ _onNavigate }) {
   const { t } = useTranslation()
+  const { addTransaction, accounts } = useFinance()
   const { addToast } = useToast()
   const [bills, setBills] = useState(() => getBills())
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [payTarget, setPayTarget] = useState(null)
+  const [paymentForm, setPaymentForm] = useState({ amount: '', date: '', accountId: '' })
   const [filterStatus, setFilterStatus] = useState('all')
   const [form, setForm] = useState({
     type: 'electricity', name: '', amount: '', dueDate: '',
@@ -137,11 +141,48 @@ export default function BillsPage({ _onNavigate }) {
     refresh()
   }, [form, addToast, refresh, t])
 
-  const handleMarkPaid = useCallback((id) => {
-    markBillPaid(id)
-    addToast(t('bills.toast_marked_paid'), 'success')
+  const openPayment = useCallback((bill) => {
+    setPayTarget(bill)
+    setPaymentForm({
+      amount: String(bill.amount || ''),
+      date: new Date().toISOString().split('T')[0],
+      accountId: '',
+    })
+  }, [])
+
+  const handleMarkPaid = useCallback(() => {
+    if (!payTarget) return
+    const amount = parseFloat(paymentForm.amount)
+    if (!amount || amount <= 0) {
+      addToast(t('bills.toast_amount_required'), 'error')
+      return
+    }
+    if (!paymentForm.date) {
+      addToast(t('bills.toast_date_required'), 'error')
+      return
+    }
+
+    const dueDate = getNextUnpaidDueDate(payTarget)
+    const transaction = addTransaction({
+      type: 'expense',
+      amount,
+      category: 'bills',
+      note: `Bill: ${payTarget.name}`,
+      date: paymentForm.date,
+      source: 'bill_payment',
+      accountId: paymentForm.accountId || undefined,
+      billId: payTarget.id,
+    })
+    markBillPaid(payTarget.id, dueDate, {
+      amount,
+      paymentDate: paymentForm.date,
+      accountId: paymentForm.accountId,
+      transactionId: transaction?.id,
+    })
+    addToast(t('bills.toast_payment_recorded'), 'success')
+    setPayTarget(null)
     refresh()
-  }, [addToast, refresh, t])
+  }, [payTarget, paymentForm, addTransaction, addToast, refresh, t])
 
   const handleDelete = useCallback(() => {
     if (deleteTarget) {
@@ -289,11 +330,16 @@ export default function BillsPage({ _onNavigate }) {
                         {bill.recurring && ` (${t('bills.recurring_tag')})`}
                       </span>
                     </div>
+                    {bill.payments?.length > 0 && (
+                      <p className="text-[10px] text-neon/70 mt-1">
+                        {t('bills.last_payment')}: {formatCurrency(bill.payments[bill.payments.length - 1].amount)}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {status !== 'paid' && status !== 'inactive' && (
                       <button
-                        onClick={() => handleMarkPaid(bill.id)}
+                        onClick={() => openPayment(bill)}
                         className="p-1.5 rounded-lg text-gray-500 hover:text-neon hover:bg-neon/10 transition-all"
                         title={t('bills.mark_paid')}
                       >
@@ -321,6 +367,61 @@ export default function BillsPage({ _onNavigate }) {
           })}
         </div>
       )}
+
+      {/* Record Bill Payment */}
+      <Modal
+        open={!!payTarget}
+        onClose={() => setPayTarget(null)}
+        title={payTarget ? `${t('bills.pay_title')}: ${payTarget.name}` : t('bills.pay_title')}
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.pay_amount')}</label>
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={paymentForm.amount}
+              onChange={(e) => setPaymentForm((formState) => ({ ...formState, amount: e.target.value }))}
+              className="input-field text-lg font-bold tabular-nums"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.pay_date')}</label>
+            <input
+              type="date"
+              value={paymentForm.date}
+              onChange={(e) => setPaymentForm((formState) => ({ ...formState, date: e.target.value }))}
+              className="input-field"
+            />
+          </div>
+          {accounts.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('bills.pay_account')}</label>
+              <select
+                value={paymentForm.accountId}
+                onChange={(e) => setPaymentForm((formState) => ({ ...formState, accountId: e.target.value }))}
+                className="input-field"
+              >
+                <option value="">{t('transactions.no_account')}</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>{account.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button onClick={() => setPayTarget(null)} className="flex-1 py-2.5 rounded-xl text-xs text-gray-500 hover:text-white bg-white/[0.03] transition-colors">
+              {t('bills.cancel')}
+            </button>
+            <button onClick={handleMarkPaid} className="flex-1 btn-primary text-xs">
+              <CheckCircle2 size={14} className="inline mr-1.5" />
+              {t('bills.record_payment')}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add Bill Modal */}
       <Modal open={showAddModal} onClose={() => setShowAddModal(false)} title={t('bills.modal_title')}>

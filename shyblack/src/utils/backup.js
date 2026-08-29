@@ -4,10 +4,17 @@ import { recordBackupEvent } from './backupHealth'
 import { generateId } from './helpers'
 import { buildEnrichedBackupData } from './backupMetadata'
 import { validateBeforeExport, computeRecordCounts } from './dataValidator'
+import { collectWalletBackup, restoreWalletBackup } from './wallets'
 
 export const BACKUP_SCHEMA_VERSION = 1
 export const MAX_BACKUP_GENERATIONS = 10
 const BACKUP_STORAGE_KEY = STORAGE_KEYS.BACKUPS
+const WALLET_BACKUP_SECTIONS = new Set([
+  'transactions', 'debts', 'savingsGoal', 'budgets', 'recurring', 'tags', 'emis',
+  'accounts', 'transfers', 'goals', 'templates', 'documents', 'documentFiles',
+  'relationships', 'archive', 'budgetsV2', 'receipts', 'wealthAssets', 'bills',
+  'investments', 'capitalGains', 'customCategories', 'rules',
+])
 
 /* ── Backup Types ── */
 export const BACKUP_TYPES = {
@@ -66,7 +73,9 @@ export function collectBackupInclude(includeModules) {
     'transactions', 'debts', 'savingsGoal', 'budgets', 'recurring',
     'tags', 'emis', 'accounts', 'transfers', 'goals', 'templates',
     'documents', 'documentFiles', 'relationships', 'archive',
-    'budgetsV2', 'receipts', 'wealthAssets',
+    'budgetsV2', 'receipts', 'wealthAssets', 'bills', 'investments', 'capitalGains',
+    'customCategories', 'rules', 'currencySettings', 'forecastConfig', 'autoBackup',
+    'wallets',
   ]
   const data = {}
   if (modules.includes('schemaVersion')) {
@@ -92,6 +101,14 @@ export function collectBackupInclude(includeModules) {
     budgetsV2: STORAGE_KEYS.BUDGETS_V2,
     receipts: STORAGE_KEYS.RECEIPT_SCANS,
     wealthAssets: STORAGE_KEYS.WEALTH_ASSETS,
+    bills: STORAGE_KEYS.BILLS,
+    investments: STORAGE_KEYS.INVESTMENTS,
+    capitalGains: STORAGE_KEYS.CAPITAL_GAINS,
+    customCategories: STORAGE_KEYS.CUSTOM_CATEGORIES,
+    rules: STORAGE_KEYS.RULES,
+    currencySettings: STORAGE_KEYS.CURRENCY_SETTINGS,
+    forecastConfig: STORAGE_KEYS.FORECAST_CONFIG,
+    autoBackup: STORAGE_KEYS.AUTO_BACKUP,
   }
   for (const mod of modules) {
     if (keyMap[mod]) {
@@ -102,6 +119,7 @@ export function collectBackupInclude(includeModules) {
   data.security = rawSecurity && typeof rawSecurity === 'object'
     ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
     : {}
+  if (modules.includes('wallets')) data.wallets = collectWalletBackup()
   return data
 }
 
@@ -173,6 +191,12 @@ export function validateBackupForRestore(backup) {
 
 export function restoreSelectedModules(backupData, selectedModules) {
   const results = { restored: [], failed: [], skipped: [] }
+  const restoreAllWallets = selectedModules.includes('wallets') && backupData.wallets
+  if (restoreAllWallets) {
+    const walletResult = restoreWalletBackup(backupData.wallets)
+    if (walletResult.success) results.restored.push('wallets')
+    else results.failed.push('wallets')
+  }
   const keyMap = {
     transactions: STORAGE_KEYS.TRANSACTIONS,
     debts: STORAGE_KEYS.DEBTS,
@@ -192,8 +216,23 @@ export function restoreSelectedModules(backupData, selectedModules) {
     budgetsV2: STORAGE_KEYS.BUDGETS_V2,
     receipts: STORAGE_KEYS.RECEIPT_SCANS,
     wealthAssets: STORAGE_KEYS.WEALTH_ASSETS,
+    bills: STORAGE_KEYS.BILLS,
+    investments: STORAGE_KEYS.INVESTMENTS,
+    capitalGains: STORAGE_KEYS.CAPITAL_GAINS,
+    security: STORAGE_KEYS.SETTINGS,
+    customCategories: STORAGE_KEYS.CUSTOM_CATEGORIES,
+    rules: STORAGE_KEYS.RULES,
+    currencySettings: STORAGE_KEYS.CURRENCY_SETTINGS,
+    forecastConfig: STORAGE_KEYS.FORECAST_CONFIG,
+    autoBackup: STORAGE_KEYS.AUTO_BACKUP,
+    customCategories: STORAGE_KEYS.CUSTOM_CATEGORIES,
+    rules: STORAGE_KEYS.RULES,
+    currencySettings: STORAGE_KEYS.CURRENCY_SETTINGS,
+    forecastConfig: STORAGE_KEYS.FORECAST_CONFIG,
+    autoBackup: STORAGE_KEYS.AUTO_BACKUP,
   }
   for (const mod of selectedModules) {
+    if (restoreAllWallets && WALLET_BACKUP_SECTIONS.has(mod)) continue
     if (mod in backupData) {
       const storageKey = keyMap[mod]
       if (storageKey) {
@@ -387,6 +426,15 @@ const VALIDATORS = {
   documents: (items) => Array.isArray(items) && items.every((d) => typeof d === 'object' && d !== null && typeof d.id === 'string' && typeof d.title === 'string'),
   documentFiles: (val) => typeof val === 'object' && val !== null,
   relationships: (items) => Array.isArray(items) && items.every((r) => typeof r === 'object' && r !== null && typeof r.id === 'string'),
+  bills: (items) => Array.isArray(items) && items.every((b) => typeof b === 'object' && b !== null && typeof b.id === 'string'),
+  investments: (val) => typeof val === 'object' && val !== null && !Array.isArray(val),
+  capitalGains: (val) => typeof val === 'object' && val !== null && !Array.isArray(val),
+  customCategories: (items) => Array.isArray(items) && items.every((c) => typeof c === 'object' && c !== null),
+  rules: (items) => Array.isArray(items) && items.every((r) => typeof r === 'object' && r !== null),
+  currencySettings: (val) => typeof val === 'object' && val !== null && !Array.isArray(val),
+  forecastConfig: (val) => typeof val === 'object' && val !== null && !Array.isArray(val),
+  autoBackup: (val) => typeof val === 'object' && val !== null && !Array.isArray(val),
+  wallets: (val) => typeof val === 'object' && val !== null && Array.isArray(val.wallets) && val.data && typeof val.data === 'object',
 }
 
 export function collectBackupData() {
@@ -415,6 +463,15 @@ export function collectBackupData() {
   data.budgetsV2 = safeStorage.get(STORAGE_KEYS.BUDGETS_V2, [])
   data.receipts = safeStorage.get(STORAGE_KEYS.RECEIPT_SCANS, [])
   data.wealthAssets = safeStorage.get(STORAGE_KEYS.WEALTH_ASSETS, [])
+  data.bills = safeStorage.get(STORAGE_KEYS.BILLS, [])
+  data.investments = safeStorage.get(STORAGE_KEYS.INVESTMENTS, { assets: [], dividends: [], realized: [] })
+  data.capitalGains = safeStorage.get(STORAGE_KEYS.CAPITAL_GAINS, { lots: [], realized: [] })
+  data.customCategories = safeStorage.get(STORAGE_KEYS.CUSTOM_CATEGORIES, [])
+  data.rules = safeStorage.get(STORAGE_KEYS.RULES, [])
+  data.currencySettings = safeStorage.get(STORAGE_KEYS.CURRENCY_SETTINGS, {})
+  data.forecastConfig = safeStorage.get(STORAGE_KEYS.FORECAST_CONFIG, {})
+  data.autoBackup = safeStorage.get(STORAGE_KEYS.AUTO_BACKUP, {})
+  data.wallets = collectWalletBackup()
   const rawSecurity = safeStorage.get(STORAGE_KEYS.SETTINGS, {})
   data.security = rawSecurity && typeof rawSecurity === 'object'
     ? { privacyMode: !!rawSecurity.privacyMode, hideBalance: !!rawSecurity.hideBalance, biometricEnabled: !!rawSecurity.biometricEnabled }
@@ -826,6 +883,12 @@ export function parseAndValidateBackup(jsonString) {
 
 export function restoreFromBackup(backupData) {
   const results = { restored: [], failed: [], skipped: [] }
+  const hasWalletBackup = !!backupData.wallets
+  if (hasWalletBackup) {
+    const walletResult = restoreWalletBackup(backupData.wallets)
+    if (walletResult.success) results.restored.push('wallets')
+    else results.failed.push('wallets')
+  }
 
   const keyMap = {
     transactions: STORAGE_KEYS.TRANSACTIONS,
@@ -843,9 +906,22 @@ export function restoreFromBackup(backupData) {
     documents: STORAGE_KEYS.DOCUMENTS,
     documentFiles: STORAGE_KEYS.DOCUMENT_FILES,
     relationships: STORAGE_KEYS.RELATIONSHIPS,
+    budgetsV2: STORAGE_KEYS.BUDGETS_V2,
+    receipts: STORAGE_KEYS.RECEIPT_SCANS,
+    wealthAssets: STORAGE_KEYS.WEALTH_ASSETS,
+    bills: STORAGE_KEYS.BILLS,
+    investments: STORAGE_KEYS.INVESTMENTS,
+    capitalGains: STORAGE_KEYS.CAPITAL_GAINS,
+    security: STORAGE_KEYS.SETTINGS,
+    customCategories: STORAGE_KEYS.CUSTOM_CATEGORIES,
+    rules: STORAGE_KEYS.RULES,
+    currencySettings: STORAGE_KEYS.CURRENCY_SETTINGS,
+    forecastConfig: STORAGE_KEYS.FORECAST_CONFIG,
+    autoBackup: STORAGE_KEYS.AUTO_BACKUP,
   }
 
   for (const [section, storageKey] of Object.entries(keyMap)) {
+    if (hasWalletBackup && WALLET_BACKUP_SECTIONS.has(section)) continue
     if (section in backupData) {
       const ok = safeStorage.set(storageKey, backupData[section])
       if (ok) {

@@ -44,6 +44,9 @@ export const STORAGE_KEYS = {
   INVESTMENTS: `${STORAGE_PREFIX}investments`,
   NET_WORTH_MILESTONE: `${STORAGE_PREFIX}net_worth_milestone`,
   CUSTOM_CATEGORIES: `${STORAGE_PREFIX}custom_categories`,
+  BILLS: `${STORAGE_PREFIX}bills`,
+  WALLETS: `${STORAGE_PREFIX}wallets`,
+  ACTIVE_WALLET: `${STORAGE_PREFIX}active_wallet`,
 }
 
 const memoryCache = new Map()

@@ -1,4 +1,4 @@
-import { safeStorage } from './safeStorage'
+import { safeStorage, STORAGE_KEYS } from './safeStorage'
 
 export const BILL_TYPES = [
   { id: 'electricity', label: 'Electricity', icon: 'Zap' },
@@ -12,7 +12,7 @@ export const BILL_TYPES = [
   { id: 'custom', label: 'Custom Bill', icon: 'Receipt' },
 ]
 
-const BILLS_KEY = 'shyblack_bills'
+const BILLS_KEY = STORAGE_KEYS.BILLS
 
 export function getBills() {
   return safeStorage.get(BILLS_KEY, [])
@@ -64,13 +64,27 @@ export function deleteBill(id) {
   saveBills(bills)
 }
 
-export function markBillPaid(id, date) {
+export function markBillPaid(id, date, payment = {}) {
   const bills = getBills()
   const idx = bills.findIndex((b) => b.id === id)
   if (idx === -1) return null
-  const paidDate = date || todayStr()
+  const paidDate = date || payment.dueDate || todayStr()
+  const paymentDate = payment.paymentDate || paidDate
+  bills[idx].paidDates = Array.isArray(bills[idx].paidDates) ? bills[idx].paidDates : []
+  bills[idx].payments = Array.isArray(bills[idx].payments) ? bills[idx].payments : []
   if (!bills[idx].paidDates.includes(paidDate)) {
     bills[idx].paidDates.push(paidDate)
+  }
+  if (payment.amount != null && !bills[idx].payments.some((item) => item.dueDate === paidDate)) {
+    bills[idx].payments.push({
+      id: generateId(),
+      dueDate: paidDate,
+      date: paymentDate,
+      amount: Number(payment.amount) || 0,
+      accountId: payment.accountId || undefined,
+      transactionId: payment.transactionId || undefined,
+      createdAt: Date.now(),
+    })
   }
   saveBills(bills)
   return bills[idx]

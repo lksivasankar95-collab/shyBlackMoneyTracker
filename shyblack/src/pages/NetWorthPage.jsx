@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import {
   Wallet, Landmark, TrendingUp, ArrowUpRight, ArrowDownRight,
   Plus, Pencil, Trash2, BarChart3, PieChart as PieChartIcon, 
@@ -12,7 +12,7 @@ import { useTranslation } from '../i18n'
 import { formatCurrency } from '../utils/helpers'
 import {
   getAccounts, createAccount, updateAccount, deleteAccount,
-  calculateNetWorth, getNetWorthHistory, getMonthlyGrowth, 
+  calculateNetWorth, getNetWorthHistory, getMonthlyGrowth, getAccountBalance,
 } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
@@ -40,12 +40,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 export default function NetWorthPage() {
   const { t } = useTranslation()
-  const { transactions, debts, accounts: contextAccounts } = useFinance()
+  const { transactions, debts, accounts: contextAccounts, updateAccounts } = useFinance()
   const { addToast } = useToast()
   const [accounts, setAccounts] = useState(() => contextAccounts || getAccounts())
   const [showAddModal, setShowAddModal] = useState(false)
   const [editAccount, setEditAccount] = useState(null)
   const [form, setForm] = useState({ name: '', type: 'bank', balance: '' })
+
+  useEffect(() => setAccounts(contextAccounts || []), [contextAccounts])
 
   const netWorth = useMemo(() => calculateNetWorth(transactions, debts, accounts), [transactions, debts, accounts])
   const history = useMemo(() => getNetWorthHistory(transactions, debts, accounts, 6), [transactions, debts, accounts])
@@ -73,7 +75,9 @@ export default function NetWorthPage() {
       createAccount({ name, type: form.type, balance })
       addToast(t('networth.account_added'), 'success')
     }
-    setAccounts(getAccounts())
+    const nextAccounts = getAccounts()
+    setAccounts(nextAccounts)
+    updateAccounts(nextAccounts)
     setShowAddModal(false)
     setEditAccount(null)
     resetForm()
@@ -81,7 +85,9 @@ export default function NetWorthPage() {
 
   const handleDelete = (id) => {
     deleteAccount(id)
-    setAccounts(getAccounts())
+    const nextAccounts = getAccounts()
+    setAccounts(nextAccounts)
+    updateAccounts(nextAccounts)
     addToast(t('networth.account_removed'), 'info')
   }
 
@@ -234,7 +240,7 @@ export default function NetWorthPage() {
                           {t(`networth.types.${acc.type}`, { defaultValue: acc.type })}
                         </span>
                       </div>
-                      <p className="text-lg font-extrabold tabular-nums mt-0.5">{formatCurrency(acc.balance)}</p>
+                      <p className="text-lg font-extrabold tabular-nums mt-0.5">{formatCurrency(getAccountBalance(acc, transactions))}</p>
                     </div>
                     <div className="flex gap-1 shrink-0">
                       <button

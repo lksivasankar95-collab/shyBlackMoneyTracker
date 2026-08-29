@@ -59,6 +59,7 @@ const DocumentVaultPage = lazy(() => import('./pages/DocumentVaultPage'))
 const StatementCenterPage = lazy(() => import('./pages/StatementCenterPage'))
 const PersonCenterPage = lazy(() => import('./pages/PersonCenterPage'))
 const AccountCenterPage = lazy(() => import('./pages/AccountCenterPage'))
+const WalletCenterPage = lazy(() => import('./pages/WalletCenterPage'))
 const DataQualityPage = lazy(() => import('./pages/DataQualityPage'))
 const ReviewCenterPage = lazy(() => import('./pages/ReviewCenterPage'))
 const TrendsPage = lazy(() => import('./pages/TrendsPage'))
@@ -116,6 +117,7 @@ const pages = {
   statements: StatementCenterPage,
   people: PersonCenterPage,
   'account-center': AccountCenterPage,
+  wallets: WalletCenterPage,
   'data-quality': DataQualityPage,
   review: ReviewCenterPage,
   trends: TrendsPage,

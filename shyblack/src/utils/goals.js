@@ -43,6 +43,21 @@ export function deleteGoal(id) {
   saveGoals(goals)
 }
 
+export function getGoalTransactionDelta(transaction) {
+  if (!transaction?.goalId || !transaction.goalAction) return 0
+  const amount = Number(transaction.amount) || 0
+  return transaction.goalAction === 'contribution' ? amount : transaction.goalAction === 'withdrawal' ? -amount : 0
+}
+
+export function getGoalHistory(transactions = [], goalId) {
+  return (transactions || [])
+    .filter((transaction) => transaction?.goalId === goalId && getGoalTransactionDelta(transaction) !== 0)
+    .sort((a, b) => {
+      const dateOrder = String(b.date || '').localeCompare(String(a.date || ''))
+      return dateOrder || (b.createdAt || 0) - (a.createdAt || 0)
+    })
+}
+
 export function getGoalProjection(goal) {
   if (!goal || goal.target <= 0) return null
   const remaining = Math.max(0, goal.target - goal.saved)

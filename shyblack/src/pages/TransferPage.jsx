@@ -2,17 +2,18 @@ import { useState, useMemo } from 'react'
 import {
   ArrowLeftRight, ArrowRight, AlertCircle, CheckCircle2, History, RefreshCw,
 } from 'lucide-react'
+import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { formatCurrency, formatDate } from '../utils/helpers'
 import { executeTransfer, getTransferHistory } from '../utils/transfers'
-import { getAccounts, saveAccounts } from '../utils/networth'
+import { getAccountBalance } from '../utils/networth'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 
 export default function TransferPage({ onNavigate: _onNavigate }) {
   const { t } = useTranslation()
+  const { accounts, transactions, updateAccounts } = useFinance()
   const [, setRefreshKey] = useState(0)
-  const accounts = useMemo(() => getAccounts(), [])
   const [fromId, setFromId] = useState('')
   const [toId, setToId] = useState('')
   const [amount, setAmount] = useState('')
@@ -20,8 +21,8 @@ export default function TransferPage({ onNavigate: _onNavigate }) {
   const [showHistory, setShowHistory] = useState(false)
 
   const transferHistory = useMemo(() => {
-    return getTransferHistory(getAccounts())
-  }, [])
+    return getTransferHistory(accounts)
+  }, [accounts])
 
   const handleTransfer = () => {
     if (!fromId || !toId || !amount) return
@@ -30,9 +31,13 @@ export default function TransferPage({ onNavigate: _onNavigate }) {
       return
     }
 
-    const res = executeTransfer(fromId, toId, Number(amount), getAccounts())
+    const liveAccounts = accounts.map((account) => ({
+      ...account,
+      balance: getAccountBalance(account, transactions),
+    }))
+    const res = executeTransfer(fromId, toId, Number(amount), accounts, liveAccounts)
     if (res.success) {
-      saveAccounts(res.accounts)
+      updateAccounts(res.accounts)
       setResult(res)
       setFromId('')
       setToId('')
@@ -124,7 +129,7 @@ export default function TransferPage({ onNavigate: _onNavigate }) {
                 <option value="">{t('transfer.selectAccount')}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} ({formatCurrency(a.balance)})
+                    {a.name} ({formatCurrency(getAccountBalance(a, transactions))})
                   </option>
                 ))}
               </select>
@@ -163,7 +168,7 @@ export default function TransferPage({ onNavigate: _onNavigate }) {
                 <option value="">{t('transfer.selectAccount')}</option>
                 {accounts.map((a) => (
                   <option key={a.id} value={a.id}>
-                    {a.name} ({formatCurrency(a.balance)})
+                    {a.name} ({formatCurrency(getAccountBalance(a, transactions))})
                   </option>
                 ))}
               </select>
@@ -201,7 +206,7 @@ export default function TransferPage({ onNavigate: _onNavigate }) {
                     <p className="text-xs font-medium">{a.name}</p>
                     <p className="text-[10px] text-gray-500">{a.type}</p>
                   </div>
-                  <p className="text-sm font-bold tabular-nums">{formatCurrency(a.balance)}</p>
+                  <p className="text-sm font-bold tabular-nums">{formatCurrency(getAccountBalance(a, transactions))}</p>
                 </div>
               </GlassCard>
             ))}

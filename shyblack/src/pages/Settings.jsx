@@ -5,7 +5,7 @@ import {
   Fingerprint, Handshake, History, Database, CheckCircle2, XCircle, Bell, KeyRound, Landmark,
   Calendar, Zap, Sparkles, Smartphone, Receipt as ReceiptIcon, BarChart3, ShieldCheck, Info, ExternalLink,
   Sun, Moon, Coins, RefreshCcw, FileSpreadsheet, Users, Wand2, Calculator, Store, Link as LinkIcon,
-  Tag, Plus,
+  Tag, Plus, Wallet,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useToast } from '../components/Toast'
@@ -440,6 +440,17 @@ export default function Settings({ onNavigate }) {
       {/* Advanced: Import & Splits */}
       <GlassCard className="mb-4">
         <div className="space-y-1">
+          <button onClick={() => onNavigate('wallets')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
+            <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-colors">
+              <Wallet size={16} className="text-cyan-400" />
+            </div>
+            <div className="flex-1 text-left min-w-0">
+              <p className="text-sm font-medium">{t('settings.wallets')}</p>
+              <p className="text-xs text-gray-500">{t('settings.wallets_desc')}</p>
+            </div>
+            <ChevronRight size={14} className="text-gray-500 group-hover:text-cyan-400 transition-colors" />
+          </button>
+
           <button onClick={() => onNavigate('csv-import')} className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-white/[0.03] transition-colors group">
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors">
               <FileSpreadsheet size={16} className="text-blue-400" />

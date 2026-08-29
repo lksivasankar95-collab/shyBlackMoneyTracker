@@ -30,7 +30,7 @@ import { shouldShowReviewBanner } from '../utils/reminders'
 import { isMonthlyReviewBannerDismissed, dismissMonthlyReviewBanner } from '../utils/review'
 import { shouldShowBackupBanner, isBackupBannerDismissed, dismissBackupBanner } from '../utils/backupHealth'
 import { getForecastDashboardStats } from '../utils/forecastEngine'
-import { getStoredNetWorthHistory, getNetWorthTrend } from '../utils/networth'
+import { getStoredNetWorthHistory, getNetWorthTrend, getAccountBalance } from '../utils/networth'
 
 const DashboardContent = memo(function DashboardContent({ onNavigate }) {
   const { t } = useTranslation()
@@ -91,7 +91,12 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
     setBackupBannerDismissed(true)
   }, [])
 
-  const totalCash = useMemo(() => transactions.reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0), [transactions])
+  const totalCash = useMemo(
+    () => transactions
+      .filter((transaction) => !transaction.accountId)
+      .reduce((s, t) => s + (t.type === 'income' ? (t.amount || 0) : -(t.amount || 0)), 0),
+    [transactions],
+  )
 
   const forecastStats = useMemo(
     () => getForecastDashboardStats({ transactions, recurring, emis, debts, goals, budgets }),
@@ -121,7 +126,7 @@ const DashboardContent = memo(function DashboardContent({ onNavigate }) {
       })
       .join(' ')
   }, [nwTrend])
-  const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + (a.balance || 0), 0), [accounts])
+  const totalAccountBal = useMemo(() => accounts.reduce((s, a) => s + getAccountBalance(a, transactions), 0), [accounts, transactions])
   const lentDebts = useMemo(() => debts.filter((d) => d.type === 'lent' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
   const borrowedDebts = useMemo(() => debts.filter((d) => d.type === 'borrowed' && d.status !== 'settled').reduce((s, d) => s + (d.currentBalance ?? d.remainingAmount ?? 0), 0), [debts])
   const netWorth = useMemo(() => totalCash + totalAccountBal + lentDebts - borrowedDebts, [totalCash, totalAccountBal, lentDebts, borrowedDebts])

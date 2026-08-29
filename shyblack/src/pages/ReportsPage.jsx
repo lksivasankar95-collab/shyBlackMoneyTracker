@@ -120,7 +120,7 @@ export default function ReportsPage() {
     }
   }, [exportScope, customDateFrom, customDateTo, customCategory, now])
 
-  const handleExport = useCallback(async (singleFormat) => {
+  const handleExport = useCallback(async (singleFormat, delivery = 'share') => {
     const formats = singleFormat ? [singleFormat] : (batchExport ? EXPORT_FORMATS.map((f) => f.id) : [exportFormat])
     const results = []
     const failures = []
@@ -185,7 +185,11 @@ export default function ReportsPage() {
 
         if (!blob || blob.size === 0) throw new Error(`${label} export produced an empty file`)
 
-        if (batchExport) {
+        // Keep the latest export available to the confirmation panel's Open and Share actions.
+        setPdfBlob(blob)
+        setPdfFilename(filename)
+
+        if (batchExport || delivery === 'download') {
           const saved = await downloadBlob(blob, filename)
           if (saved.success) {
             results.push(label)
@@ -218,7 +222,7 @@ export default function ReportsPage() {
     }
     if (results.length > 0) {
       addToast(
-        batchExport
+        batchExport || delivery === 'download'
           ? t('notifications.saved_to_path', { path: DOWNLOAD_RELATIVE_PATH })
           : `Shared: ${results.join(', ')}`,
         'success',
@@ -557,18 +561,39 @@ export default function ReportsPage() {
               </label>
             </div>
 
-            {/* Export Button */}
-            <button
-              onClick={() => handleExport(null)}
-              disabled={filteredTxs.length === 0 || exporting || pdfLoading}
-              className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {exporting ? (
-                <><Loader2 size={16} className="animate-spin" /> {t('common.generating')}</>
-              ) : (
-                <><Share2 size={16} /> {batchExport ? (t('reports.batch_export_btn') || 'Export All Formats') : `${t('reports.export') || 'Export'} ${EXPORT_FORMATS.find((f) => f.id === exportFormat)?.label}`}</>
-              )}
-            </button>
+            {/* Export Actions */}
+            {batchExport ? (
+              <button
+                onClick={() => handleExport(null, 'download')}
+                disabled={filteredTxs.length === 0 || exporting || pdfLoading}
+                className="btn-primary w-full text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {exporting ? (
+                  <><Loader2 size={16} className="animate-spin" /> {t('common.generating')}</>
+                ) : (
+                  <><Download size={16} /> {t('reports.batch_export_btn') || 'Export All Formats'}</>
+                )}
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleExport(null, 'download')}
+                  disabled={filteredTxs.length === 0 || exporting || pdfLoading}
+                  className="btn-primary flex-1 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {exporting ? <Loader2 size={15} className="animate-spin" /> : <Download size={15} />}
+                  {t('reports.download') || 'Download'}
+                </button>
+                <button
+                  onClick={() => handleExport(null, 'share')}
+                  disabled={filteredTxs.length === 0 || exporting || pdfLoading}
+                  className="btn-secondary flex-1 text-sm flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {exporting ? <Loader2 size={15} className="animate-spin" /> : <Share2 size={15} />}
+                  {t('reports.share') || 'Share'}
+                </button>
+              </div>
+            )}
           </GlassCard>
 
           {/* PDF Report Generation */}
@@ -766,6 +791,14 @@ export default function ReportsPage() {
                   >
                     <ExternalLink size={13} />
                     {t('reports.open_report')}
+                  </button>
+                  <button
+                    onClick={handleDownloadPDF}
+                    disabled={downloading}
+                    className="flex-1 py-2.5 rounded-xl bg-white/[0.05] text-gray-400 text-xs font-medium hover:bg-white/[0.08] transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                  >
+                    {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                    {t('reports.download') || 'Download'}
                   </button>
                   <button
                     onClick={handleSharePDF}

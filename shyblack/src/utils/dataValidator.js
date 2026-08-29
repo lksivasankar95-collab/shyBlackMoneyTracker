@@ -19,6 +19,15 @@ export const MODULE_DEFS = [
   { key: 'budgetsV2', storageKey: STORAGE_KEYS.BUDGETS_V2, kind: 'array' },
   { key: 'receipts', storageKey: STORAGE_KEYS.RECEIPT_SCANS, kind: 'array' },
   { key: 'wealthAssets', storageKey: STORAGE_KEYS.WEALTH_ASSETS, kind: 'array' },
+  { key: 'bills', storageKey: STORAGE_KEYS.BILLS, kind: 'array' },
+  { key: 'investments', storageKey: STORAGE_KEYS.INVESTMENTS, kind: 'object' },
+  { key: 'capitalGains', storageKey: STORAGE_KEYS.CAPITAL_GAINS, kind: 'object' },
+  { key: 'customCategories', storageKey: STORAGE_KEYS.CUSTOM_CATEGORIES, kind: 'array' },
+  { key: 'rules', storageKey: STORAGE_KEYS.RULES, kind: 'array' },
+  { key: 'currencySettings', storageKey: STORAGE_KEYS.CURRENCY_SETTINGS, kind: 'object' },
+  { key: 'forecastConfig', storageKey: STORAGE_KEYS.FORECAST_CONFIG, kind: 'object' },
+  { key: 'autoBackup', storageKey: STORAGE_KEYS.AUTO_BACKUP, kind: 'object' },
+  { key: 'security', storageKey: STORAGE_KEYS.SETTINGS, kind: 'object' },
 ]
 
 function validateModule(modDef) {

@@ -1,13 +1,13 @@
 import { useState, useMemo, useCallback } from 'react'
 import {
   Target, Plus, Trash2, TrendingUp, CheckCircle2, ChevronRight,
-  AlertTriangle, PiggyBank, Car, Home, Sparkles,
+  AlertTriangle, PiggyBank, Car, Home, Sparkles, PlusCircle, MinusCircle,
 } from 'lucide-react'
 import { useFinance } from '../hooks/useFinance'
 import { useTranslation } from '../i18n'
 import { useToast } from '../components/Toast'
 import { formatCurrency } from '../utils/helpers'
-import { getGoalProjection } from '../utils/goals'
+import { getGoalProjection, getGoalHistory } from '../utils/goals'
 import GlassCard from '../components/GlassCard'
 import EmptyState from '../components/EmptyState'
 import ConfirmationModal from '../components/ConfirmationModal'
@@ -22,11 +22,14 @@ const GOAL_PRESETS = [
 
 export default function GoalsPage() {
   const { t } = useTranslation()
-  const { goals: contextGoals, addGoal, editGoal, removeGoal } = useFinance()
+  const { goals: contextGoals, transactions, accounts, addGoal, editGoal, removeGoal, addGoalContribution, withdrawFromGoal } = useFinance()
   const { addToast } = useToast()
   const [showAddModal, setShowAddModal] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [editTarget, setEditTarget] = useState(null)
+  const [movementTarget, setMovementTarget] = useState(null)
+  const [movementType, setMovementType] = useState('contribution')
+  const [movementForm, setMovementForm] = useState({ amount: '', date: '', accountId: '' })
   const [form, setForm] = useState({
     name: '', target: '', saved: '', monthlyContribution: '', targetDate: '',
   })
@@ -96,6 +99,49 @@ export default function GoalsPage() {
     addToast(t('goals.goal_deleted'), 'info')
     setDeleteTarget(null)
   }, [deleteTarget, removeGoal, addToast, t])
+
+  const openMovement = useCallback((goal, type) => {
+    setMovementTarget(goal)
+    setMovementType(type)
+    setMovementForm({
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      accountId: '',
+    })
+  }, [])
+
+  const closeMovement = useCallback(() => {
+    setMovementTarget(null)
+    setMovementForm({ amount: '', date: '', accountId: '' })
+  }, [])
+
+  const handleMovement = useCallback(() => {
+    if (!movementTarget) return
+    const amount = parseFloat(movementForm.amount)
+    if (!amount || amount <= 0) {
+      addToast(t('goals.enter_valid_amount'), 'error')
+      return
+    }
+    if (!movementForm.date) {
+      addToast(t('goals.enter_valid_date'), 'error')
+      return
+    }
+    if (movementType === 'withdrawal' && amount > movementTarget.saved) {
+      addToast(t('goals.withdrawal_exceeds_saved'), 'error')
+      return
+    }
+
+    const details = { date: movementForm.date, accountId: movementForm.accountId }
+    const transaction = movementType === 'contribution'
+      ? addGoalContribution(movementTarget.id, amount, details)
+      : withdrawFromGoal(movementTarget.id, amount, details)
+    if (!transaction) {
+      addToast(t('goals.movement_failed'), 'error')
+      return
+    }
+    addToast(t(movementType === 'contribution' ? 'goals.contribution_added' : 'goals.withdrawal_added'), 'success')
+    closeMovement()
+  }, [movementTarget, movementForm, movementType, addGoalContribution, withdrawFromGoal, addToast, closeMovement, t])
 
   const achieved = useMemo(() => goalsProjections.filter((g) => g.projection?.isAchieved), [goalsProjections])
   const active = useMemo(() => goalsProjections.filter((g) => !g.projection?.isAchieved), [goalsProjections])
@@ -178,6 +224,7 @@ export default function GoalsPage() {
           {active.map((g) => {
             const p = g.projection
             const totalRemaining = p ? p.remaining : g.target - g.saved
+            const history = getGoalHistory(transactions, g.id)
 
             let forecastMonths = null
             if (p && p.monthsToGoal !== null) {
@@ -283,6 +330,39 @@ export default function GoalsPage() {
                             <span>{t('goals.almost_there', { amount: formatCurrency(totalRemaining) })}</span>
                           </div>
                         )}
+
+                        <div className="flex gap-2 mt-3" onClick={(event) => event.stopPropagation()}>
+                          <button
+                            type="button"
+                            onClick={() => openMovement(g, 'contribution')}
+                            className="flex-1 py-2 rounded-lg text-[10px] font-semibold text-neon bg-neon/10 hover:bg-neon/20 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <PlusCircle size={13} />
+                            {t('goals.add_contribution')}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openMovement(g, 'withdrawal')}
+                            className="flex-1 py-2 rounded-lg text-[10px] font-semibold text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <MinusCircle size={13} />
+                            {t('goals.withdraw')}
+                          </button>
+                        </div>
+
+                        {history.length > 0 && (
+                          <div className="mt-3 pt-2 border-t border-glass-border space-y-1">
+                            <p className="text-[10px] text-gray-600">{t('goals.recent_activity')}</p>
+                            {history.slice(0, 3).map((movement) => (
+                              <div key={movement.id} className="flex items-center justify-between text-[10px]">
+                                <span className="text-gray-500">{movement.date}</span>
+                                <span className={movement.goalAction === 'contribution' ? 'text-neon' : 'text-amber-400'}>
+                                  {movement.goalAction === 'contribution' ? '+' : '-'}{formatCurrency(movement.amount)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </>
                     )}
                   </div>
@@ -292,6 +372,61 @@ export default function GoalsPage() {
           })}
         </div>
       )}
+
+      {/* Goal Contribution / Withdrawal Modal */}
+      <Modal
+        open={!!movementTarget}
+        onClose={closeMovement}
+        title={movementType === 'contribution' ? t('goals.add_contribution') : t('goals.withdraw')}
+      >
+        <div className="space-y-4">
+          <p className="text-xs text-gray-500">{movementTarget?.name}</p>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('goals.movement_amount')}</label>
+            <input
+              type="number"
+              min="0.01"
+              step="0.01"
+              value={movementForm.amount}
+              onChange={(event) => setMovementForm((formState) => ({ ...formState, amount: event.target.value }))}
+              className="input-field text-lg font-bold tabular-nums"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('goals.movement_date')}</label>
+            <input
+              type="date"
+              value={movementForm.date}
+              onChange={(event) => setMovementForm((formState) => ({ ...formState, date: event.target.value }))}
+              className="input-field"
+            />
+          </div>
+          {accounts.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-500 font-medium mb-1.5 block">{t('goals.movement_account')}</label>
+              <select
+                value={movementForm.accountId}
+                onChange={(event) => setMovementForm((formState) => ({ ...formState, accountId: event.target.value }))}
+                className="input-field"
+              >
+                <option value="">{t('transactions.no_account')}</option>
+                {accounts.map((account) => (
+                  <option key={account.id} value={account.id}>{account.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+          <div className="flex gap-2">
+            <button onClick={closeMovement} className="flex-1 py-2.5 rounded-xl text-xs text-gray-500 hover:text-white bg-white/[0.03] transition-colors">
+              {t('common.cancel')}
+            </button>
+            <button onClick={handleMovement} className="flex-1 btn-primary text-xs">
+              {movementType === 'contribution' ? t('goals.add_contribution') : t('goals.withdraw')}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       {/* Add/Edit Goal Modal */}
       <Modal
