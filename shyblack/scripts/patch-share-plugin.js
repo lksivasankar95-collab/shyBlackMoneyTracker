@@ -1,15 +1,23 @@
 /**
- * Patches @capacitor/share v5.x SharePlugin.java to specify RECEIVER_NOT_EXPORTED.
+ * Patches @capacitor/share v5.x SharePlugin.java to fix two Android 14+ crashes
+ * that the plugin (built for targetSdk < 34) triggers on targetSdk 34/35 apps.
  *
- * Android 14+ (targetSdk >= 34) throws SecurityException at startup when a
- * BroadcastReceiver is registered without RECEIVER_EXPORTED / RECEIVER_NOT_EXPORTED.
- * The unpatched plugin crashes the app instantly on launch.
- * This mirrors the official fix shipped in @capacitor/share v6.
+ * 1. SecurityException at startup: a BroadcastReceiver registered without
+ *    RECEIVER_EXPORTED / RECEIVER_NOT_EXPORTED crashes the app on launch.
+ * 2. IllegalArgumentException on Share: a PendingIntent built with FLAG_MUTABLE
+ *    and an implicit Intent is rejected by Android 14+ (targetSdk >= 34), killing
+ *    the process (SIG 9) when the user taps Share.
+ *
+ * Both mirror the official fixes shipped in @capacitor/share v6.
  *
  * Wired as "postinstall" in package.json so the patch survives npm install.
  */
-const fs = require('fs')
-const path = require('path')
+import fs from 'fs'
+import path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const target = path.join(
   __dirname,
@@ -35,23 +43,15 @@ if (!fs.existsSync(target)) {
 
 let src = fs.readFileSync(target, 'utf8')
 
-if (src.includes('RECEIVER_NOT_EXPORTED')) {
-  console.log('[patch-share] already patched')
-  process.exit(0)
-}
-
-// 1. Add ContextCompat import
 const importAnchor = 'import androidx.core.content.FileProvider;'
 if (!src.includes(importAnchor)) {
   console.error('[patch-share] unexpected file layout — import anchor missing, aborting')
   process.exit(1)
 }
-src = src.replace(
-  importAnchor,
-  'import androidx.core.content.ContextCompat;\n' + importAnchor
-)
 
-// 2. Replace the unsafe receiver registration
+let changed = false
+
+// --- Fix 1: receiver registration must declare RECEIVER_NOT_EXPORTED ---
 const oldReg =
   'getActivity().registerReceiver(broadcastReceiver, new IntentFilter(Intent.EXTRA_CHOSEN_COMPONENT));'
 const newReg = [
@@ -63,11 +63,49 @@ const newReg = [
   '    );',
 ].join('\n')
 
-if (!src.includes(oldReg)) {
-  console.error('[patch-share] unexpected file layout — registration call missing, aborting')
-  process.exit(1)
+if (!src.includes('RECEIVER_NOT_EXPORTED')) {
+  if (!src.includes(importAnchor)) {
+    src = src.replace(
+      importAnchor,
+      'import androidx.core.content.ContextCompat;\n' + importAnchor
+    )
+  }
+  if (!src.includes(oldReg)) {
+    console.error('[patch-share] unexpected file layout — registration call missing, aborting')
+    process.exit(1)
+  }
+  src = src.replace(oldReg, newReg)
+  changed = true
 }
-src = src.replace(oldReg, newReg)
 
-fs.writeFileSync(target, src)
-console.log('[patch-share] patched SharePlugin.java with RECEIVER_NOT_EXPORTED')
+// --- Fix 2: allow unsafe implicit intent on Android 14+ (targetSdk >= 34) ---
+// Android 14+ rejects a PendingIntent with FLAG_MUTABLE on an implicit Intent
+// unless FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT is set, killing the process on Share.
+// Mirrors the official @capacitor/share v6 fix.
+const flagsAnchor =
+  '            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {\n' +
+  '                flags = flags | PendingIntent.FLAG_MUTABLE;\n' +
+  '            }'
+const safeFlags =
+  '            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {\n' +
+  '                flags = flags | PendingIntent.FLAG_MUTABLE;\n' +
+  '            }\n' +
+  '            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {\n' +
+  '                flags = flags | PendingIntent.FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT;\n' +
+  '            }'
+
+if (!src.includes('FLAG_ALLOW_UNSAFE_IMPLICIT_INTENT')) {
+  if (!src.includes(flagsAnchor)) {
+    console.error('[patch-share] unexpected file layout — flags block missing, aborting')
+    process.exit(1)
+  }
+  src = src.replace(flagsAnchor, safeFlags)
+  changed = true
+}
+
+if (changed) {
+  fs.writeFileSync(target, src)
+  console.log('[patch-share] patched SharePlugin.java')
+} else {
+  console.log('[patch-share] already patched')
+}
