@@ -62,20 +62,24 @@ const newReg = [
   '        ContextCompat.RECEIVER_NOT_EXPORTED',
   '    );',
 ].join('\n')
-
-if (!src.includes('RECEIVER_NOT_EXPORTED')) {
+// Ensure ContextCompat is imported even when the receiver patch already exists.
+if (
+  src.includes('ContextCompat.RECEIVER_NOT_EXPORTED') &&
+  !src.includes('import androidx.core.content.ContextCompat;')
+) {
   if (!src.includes(importAnchor)) {
-    src = src.replace(
-      importAnchor,
-      'import androidx.core.content.ContextCompat;\n' + importAnchor
-    )
+    console.error(
+      '[patch-share] unexpected file layout — import anchor missing, aborting'
+    );
+    process.exit(1);
   }
-  if (!src.includes(oldReg)) {
-    console.error('[patch-share] unexpected file layout — registration call missing, aborting')
-    process.exit(1)
-  }
-  src = src.replace(oldReg, newReg)
-  changed = true
+
+  src = src.replace(
+    importAnchor,
+    'import androidx.core.content.ContextCompat;\n' + importAnchor
+  );
+
+  changed = true;
 }
 
 // --- Fix 2: allow unsafe implicit intent on Android 14+ (targetSdk >= 34) ---
