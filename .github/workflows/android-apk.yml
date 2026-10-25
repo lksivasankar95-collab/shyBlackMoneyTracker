@@ -1,5 +1,5 @@
 
-name: Build ShyBlack Money Tracker APK
+name: Build ShyBlack Money Tracker Release APK
 
 on:
   workflow_dispatch:
@@ -14,7 +14,8 @@ permissions:
   contents: read
 
 jobs:
-  build-apk:
+  build-release:
+    name: Build signed release APK
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -52,16 +53,53 @@ jobs:
         working-directory: shyblack
         run: npx cap sync android
 
-      - name: Build debug APK
+      - name: Configure release signing
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          test -n "$KEY_ALIAS"
+          test -n "$KEY_PASSWORD"
+
+          echo "$KEYSTORE_BASE64" | base64 --decode \
+            > shyblack/android/app/release-key.jks
+
+          cat > shyblack/android/keystore.properties <<EOF
+          storeFile=release-key.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          EOF
+
+          test -s shyblack/android/app/release-key.jks
+
+      - name: Build release APK
         working-directory: shyblack/android
         run: |
           chmod +x gradlew
-          ./gradlew --no-daemon assembleDebug
+          ./gradlew --no-daemon --stacktrace assembleRelease
 
-      - name: Upload APK
+      - name: Verify release APK
+        run: |
+          test -s shyblack/android/app/build/outputs/apk/release/app-release.apk
+
+      - name: Upload signed release APK
         uses: actions/upload-artifact@v4
         with:
-          name: ShyBlack-Money-Tracker-APK
-          path: shyblack/android/app/build/outputs/apk/debug/app-debug.apk
+          name: ShyBlack-Money-Tracker-Release-APK
+          path: shyblack/android/app/build/outputs/apk/release/app-release.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Remove temporary signing files
+        if: always()
+        run: |
+          rm -f shyblack/android/app/release-key.jks
+          rm -f shyblack/android/keystore.properties
